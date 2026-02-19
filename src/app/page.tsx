@@ -14,6 +14,20 @@ export const metadata: Metadata = {
   title: "eLearning",
 };
 
+export interface PromotionType {
+    _id: string
+    niveau: String
+    designation: String
+    description: String[]
+    semestres?: {
+        designation: String
+        credit: Number
+        unites: any[]
+    }[]
+    createdAt: Date
+    updatedAt: Date
+}
+
 export interface SectionType {
     _id: string
     mention: string
@@ -49,17 +63,19 @@ export default async function Home() {
   console.log("Section being used:", section);
   console.log("Section ID:", section._id);
 
-  let allPromotions = [];
+  let allPromotions : PromotionType[] = [];
 
   section.filieres?.forEach(filiere => {
     allPromotions.push(...filiere.programmes || []);
   });
 
+  console.log("Liste of promotions : ", allPromotions);
+
   return (
     <main>
       <Hero section={section} />
       <Companies section={section} />
-      <Courses />
+      <Courses section={section} promotions={allPromotions} />
       <Mentor />
       <Testimonial />
       <ContactForm/>

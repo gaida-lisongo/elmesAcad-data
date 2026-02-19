@@ -359,4 +359,4 @@ const Companies = ({ section }: { section: SectionType }) => {
   )
 }
 
-export default Com
+export default Companies
