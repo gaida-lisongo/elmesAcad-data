@@ -6,98 +6,84 @@ import Slider from 'react-slick'
 import { Icon } from '@iconify/react'
 import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'
-import { SectionType } from '@/app/page'
 import { useAuthStore } from '@/store/auth.store'
-import { updateSection } from '@/app/actions/section.actions'
+import { fetchFilieres, createFiliere, updateFiliere, deleteFiliere } from '@/app/actions/filiere.actions'
 
-const Companies = ({ section }: { section: SectionType }) => {
+interface IFiliere {
+  _id: string
+  designation: string
+  description: string
+  icon?: string
+}
+
+const Filieres = () => {
   const router = useRouter()
   const { isAuthenticated, hydrated } = useAuthStore()
+  const [filieres, setFilieres] = useState<IFiliere[]>([])
+  const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [showModal, setShowModal] = useState(false)
-  const [editingFiliere, setEditingFiliere] = useState<any | null>(null)
-  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [editingFiliere, setEditingFiliere] = useState<IFiliere | null>(null)
   const [formData, setFormData] = useState({
-    sigle: '',
     designation: '',
     description: '',
+    icon: 'mdi:home',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const filieres = section.filieres || []
-
   useEffect(() => {
     setMounted(true)
+    loadFilieres()
   }, [])
 
-  const handleFiliereClick = (filiereId: string) => {
-    if (filiereId) {
-      router.push(`/filiere/${filiereId}`)
+  const loadFilieres = async () => {
+    setLoading(true)
+    try {
+      const result = await fetchFilieres()
+      if (result.success && result.data) {
+        setFilieres(result.data)
+      }
+    } catch (error) {
+      console.error('Error loading filieres:', error)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  const handleFiliereClick = (id: string) => {
+    router.push(`/filiere/${id}`)
   }
 
   const openAddModal = () => {
     setEditingFiliere(null)
-    setEditingIndex(null)
-    setFormData({ sigle: '', designation: '', description: '' })
+    setFormData({ designation: '', description: '', icon: 'mdi:home' })
     setShowModal(true)
   }
 
-  const openEditModal = (filiere: any, index: number) => {
+  const openEditModal = (filiere: IFiliere) => {
     setEditingFiliere(filiere)
-    setEditingIndex(index)
     setFormData({
-      sigle: String(filiere.sigle || ''),
-      designation: String(filiere.designation || ''),
-      description: Array.isArray(filiere.description) 
-        ? filiere.description.join(', ') 
-        : String(filiere.description || ''),
+      designation: filiere.designation,
+      description: filiere.description,
+      icon: filiere.icon || 'mdi:home',
     })
     setShowModal(true)
   }
 
   const handleSubmit = async () => {
-    if (!formData.sigle || !formData.designation || !formData.description) {
+    if (!formData.designation || !formData.description) {
       alert('Tous les champs sont requis')
-      return
-    }
-
-    if (!section._id || section._id === '') {
-      alert('Impossible de modifier les filières: Section ID manquant. Veuillez d\'abord créer une section.')
       return
     }
 
     setIsSubmitting(true)
     try {
-      let updatedFilieres = [...filieres]
-
-      const filiereData = {
-        sigle: formData.sigle,
-        designation: formData.designation,
-        description: formData.description.split(',').map(d => d.trim()),
-        programmes: [],
-      }
-
-      if (editingIndex !== null) {
-        // Update existing - keep _id if it exists and is valid
-        const existingId = updatedFilieres[editingIndex]._id
-        updatedFilieres[editingIndex] = {
-          ...filiereData,
-          ...(existingId && existingId !== '' ? { _id: existingId } : {}),
-        } as any
+      let result
+      if (editingFiliere) {
+        result = await updateFiliere(editingFiliere._id, formData)
       } else {
-        // Add new - don't include _id, let MongoDB generate it
-        updatedFilieres.push(filiereData)
+        result = await createFiliere(formData)
       }
-
-      // Clean up: remove empty _id fields before saving
-      const cleanedFilieres = updatedFilieres.map((filiere: any) => {
-        const { _id, ...rest } = filiere
-        // Only include _id if it's not empty
-        return _id && _id !== '' ? { _id, ...rest } : rest
-      })
-
-      const result = await updateSection(section._id, { filieres: cleanedFilieres } as any)
 
       if (!result.success) {
         alert(result.error || 'Une erreur est survenue')
@@ -105,8 +91,8 @@ const Companies = ({ section }: { section: SectionType }) => {
       }
 
       setShowModal(false)
-      alert(`Filière ${editingIndex !== null ? 'modifiée' : 'créée'} avec succès`)
-      window.location.reload()
+      loadFilieres()
+      alert(`Filière ${editingFiliere ? 'modifiée' : 'créée'} avec succès`)
     } catch (error) {
       console.error('Error saving filiere:', error)
       alert('Une erreur est survenue')
@@ -115,33 +101,18 @@ const Companies = ({ section }: { section: SectionType }) => {
     }
   }
 
-  const handleDelete = async (index: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Voulez-vous vraiment supprimer cette filière ?')) return
 
-    if (!section._id || section._id === '') {
-      alert('Impossible de supprimer: Section ID manquant')
-      return
-    }
-
     try {
-      const updatedFilieres = filieres.filter((_, i) => i !== index)
-      
-      // Clean up: remove empty _id fields before saving
-      const cleanedFilieres = updatedFilieres.map((filiere: any) => {
-        const { _id, ...rest } = filiere
-        // Only include _id if it's not empty
-        return _id && _id !== '' ? { _id, ...rest } : rest
-      })
-      
-      const result = await updateSection(section._id, { filieres: cleanedFilieres } as any)
-
+      const result = await deleteFiliere(id)
       if (!result.success) {
         alert(result.error || 'Une erreur est survenue')
         return
       }
 
+      loadFilieres()
       alert('Filière supprimée avec succès')
-      window.location.reload()
     } catch (error) {
       console.error('Error deleting filiere:', error)
       alert('Une erreur est survenue')
@@ -190,62 +161,68 @@ const Companies = ({ section }: { section: SectionType }) => {
   }
 
   return (
-    <section className='text-center py-10'>
+    <section className='text-center py-10 bg-white'>
       <div className='container'>
         <div className='flex justify-between items-center mb-6'>
           <h6 className='text-midnight_text capitalize text-2xl font-semibold'>
             Nos Filières
           </h6>
           {mounted && hydrated && isAuthenticated() && (
-            <>
-              {!section._id || section._id === '' ? (
-                <div className='text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg border border-red-200'>
-                  ⚠️ Créez d'abord une section dans Hero (bouton "Modifier" en haut)
-                </div>
-              ) : (
-                <button
-                  onClick={openAddModal}
-                  className='flex items-center gap-2 bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-lg font-medium transition shadow-md'
-                >
-                  <Icon icon='material-symbols:add' width={20} height={20} />
-                  Ajouter
-                </button>
-              )}
-            </>
+            <button
+              onClick={openAddModal}
+              className='flex items-center gap-2 bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-lg font-medium transition shadow-md'
+            >
+              <Icon icon='material-symbols:add' width={20} height={20} />
+              Ajouter une filière
+            </button>
           )}
         </div>
 
-        {filieres.length === 0 ? (
+        {loading ? (
+          <div className='flex justify-center py-10'>
+            <Icon icon='eos-icons:loading' className='text-primary text-4xl' />
+          </div>
+        ) : filieres.length === 0 ? (
           <div className='py-10 text-gray-500'>
             <p>Aucune filière disponible</p>
+            {mounted && hydrated && isAuthenticated() && (
+              <button
+                onClick={openAddModal}
+                className='mt-4 text-primary hover:underline'
+              >
+                Ajouter la première filière
+              </button>
+            )}
           </div>
         ) : (
           <div className='py-7 border-b'>
             <Slider {...settings}>
-              {filieres.map((filiere, index) => (
-                <div key={index} className='px-2'>
+              {filieres.map((filiere) => (
+                <div key={filiere._id} className='px-2'>
                   <div className='relative group'>
                     <div
                       onClick={() => handleFiliereClick(filiere._id)}
                       className='cursor-pointer bg-gray-50 hover:bg-gray-100 rounded-lg p-6 transition-all duration-300 border border-gray-200 hover:border-primary h-full flex flex-col items-center justify-center gap-4'
                     >
-                      <Icon icon='mdi:home' className='text-primary text-6xl' />
+                      <Icon
+                        icon={filiere.icon || 'mdi:home'}
+                        className='text-primary text-6xl'
+                      />
                       <h4 className='font-semibold text-lg text-midnight_text'>
-                        {String(filiere.designation)}
+                        {filiere.designation}
                       </h4>
                       <p className='text-sm text-gray-600 line-clamp-2'>
-                        {Array.isArray(filiere.description)
-                          ? filiere.description.join(', ')
-                          : String(filiere.description)}
+                        {filiere.description}
                       </p>
                     </div>
 
-                    {mounted && hydrated && isAuthenticated() && section._id && section._id !== '' && (
+                    {/* Admin Controls */}
+                    {mounted && hydrated && isAuthenticated() && (
                       <div className='absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1'>
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            openEditModal(filiere, index)
+                            openEditModal(filiere)
                           }}
                           className='bg-blue-500 text-white p-1.5 rounded-lg hover:bg-blue-600 transition'
                         >
@@ -254,7 +231,7 @@ const Companies = ({ section }: { section: SectionType }) => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleDelete(index)
+                            handleDelete(filiere._id)
                           }}
                           className='bg-red-500 text-white p-1.5 rounded-lg hover:bg-red-600 transition'
                         >
@@ -270,6 +247,7 @@ const Companies = ({ section }: { section: SectionType }) => {
         )}
       </div>
 
+      {/* Modal CRUD */}
       {showModal && (
         <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
           <div className='bg-white rounded-lg p-6 max-w-md w-full'>
@@ -286,20 +264,6 @@ const Companies = ({ section }: { section: SectionType }) => {
             </div>
 
             <div className='space-y-4'>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Sigle
-                </label>
-                <input
-                  type='text'
-                  value={formData.sigle}
-                  onChange={(e) => setFormData({ ...formData, sigle: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary'
-                  placeholder='Ex: INFO'
-                  disabled={isSubmitting}
-                />
-              </div>
-
               <div>
                 <label className='block text-sm font-medium text-gray-700 mb-1'>
                   Désignation
@@ -323,9 +287,39 @@ const Companies = ({ section }: { section: SectionType }) => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
                   className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary'
-                  placeholder='Décrivez la filière... (séparez par des virgules)'
+                  placeholder='Décrivez la filière...'
                   disabled={isSubmitting}
                 />
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Icône (Iconify)
+                </label>
+                <div className='flex gap-2'>
+                  <input
+                    type='text'
+                    value={formData.icon}
+                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                    className='flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary'
+                    placeholder='mdi:home'
+                    disabled={isSubmitting}
+                  />
+                  <div className='w-12 h-10 border border-gray-300 rounded-lg flex items-center justify-center bg-gray-50'>
+                    <Icon icon={formData.icon || 'mdi:home'} className='text-primary text-xl' />
+                  </div>
+                </div>
+                <p className='text-xs text-gray-500 mt-1'>
+                  Recherchez des icônes sur{' '}
+                  <a
+                    href='https://icon-sets.iconify.design/'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-primary hover:underline'
+                  >
+                    Iconify
+                  </a>
+                </p>
               </div>
             </div>
 
@@ -359,4 +353,4 @@ const Companies = ({ section }: { section: SectionType }) => {
   )
 }
 
-export default Com
+export default Filieres

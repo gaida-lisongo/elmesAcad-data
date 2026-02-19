@@ -33,7 +33,7 @@ export interface SectionType {
 
 export default async function Home() {
   const req = await fetchSections();
-  console.log("Sections data:", req);
+  console.log("Sections fetch result:", req);
 
   const section: SectionType = req.data?.length ? req.data[0] : {
     _id: "",
@@ -41,17 +41,13 @@ export default async function Home() {
     designation: "",
     mission: "",
     promesses: [],
-    filieres: [{
-      _id: "",
-      sigle: "",
-      designation: "",
-      description: "",
-      programmes: []
-    }],
+    filieres: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   } as SectionType;
-  console.log("First section:", section);
+  
+  console.log("Section being used:", section);
+  console.log("Section ID:", section._id);
 
   let allPromotions = [];
 
@@ -62,7 +58,7 @@ export default async function Home() {
   return (
     <main>
       <Hero section={section} />
-      <Companies />
+      <Companies section={section} />
       <Courses />
       <Mentor />
       <Testimonial />

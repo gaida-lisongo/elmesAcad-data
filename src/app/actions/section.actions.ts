@@ -29,8 +29,13 @@ export async function createSection(data: { mention: string; designation: string
 
 export async function updateSection(id: string, data: Partial<{ mention: string; designation: string; mission: string; promesses: string[] }>): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
+    // Validate ID before attempting update
+    if (!id || id === '' || id.length !== 24) {
+      return { success: false, error: "Invalid section ID. Please create a section first." };
+    }
+
     await connectDB();
-    const updatedSection = await Section.findByIdAndUpdate(id, data, { new: true }).lean();
+    const updatedSection = await Section.findByIdAndUpdate(id, data, { returnDocument: 'after' }).lean();
     if (!updatedSection) {
       return { success: false, error: "Section not found" };
     }
