@@ -1,9 +1,13 @@
 'use client'
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useState, useRef } from "react";
+import { useAuthStore } from "@/store/auth.store";
+import { Icon } from "@iconify/react";
 
 export default function ScrollToTop() {
   const [isVisible, setIsVisible] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { isAuthenticated, user } = useAuthStore();
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   // Top: 0 takes us all the way back to the top of the page
   // Behavior: smooth keeps it smooth!
@@ -12,6 +16,16 @@ export default function ScrollToTop() {
       top: 0,
       behavior: "smooth",
     });
+  };
+
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+      drawerRef.current &&
+      !drawerRef.current.contains(event.target as Node) &&
+      isDrawerOpen
+    ) {
+      setIsDrawerOpen(false);
+    }
   };
 
   useEffect(() => {
@@ -25,26 +39,131 @@ export default function ScrollToTop() {
     };
 
     window.addEventListener("scroll", toggleVisibility);
+    document.addEventListener("mousedown", handleClickOutside);
 
-    return () => window.removeEventListener("scroll", toggleVisibility);
-  }, []);
+    return () => {
+      window.removeEventListener("scroll", toggleVisibility);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDrawerOpen]);
+
+  useEffect(() => {
+    if (isDrawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [isDrawerOpen]);
 
   return (
-    <div className="fixed bottom-8 right-8 z-999">
-      <div className="flex items-center gap-2.5">
-        <Link href={"https://getnextjstemplates.com/products/e-learning-nextjs-with-app-directory-free-landing-page-template"} target="_blank" className="hidden lg:block bg-primary text-white hover:bg-primary/15 hover:text-primary text-sm font-medium px-4 py-3.5 leading-none rounded-lg text-nowrap">
-          Download Now
-        </Link>
-        {isVisible && (
-          <div
-            onClick={scrollToTop}
-            aria-label="scroll to top"
-            className="back-to-top flex h-10 w-10 cursor-pointer items-center justify-center rounded-md bg-primary text-white shadow-md transition duration-300 ease-in-out hover:bg-dark"
-          >
-            <span className="mt-[6px] h-3 w-3 rotate-45 border-l border-t border-white"></span>
-          </div>
-        )}
+    <>
+      <div className="fixed bottom-8 right-8 z-999">
+        <div className="flex items-center gap-2.5">
+          {isAuthenticated() && (
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="bg-primary text-white hover:bg-primary/15 hover:text-primary text-sm font-medium px-4 py-3.5 leading-none rounded-lg text-nowrap transition duration-300 ease-in-out"
+            >
+              {user?.matricule || 'Mon compte'}
+            </button>
+          )}
+          {isVisible && (
+            <div
+              onClick={scrollToTop}
+              aria-label="scroll to top"
+              className="back-to-top flex h-10 w-10 cursor-pointer items-center justify-center rounded-md bg-primary text-white shadow-md transition duration-300 ease-in-out hover:bg-dark"
+            >
+              <span className="mt-[6px] h-3 w-3 rotate-45 border-l border-t border-white"></span>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Overlay */}
+      {isDrawerOpen && (
+        <div className="fixed top-0 left-0 w-full h-full bg-black/50 z-[998]" />
+      )}
+
+      {/* Drawer */}
+      <div
+        ref={drawerRef}
+        className={`fixed top-0 right-0 h-full w-full bg-white shadow-lg transform transition-transform duration-300 max-w-sm ${
+          isDrawerOpen ? 'translate-x-0' : 'translate-x-full'
+        } z-[999]`}
+      >
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-semibold text-black">Menu</h2>
+          <button
+            onClick={() => setIsDrawerOpen(false)}
+            className="hover:cursor-pointer hover:bg-gray-100 p-2 rounded-lg transition"
+            aria-label="Close drawer"
+          >
+            <Icon
+              icon="material-symbols:close-rounded"
+              width={24}
+              height={24}
+              className="text-black hover:text-primary"
+            />
+          </button>
+        </div>
+
+        <nav className="flex flex-col p-6">
+          <div className="space-y-4">
+            <div className="pb-4 border-b">
+              <p className="text-sm text-gray-500 mb-2">Utilisateur connecté</p>
+              <p className="font-medium text-black">{user?.nomComplet || 'User'}</p>
+              <p className="text-sm text-gray-600">{user?.email || ''}</p>
+            </div>
+
+            <a
+              href="#dashboard"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
+              onClick={() => setIsDrawerOpen(false)}
+            >
+              <Icon icon="material-symbols:dashboard-outline" width={24} height={24} className="text-primary" />
+              <span className="text-black font-medium">Tableau de bord</span>
+            </a>
+
+            <a
+              href="#courses"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
+              onClick={() => setIsDrawerOpen(false)}
+            >
+              <Icon icon="material-symbols:book-outline" width={24} height={24} className="text-primary" />
+              <span className="text-black font-medium">Mes cours</span>
+            </a>
+
+            <a
+              href="#profile"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
+              onClick={() => setIsDrawerOpen(false)}
+            >
+              <Icon icon="material-symbols:person-outline" width={24} height={24} className="text-primary" />
+              <span className="text-black font-medium">Profil</span>
+            </a>
+
+            <a
+              href="#settings"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
+              onClick={() => setIsDrawerOpen(false)}
+            >
+              <Icon icon="material-symbols:settings-outline" width={24} height={24} className="text-primary" />
+              <span className="text-black font-medium">Paramètres</span>
+            </a>
+
+            <button
+              onClick={() => {
+                setIsDrawerOpen(false);
+                // Ici on pourrait appeler logout()
+              }}
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 transition w-full text-left mt-4"
+            >
+              <Icon icon="material-symbols:logout" width={24} height={24} className="text-red-500" />
+              <span className="text-red-500 font-medium">Déconnexion</span>
+            </button>
+          </div>
+        </nav>
+      </div>
+    </>
   );
 }
