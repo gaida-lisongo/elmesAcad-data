@@ -3,8 +3,29 @@
 import Link from 'next/link'
 import SocialSignIn from '../SocialSignIn'
 import Logo from '@/app/components/Layout/Header/Logo'
+import { useState } from 'react'
 
 const Signin = () => {
+  const [formData, setFormData] = useState({
+    matricule: '',
+    password: '',
+  })
+
+  const login = async () => {
+    try {
+      const res = await fetch('/api/user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+      if (!res.ok) throw new Error('Login failed')
+      const data = await res.json()
+      console.log('Login successful:', data)
+    } catch (error) {
+      console.error('Error during login:', error)
+    }
+  }
+
   return (
     <>
       <div className='mb-10 text-center mx-auto inline-block'>
@@ -19,11 +40,13 @@ const Signin = () => {
         </span>
       </span>
 
-      <form onSubmit={(e) => e.preventDefault()}>
+      <form onSubmit={(e) => { e.preventDefault(); login(); }}>
         <div className='mb-[22px]'>
           <input
-            type='email'
-            placeholder='Email'
+            type='text'
+            placeholder='Matricule'
+            value={formData.matricule}
+            onChange={(e) => setFormData({ ...formData, matricule: e.target.value })}
             className='w-full rounded-md border border-solid bg-transparent px-5 py-3 text-base text-dark outline-hidden transition border-gray-200 placeholder:text-black/30 focus:border-primary focus-visible:shadow-none text-black'
           />
         </div>
@@ -31,14 +54,17 @@ const Signin = () => {
           <input
             type='password'
             placeholder='Password'
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             className='w-full rounded-md border border-solid bg-transparent px-5 py-3 text-base text-dark outline-hidden transition border-gray-200 placeholder:text-black/30 focus:border-primary focus-visible:shadow-none text-black'
           />
         </div>
         <div className='mb-9'>
           <button
+
             type='submit'
             className='bg-primary w-full py-3 rounded-lg text-18 font-medium border text-white border-primary hover:text-primary hover:bg-transparent hover:cursor-pointer transition duration-300 ease-in-out'>
-            Sign In
+            Se connecter
           </button>
         </div>
       </form>
@@ -46,12 +72,12 @@ const Signin = () => {
       <Link
         href='/'
         className='mb-2 inline-block text-base text-black hover:text-primary  hover:underline'>
-        Forgot Password?
+        Mot de passe oublié ?
       </Link>
       <p className='text-black text-base'>
-        Not a member yet?{' '}
+        Pas encore membre ?{' '}
         <Link href='/' className='text-primary hover:underline'>
-          Sign Up
+          S'inscrire
         </Link>
       </p>
     </>
