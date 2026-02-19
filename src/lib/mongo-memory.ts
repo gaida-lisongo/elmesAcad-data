@@ -3,9 +3,23 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import path from "path";
 
 let mongoServer: MongoMemoryServer | null = null;
+let lastUri: string | null = null;
 
 export async function startMongoMemoryServer() {
-  if (mongoServer) return mongoServer;
+  if (mongoServer) {
+    // Check if the server is actually running
+    try {
+      const uri = mongoServer.getUri();
+      if (uri === lastUri) {
+        return mongoServer;
+      }
+      // URI changed, stop and restart
+      await mongoServer.stop().catch(() => {});
+      mongoServer = null;
+    } catch {
+      mongoServer = null;
+    }
+  }
 
   try {
     console.log("Starting MongoMemoryServer...");
@@ -13,18 +27,17 @@ export async function startMongoMemoryServer() {
     mongoServer = await MongoMemoryServer.create({
       instance: {
         dbName: "elmes_dev",
-        dbPath: path.resolve("./mongodb-data"), // persistance ici
-        port: 27017,
-        launchTimeout: 60000, // Increase timeout to 60 seconds
+        launchTimeout: 60000,
       },
       binary: {
         downloadDir: path.resolve("./mongodb-binaries"),
-        version: "6.0.12", // Use a specific stable version
-        checkMD5: false, // Skip MD5 check to speed up on Windows
+        version: "6.0.12",
+        checkMD5: false,
       },
     });
 
-    console.log("MongoMemoryServer started at:", mongoServer.getUri());
+    lastUri = mongoServer.getUri();
+    console.log("MongoMemoryServer started at:", lastUri);
 
     return mongoServer;
   } catch (error) {
