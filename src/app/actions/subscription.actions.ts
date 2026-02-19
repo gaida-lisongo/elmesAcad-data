@@ -1,0 +1,241 @@
+"use server";
+
+import { connectDB } from "@/lib/mongoose";
+import { Subscription } from "@/lib/models/User";
+import mongoose from "mongoose";
+
+export interface SubscriptionType {
+  _id: string;
+  etudiant: string;
+  promotion: string;
+  annee: string;
+  isValid: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export async function fetchSubscriptions(): Promise<{ success: boolean; data?: SubscriptionType[]; error?: string }> {
+  try {
+    await connectDB();
+    const subscriptions = await Subscription.find().lean();
+    const plainSubscriptions = JSON.parse(JSON.stringify(subscriptions));
+    return { success: true, data: plainSubscriptions as SubscriptionType[] };
+  } catch (error) {
+    console.error("Error fetching subscriptions:", error);
+    return { success: false, error: "Failed to fetch subscriptions" };
+  }
+}
+
+export async function fetchSubscriptionsByPromotion(
+  promotionId: string,
+  anneeId: string
+): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  try {
+    await connectDB();
+    
+    const subscriptions = await Subscription.find({
+      promotion: new mongoose.Types.ObjectId(promotionId),
+      annee: new mongoose.Types.ObjectId(anneeId),
+    })
+      .populate('etudiant', '-passwordHash')
+      .lean();
+
+    const plainSubscriptions = JSON.parse(JSON.stringify(subscriptions));
+    return { success: true, data: plainSubscriptions };
+  } catch (error) {
+    console.error("Error fetching subscriptions by promotion:", error);
+    return { success: false, error: "Failed to fetch subscriptions" };
+  }
+}
+
+export async function fetchSubscriptionsByStudent(
+  studentId: string
+): Promise<{ success: boolean; data?: SubscriptionType[]; error?: string }> {
+  try {
+    await connectDB();
+    
+    const subscriptions = await Subscription.find({
+      etudiant: new mongoose.Types.ObjectId(studentId),
+    }).lean();
+
+    const plainSubscriptions = JSON.parse(JSON.stringify(subscriptions));
+    return { success: true, data: plainSubscriptions as SubscriptionType[] };
+  } catch (error) {
+    console.error("Error fetching subscriptions by student:", error);
+    return { success: false, error: "Failed to fetch subscriptions" };
+  }
+}
+
+export async function createSubscription(data: {
+  etudiantId: string;
+  promotionId: string;
+  anneeId: string;
+  isValid?: boolean;
+}): Promise<{ success: boolean; data?: SubscriptionType; error?: string }> {
+  try {
+    await connectDB();
+
+    if (!data.etudiantId || !data.promotionId || !data.anneeId) {
+      return { success: false, error: "Required fields are missing" };
+    }
+
+    // Check if subscription already exists
+    const existingSubscription = await Subscription.findOne({
+      etudiant: new mongoose.Types.ObjectId(data.etudiantId),
+      promotion: new mongoose.Types.ObjectId(data.promotionId),
+      annee: new mongoose.Types.ObjectId(data.anneeId),
+    });
+
+    if (existingSubscription) {
+      return { success: false, error: "Subscription already exists" };
+    }
+
+    const newSubscription = await Subscription.create({
+      etudiant: new mongoose.Types.ObjectId(data.etudiantId),
+      promotion: new mongoose.Types.ObjectId(data.promotionId),
+      annee: new mongoose.Types.ObjectId(data.anneeId),
+      isValid: data.isValid !== undefined ? data.isValid : true,
+    });
+
+    const plainSubscription = JSON.parse(JSON.stringify(newSubscription));
+    return { success: true, data: plainSubscription as SubscriptionType };
+  } catch (error) {
+    console.error("Error creating subscription:", error);
+    return { success: false, error: "Failed to create subscription" };
+  }
+}
+
+export async function updateSubscription(
+  id: string,
+  updateData: {
+    isValid?: boolean;
+    promotionId?: string;
+    anneeId?: string;
+  }
+): Promise<{ success: boolean; data?: SubscriptionType; error?: string }> {
+  try {
+    await connectDB();
+
+    const dataToUpdate: any = {};
+    if (updateData.isValid !== undefined) dataToUpdate.isValid = updateData.isValid;
+    if (updateData.promotionId) dataToUpdate.promotion = new mongoose.Types.ObjectId(updateData.promotionId);
+    if (updateData.anneeId) dataToUpdate.annee = new mongoose.Types.ObjectId(updateData.anneeId);
+
+    const updatedSubscription = await Subscription.findByIdAndUpdate(
+      id,
+      dataToUpdate,
+      { returnDocument: 'after' }
+    ).lean();
+
+    if (!updatedSubscription) {
+      return { success: false, error: "Subscription not found" };
+    }
+
+    const plainSubscription = JSON.parse(JSON.stringify(updatedSubscription));
+    return { success: true, data: plainSubscription as SubscriptionType };
+  } catch (error) {
+    console.error("Error updating subscription:", error);
+    return { success: false, error: "Failed to update subscription" };
+  }
+}
+
+export async function deleteSubscription(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await connectDB();
+    
+    const deletedSubscription = await Subscription.findByIdAndDelete(id);
+
+    if (!deletedSubscription) {
+      return { success: false, error: "Subscription not found" };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting subscription:", error);
+    return { success: false, error: "Failed to delete subscription" };
+  }
+}
+
+export async function createSubscriptionsFromCSV(
+  promotionId: string,
+  anneeId: string,
+  csvData: Array<{
+    nomComplet: string;
+    email: string;
+    telephone?: string;
+    adresse?: string;
+    matricule?: string;
+    grade: string;
+    password: string;
+  }>
+): Promise<{ success: boolean; data?: { created: number; errors: string[] }; error?: string }> {
+  try {
+    await connectDB();
+
+    const errors: string[] = [];
+    let created = 0;
+
+    const crypto = require("crypto");
+    const { Etudiant } = require("@/lib/models/User");
+
+    for (let i = 0; i < csvData.length; i++) {
+      const row = csvData[i];
+
+      try {
+        // Validate required fields
+        if (!row.nomComplet || !row.email || !row.grade || !row.password) {
+          errors.push(`Ligne ${i + 1}: Champs requis manquants`);
+          continue;
+        }
+
+        // Check if student already exists by email
+        let student = await Etudiant.findOne({ email: row.email });
+
+        if (!student) {
+          // Create new student
+          student = await Etudiant.create({
+            nomComplet: row.nomComplet,
+            email: row.email,
+            telephone: row.telephone,
+            adresse: row.adresse,
+            matricule: row.matricule,
+            grade: row.grade,
+            passwordHash: crypto.createHash("sha256").update(row.password).digest("hex"),
+          });
+        }
+
+        // Check if subscription already exists
+        const existingSubscription = await Subscription.findOne({
+          etudiant: student._id,
+          promotion: new mongoose.Types.ObjectId(promotionId),
+          annee: new mongoose.Types.ObjectId(anneeId),
+        });
+
+        if (existingSubscription) {
+          errors.push(`Ligne ${i + 1}: Inscription existe déjà pour ${row.email}`);
+          continue;
+        }
+
+        // Create subscription
+        await Subscription.create({
+          etudiant: student._id,
+          promotion: new mongoose.Types.ObjectId(promotionId),
+          annee: new mongoose.Types.ObjectId(anneeId),
+          isValid: true,
+        });
+
+        created++;
+      } catch (err) {
+        errors.push(`Ligne ${i + 1}: Erreur lors de l'inscription`);
+      }
+    }
+
+    return {
+      success: true,
+      data: { created, errors }
+    };
+  } catch (error) {
+    console.error("Error creating subscriptions from CSV:", error);
+    return { success: false, error: "Failed to process CSV data" };
+  }
+}
