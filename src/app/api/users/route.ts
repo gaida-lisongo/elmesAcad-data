@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
             passwordHash, // Note: In production, hash the password before saving
         });
         await newUser.save();
-        return NextResponse.json(newUser, { status: 201 });
+        return NextResponse.json(JSON.parse(JSON.stringify(newUser)), { status: 201 });
     } catch (error) {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
     try {
         await connectDB();
-        const users = await User.find().select("-passwordHash"); // Exclude password hash
+        const users = await User.find().select("-passwordHash").lean(); // Exclude password hash
         return NextResponse.json(users, { status: 200 });
     } catch (error) {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -65,7 +65,7 @@ export async function PUT(request: NextRequest) {
             updateData.passwordHash = crypto.createHash("sha256").update(password).digest("hex");
         }
 
-        const updatedUser = await User.findByIdAndUpdate(id, updateData, { new: true }).select("-passwordHash");
+        const updatedUser = await User.findByIdAndUpdate(id, updateData, { returnDocument: 'after' }).select("-passwordHash").lean();
         if (!updatedUser) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
@@ -85,7 +85,7 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ error: "User ID is required" }, { status: 400 });
         }
 
-        const deletedUser = await User.findByIdAndDelete(id).select("-passwordHash");
+        const deletedUser = await User.findByIdAndDelete(id).select("-passwordHash").lean();
         if (!deletedUser) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
