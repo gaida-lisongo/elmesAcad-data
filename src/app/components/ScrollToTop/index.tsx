@@ -8,6 +8,7 @@ interface NavMenuItem {
   href?: string;
   action?: () => void;
   icon: ReactNode;
+  pack: 'basic' | 'pro' | 'elite' ;
 }
 
 interface NavMenu {
@@ -21,6 +22,8 @@ export default function ScrollToTop() {
   const { isAuthenticated, user, logout } = useAuthStore();
   const drawerRef = useRef<HTMLDivElement>(null);
 
+  const currentPack = process.env.NEXT_PUBLIC_PACK || 'basic'; // Récupérer le pack de l'utilisateur depuis les variables d'environnement ou le store
+
   const navMenu: NavMenu[] = [
     {
       category: "SUPER-ADMIN",
@@ -28,29 +31,102 @@ export default function ScrollToTop() {
         {
           label: "Années académiques",
           href: "/annees",
-          icon: <Icon icon="material-symbols:calendar-month-outline" width={24} height={24} className="text-primary" />
-        },
-        {
-          label: "Utilisateurs",
-          href: "/users",
-          icon: <Icon icon="material-symbols:person-outline" width={24} height={24} className="text-primary" />
+          icon: <Icon icon="material-symbols:calendar-month-outline" width={24} height={24} className="text-primary" />,
+          pack: 'basic'
         },
         {
           label: "Paramètres",
           href: "/settings",
-          icon: <Icon icon="material-symbols:settings-outline" width={24} height={24} className="text-primary" />
+          icon: <Icon icon="material-symbols:settings-outline" width={24} height={24} className="text-primary" />,
+          pack: 'basic'
+        },
+      ]
+    },
+    {
+      category: "ADMIN",
+      items: [
+        {
+          label: "Gestion des utilisateurs",
+          href: "/users",
+          icon: <Icon icon="material-symbols:manage-accounts-outline" width={24} height={24} className="text-primary" />,
+          pack: 'basic'
         },
         {
-          label: "Déconnexion",
-          action: () => {
-            logout();
-            setIsDrawerOpen(false);
-          },
-          icon: <Icon icon="material-symbols:logout" width={24} height={24} className="text-red-500" />
+          label: "Gestion des étudiants",
+          href: "/students",
+          icon: <Icon icon="material-symbols:school-outline" width={24} height={24} className="text-primary" />,
+          pack: 'basic'
+        },
+        {
+          label: "Gestion des inscriptions",
+          href: "/subscriptions",
+          icon: <Icon icon="material-symbols:assignment-outline" width={24} height={24} className="text-primary" />,
+          pack: 'basic'
+        }
+      ]
+    },
+    {
+      category: "ENSEIGNEMENT",
+      items: [
+        {
+          label: "Gestion des promotions",
+          href: "/promotions",
+          icon: <Icon icon="material-symbols:school-outline" width={24} height={24} className="text-primary" />,
+          pack: 'basic'
+        },
+        {
+          label: "Gestion des enrollments",
+          href: "/enrollments",
+          icon: <Icon icon="material-symbols:book-outline" width={24} height={24} className="text-primary" />,
+          pack: 'basic'
+        }
+      ]
+    },
+    {
+      category: "FINANCE",
+      items: [
+        {
+          label: "Paiements Stages",
+          href: "/payments/stages",
+          icon: <Icon icon="material-symbols:attach-money" width={24} height={24} className="text-primary" />,
+          pack: 'basic'
+        },
+        {
+          label: "Paiements Sujets",
+          href: "/payments/sujets",
+          icon: <Icon icon="material-symbols:attach-money" width={24} height={24} className="text-primary" />,
+          pack: 'basic'
+        },
+        {
+          label: "Paiements Enrollments",
+          href: "/payments/enrollments",
+          icon: <Icon icon="material-symbols:attach-money" width={24} height={24} className="text-primary" />,
+          pack: 'basic'
+        }
+      ]
+    },
+    {
+      category: "RECHERCHE",
+      items: [
+        {
+          label: "Gestion des stages",
+          href: "/stages",
+          icon: <Icon icon="material-symbols:work-outline" width={24} height={24} className="text-primary" />,
+          pack: 'basic'
+        },
+        {
+          label: "Gestion des sujets de recherche",
+          href: "/sujets",
+          icon: <Icon icon="material-symbols:science-outline" width={24} height={24} className="text-primary" />,
+          pack: 'basic'
         }
       ]
     }
   ]
+
+  console.log('User autorisations:', user?.autorisations);
+  //Save menu user in useMemo to avoid re-rendering the menu on every render
+  const filteredNavMenu = user?.autorisations ? navMenu.filter(menu => user?.autorisations.includes(menu.category)) : []
 
   // Top: 0 takes us all the way back to the top of the page
   // Behavior: smooth keeps it smooth!
@@ -159,7 +235,7 @@ export default function ScrollToTop() {
             </div>
 
             {
-              navMenu.map((menu, index) => (
+              filteredNavMenu.map((menu, index) => (
                 <div key={index} className="mt-6">
                   <p className="text-sm text-gray-500 mb-2">{menu.category}</p>
                   <div className="flex flex-col gap-2">
@@ -189,6 +265,44 @@ export default function ScrollToTop() {
                 </div>
               ))
              }
+
+             {
+              [
+                {
+                  label: "Profile",
+                  href: "/profile",
+                  icon: <Icon icon="material-symbols:person-outline" width={24} height={24} className="text-primary" />
+                },
+                {
+                  label: "Déconnexion",
+                  action: () => {
+                    logout();
+                    setIsDrawerOpen(false);
+                  },
+                  icon: <Icon icon="material-symbols:logout" width={24} height={24} className="text-red-500" />
+                }].map((item, idx) => (
+                        item.href ? (
+                          <a
+                            key={idx}
+                            href={item.href}
+                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
+                            onClick={() => setIsDrawerOpen(false)}
+                          >
+                            {item.icon}
+                            <span className="text-black font-medium">{item.label}</span>
+                          </a>
+                        ) : (
+                          <button
+                            key={idx}
+                            onClick={item.action}
+                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition w-full text-left"
+                          >
+                            {item.icon}
+                            <span className="text-black font-medium">{item.label}</span>
+                          </button>
+                        )
+                      ))
+                    }
 
             {!isAuthenticated() && (
               <button

@@ -7,12 +7,14 @@ import { Icon } from '@iconify/react'
 import { updateUserPermissions, deleteUser } from '@/app/actions/user.actions'
 
 const AVAILABLE_PERMISSIONS = [
-  'CREATE_USER',
-  'READ_USER',
-  'UPDATE_USER',
-  'DELETE_USER',
-  'VIEW_REPORTS',
-  'MANAGE_COURSES',
+  'SUPER-ADMIN',
+  'ADMIN',
+  'FINANCE',
+  'RECHERCHE',
+  'ENSEIGNEMENT',
+  'ETUDIANT',
+  'JURY',
+  'TITULAIRE',
 ]
 
 interface SettingsClientProps {
@@ -186,12 +188,14 @@ const SettingsClient = ({ initialUsers }: SettingsClientProps) => {
 
 function getPermissionDescription(permission: string): string {
   const descriptions: Record<string, string> = {
-    CREATE_USER: 'Créer de nouveaux utilisateurs',
-    READ_USER: 'Consulter les utilisateurs',
-    UPDATE_USER: 'Modifier les informations des utilisateurs',
-    DELETE_USER: 'Supprimer des utilisateurs',
-    VIEW_REPORTS: 'Accéder aux rapports',
-    MANAGE_COURSES: 'Gérer les cours',
+    'SUPER-ADMIN': 'Gère la plateforme et les autorisations',
+    'ADMIN': 'Gère les personnels et les étudiants',
+    'FINANCE': 'Gère les finances',
+    'RECHERCHE': 'Gère les stages et les sujets de recherche',
+    'ENSEIGNEMENT': 'Gère les classes et cours',
+    'ETUDIANT': 'Gère ses activités et ressources',
+    'JURY': 'Gère la délibération',
+    'TITULAIRE': 'Gère les notes et charge horaire',
   }
   return descriptions[permission] || ''
 }
