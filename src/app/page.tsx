@@ -20,6 +20,13 @@ export interface SectionType {
     designation: string
     mission: string
     promesses: string[]
+    filieres?: Array<{
+      _id: string
+      sigle: string
+      designation: string
+      description: string
+      programmes: any[]
+    }>
     createdAt: Date
     updatedAt: Date
 }
@@ -34,10 +41,23 @@ export default async function Home() {
     designation: "",
     mission: "",
     promesses: [],
+    filieres: [{
+      _id: "",
+      sigle: "",
+      designation: "",
+      description: "",
+      programmes: []
+    }],
     createdAt: new Date(),
     updatedAt: new Date(),
   } as SectionType;
   console.log("First section:", section);
+
+  let allPromotions = [];
+
+  section.filieres?.forEach(filiere => {
+    allPromotions.push(...filiere.programmes || []);
+  });
 
   return (
     <main>
