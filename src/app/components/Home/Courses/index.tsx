@@ -9,7 +9,7 @@ import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'
 import { SectionType } from '@/app/page'
 import { useAuthStore } from '@/store/auth.store'
-import { createPromotion, deletePromotion } from '@/app/actions/promotion.actions'
+import { createPromotion, deletePromotionById, updatePromotionById } from '@/app/actions/promotion.actions'
 import CourseSkeleton from '../../Skeleton/Course'
 
 interface CoursesProps {
@@ -31,6 +31,10 @@ const Courses = (data: CoursesProps) => {
     description: '',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editingPromotion, setEditingPromotion] = useState<any>(null)
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     setMounted(true)
@@ -42,11 +46,103 @@ const Courses = (data: CoursesProps) => {
    // Log the list of promotions for debugging
    console.log("Liste of promotions : ", allPromotions);
 
+  // Filtered promotions based on search term
+  const filteredPromotions = searchTerm.trim() === '' 
+    ? allPromotions 
+    : allPromotions.filter((promotion) => {
+        const searchLower = searchTerm.toLowerCase()
+        const niveau = String(promotion.niveau).toLowerCase()
+        const designation = String(promotion.designation).toLowerCase()
+        const filiere = String(promotion.filiereName || promotion.filiere || '').toLowerCase()
+        
+        return (
+          niveau.includes(searchLower) ||
+          designation.includes(searchLower) ||
+          filiere.includes(searchLower)
+        )
+      })
+
   const openCreateModal = () => {
     setModalStep(1)
     setSelectedFiliereId('')
     setFormData({ niveau: '', designation: '', description: '' })
     setShowModal(true)
+  }
+
+  const openEditModal = (promotion: any) => {
+    setEditingPromotion(promotion)
+    const index = allPromotions.findIndex((p: any) => 
+      String(p._id) === String(promotion._id) && 
+      String(p.filiereId) === String(promotion.filiereId)
+    )
+    setEditingIndex(index)
+    setFormData({
+      niveau: promotion.niveau,
+      designation: promotion.designation,
+      description: Array.isArray(promotion.description) ? promotion.description.join(', ') : promotion.description,
+    })
+    setShowEditModal(true)
+  }
+
+  const handleUpdatePromotion = async () => {
+    if (!formData.niveau || !formData.designation || !formData.description) {
+      alert('Tous les champs sont requis')
+      return
+    }
+
+    if (!editingPromotion) {
+      alert('Promotion non trouvée')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const result = await updatePromotionById(
+        String(editingPromotion._id),
+        formData
+      )
+
+      if (!result.success) {
+        alert(result.error || 'Une erreur est survenue')
+        return
+      }
+
+      alert('Promotion mise à jour avec succès')
+      setShowEditModal(false)
+      window.location.reload()
+    } catch (error) {
+      console.error('Error updating promotion:', error)
+      alert('Une erreur est survenue')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDeletePromotion = async (promotion: any) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette promotion ?')) return
+
+    if (!promotion._id) {
+      alert('Promotion ID manquant')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const result = await deletePromotionById(String(promotion._id))
+
+      if (!result.success) {
+        alert(result.error || 'Une erreur est survenue')
+        return
+      }
+
+      alert('Promotion supprimée avec succès')
+      window.location.reload()
+    } catch (error) {
+      console.error('Error deleting promotion:', error)
+      alert('Une erreur est survenue')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleNextStep = () => {
@@ -100,20 +196,20 @@ const Courses = (data: CoursesProps) => {
 
   const settings = {
     dots: true,
-    infinite: allPromotions.length > 4,
-    slidesToShow: Math.min(4, allPromotions.length),
+    infinite: filteredPromotions.length > 4,
+    slidesToShow: Math.min(4, filteredPromotions.length),
     slidesToScroll: 2,
     arrows: false,
-    autoplay: allPromotions.length > 4,
+    autoplay: filteredPromotions.length > 4,
     speed: 500,
     cssEase: 'linear',
     responsive: [
       {
         breakpoint: 1200,
         settings: {
-          slidesToShow: Math.min(3, allPromotions.length),
+          slidesToShow: Math.min(3, filteredPromotions.length),
           slidesToScroll: 1,
-          infinite: allPromotions.length > 2,
+          infinite: filteredPromotions.length > 2,
           dots: true,
         },
       },
@@ -122,7 +218,7 @@ const Courses = (data: CoursesProps) => {
         settings: {
           slidesToShow: 1,
           slidesToScroll: 1,
-          infinite: allPromotions.length > 1,
+          infinite: filteredPromotions.length > 1,
           dots: true,
         },
       },
@@ -163,30 +259,55 @@ const Courses = (data: CoursesProps) => {
   return (
     <section id='courses' className='scroll-mt-12 pb-20'>
       <div className='container'>
-        <div className='sm:flex justify-between items-center mb-10'>
-          <h2 className='text-midnight_text mb-5 sm:mb-0 capitalize'>
+        <div className='mb-10'>
+          <h2 className='text-midnight_text mb-5 capitalize'>
             Total des programmes ({totalPromotions})
           </h2>
-          {mounted && hydrated && isAuthenticated() && (
-            <button
-              onClick={openCreateModal}
-              className='flex items-center gap-2 bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-lg font-medium transition shadow-md'
-            >
-              <Icon icon='material-symbols:add' width={20} height={20} />
-              Créer une promotion
-            </button>
+          
+          <div className='flex flex-col sm:flex-row gap-4 items-stretch sm:items-center'>
+            <div className='flex-1 relative'>
+              <input
+                type='text'
+                placeholder='Rechercher par niveau, désignation ou filière...'
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20'
+              />
+              <Icon
+                icon='material-symbols:search'
+                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400'
+                width={20}
+                height={20}
+              />
+            </div>
+            
+            {mounted && hydrated && isAuthenticated() && (
+              <button
+                onClick={openCreateModal}
+                className='flex items-center gap-2 bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-lg font-medium transition shadow-md whitespace-nowrap'
+              >
+                <Icon icon='material-symbols:add' width={20} height={20} />
+                Créer une promotion
+              </button>
+            )}
+          </div>
+          
+          {searchTerm && (
+            <p className='text-sm text-gray-600 mt-3'>
+              {filteredPromotions.length} résultat{filteredPromotions.length !== 1 ? 's' : ''} trouvé{filteredPromotions.length !== 1 ? 's' : ''}
+            </p>
           )}
         </div>
 
-        {allPromotions.length === 0 ? (
+        {filteredPromotions.length === 0 ? (
           <div className='py-10 text-center text-gray-500'>
-            <p>Aucun programme disponible</p>
+            <p>{searchTerm ? 'Aucun résultat ne correspond à votre recherche' : 'Aucun programme disponible'}</p>
           </div>
         ) : (
           <Slider {...settings}>
-            {allPromotions.map((promotion, i) => (
+            {filteredPromotions.map((promotion, i) => (
               <div key={i}>
-                <div className='bg-white m-2 px-3 pt-3 pb-8 shadow-md rounded-lg h-full border border-black/10 capitalize'>
+                <div className='bg-white m-2 px-3 pt-3 pb-8 shadow-md rounded-lg h-full border border-black/10 capitalize group'>
                   <div className='relative rounded-lg overflow-hidden'>
                     <div className='rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20 h-40'>
                       <Image
@@ -202,6 +323,25 @@ const Courses = (data: CoursesProps) => {
                         {String(promotion.niveau)}
                       </p>
                     </div>
+                    {mounted && hydrated && isAuthenticated() && (
+                      <div className='absolute inset-0 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2'>
+                        <button
+                          onClick={() => openEditModal(promotion)}
+                          title='Éditer'
+                          className='bg-primary text-white p-2 rounded-lg hover:bg-primary/80 transition'
+                        >
+                          <Icon icon='material-symbols:edit' width={20} height={20} />
+                        </button>
+                        <button
+                          onClick={() => handleDeletePromotion(promotion)}
+                          title='Supprimer'
+                          className='bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition'
+                          disabled={isSubmitting}
+                        >
+                          <Icon icon='material-symbols:delete' width={20} height={20} />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className='px-3 pt-4'>
@@ -209,9 +349,7 @@ const Courses = (data: CoursesProps) => {
                       {String(promotion.designation)}
                     </h6>
                     <p className='text-sm font-normal pt-2 text-black/70 line-clamp-2'>
-                      {Array.isArray(promotion.description)
-                        ? promotion.description.join(' • ')
-                        : String(promotion.description)}
+                      {String(promotion.filiere)}
                     </p>
                     <div className='flex items-center justify-between py-2 border-b text-xs'>
                       <div className='flex items-center gap-1'>
@@ -396,6 +534,93 @@ const Courses = (data: CoursesProps) => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Édition Promotion */}
+      {showEditModal && (
+        <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-lg p-6 max-w-md w-full'>
+            <div className='flex justify-between items-center mb-4'>
+              <h3 className='text-xl font-semibold text-midnight_text'>
+                Éditer la promotion
+              </h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className='text-gray-500 hover:text-gray-700'
+              >
+                <Icon icon='material-symbols:close' width={24} height={24} />
+              </button>
+            </div>
+
+            <div className='space-y-4 mb-6'>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Niveau
+                </label>
+                <input
+                  type='text'
+                  value={formData.niveau}
+                  onChange={(e) => setFormData({ ...formData, niveau: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary'
+                  placeholder='Ex: Licence'
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Désignation
+                </label>
+                <input
+                  type='text'
+                  value={formData.designation}
+                  onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary'
+                  placeholder='Ex: Licence 1'
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary'
+                  placeholder='Décrivez le programme... (séparez par des virgules)'
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            <div className='flex justify-end gap-2'>
+              <button
+                onClick={() => setShowEditModal(false)}
+                disabled={isSubmitting}
+                className='px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition disabled:opacity-50'
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleUpdatePromotion}
+                disabled={isSubmitting}
+                className='px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition disabled:opacity-50'
+              >
+                {isSubmitting ? (
+                  <span className='flex items-center gap-2'>
+                    <Icon icon='eos-icons:loading' width={20} height={20} />
+                    Mise à jour...
+                  </span>
+                ) : (
+                  'Mettre à jour'
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

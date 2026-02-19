@@ -19,6 +19,8 @@ export interface PromotionType {
     niveau: String
     designation: String
     description: String[]
+    filiere?: String
+    filiereId: string
     semestres?: {
         designation: String
         credit: Number
@@ -66,7 +68,15 @@ export default async function Home() {
   let allPromotions : PromotionType[] = [];
 
   section.filieres?.forEach(filiere => {
-    allPromotions.push(...filiere.programmes || []);
+    const promotions = filiere.programmes || [];
+
+    for (const promo of promotions) {
+      allPromotions.push({
+        ...promo,
+        filiere: filiere.designation,
+        filiereId: filiere._id
+      });
+    }
   });
 
   console.log("Liste of promotions : ", allPromotions);

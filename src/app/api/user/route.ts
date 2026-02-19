@@ -19,15 +19,17 @@ export async function POST(request: NextRequest) {
     try {
         await connectDB();
         const { matricule, password } = await request.json();
-
+        console.log("Received login request for matricule:", matricule);
+        console.log("Received login request for password:", password);
         if (!matricule || !password) {
             return NextResponse.json({ error: "Matricule and password are required" }, { status: 400 });
         }
 
         const passwordHash = crypto.createHash("sha256").update(password).digest("hex");
+        console.log("Generated password hash:", passwordHash);
 
-        const user = await User.findOne({ matricule, passwordHash }).select("-passwordHash");
-
+        const user = await User.findOne({ matricule}).select("+passwordHash");
+        console.log("User found:", user);
         if (!user) {
             return NextResponse.json({ error: "Invalid matricule or password" }, { status: 401 });
         }
