@@ -1,13 +1,56 @@
 'use client'
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, ReactNode } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { Icon } from "@iconify/react";
+
+interface NavMenuItem {
+  label: string;
+  href?: string;
+  action?: () => void;
+  icon: ReactNode;
+}
+
+interface NavMenu {
+  category: string;
+  items: NavMenuItem[];
+}
 
 export default function ScrollToTop() {
   const [isVisible, setIsVisible] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, logout } = useAuthStore();
   const drawerRef = useRef<HTMLDivElement>(null);
+
+  const navMenu: NavMenu[] = [
+    {
+      category: "SUPER-ADMIN",
+      items: [
+        {
+          label: "Années académiques",
+          href: "/annees",
+          icon: <Icon icon="material-symbols:calendar-month-outline" width={24} height={24} className="text-primary" />
+        },
+        {
+          label: "Utilisateurs",
+          href: "/users",
+          icon: <Icon icon="material-symbols:person-outline" width={24} height={24} className="text-primary" />
+        },
+        {
+          label: "Paramètres",
+          href: "/settings",
+          icon: <Icon icon="material-symbols:settings-outline" width={24} height={24} className="text-primary" />
+        },
+        {
+          label: "Déconnexion",
+          action: () => {
+            logout();
+            setIsDrawerOpen(false);
+          },
+          icon: <Icon icon="material-symbols:logout" width={24} height={24} className="text-red-500" />
+        }
+      ]
+    }
+  ]
 
   // Top: 0 takes us all the way back to the top of the page
   // Behavior: smooth keeps it smooth!
@@ -115,52 +158,51 @@ export default function ScrollToTop() {
               <p className="text-sm text-gray-600">{user?.email || ''}</p>
             </div>
 
-            <a
-              href="#dashboard"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
-              onClick={() => setIsDrawerOpen(false)}
-            >
-              <Icon icon="material-symbols:dashboard-outline" width={24} height={24} className="text-primary" />
-              <span className="text-black font-medium">Tableau de bord</span>
-            </a>
+            {
+              navMenu.map((menu, index) => (
+                <div key={index} className="mt-6">
+                  <p className="text-sm text-gray-500 mb-2">{menu.category}</p>
+                  <div className="flex flex-col gap-2">
+                    {menu.items.map((item, idx) => (
+                      item.href ? (
+                        <a
+                          key={idx}
+                          href={item.href}
+                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
+                          onClick={() => setIsDrawerOpen(false)}
+                        >
+                          {item.icon}
+                          <span className="text-black font-medium">{item.label}</span>
+                        </a>
+                      ) : (
+                        <button
+                          key={idx}
+                          onClick={item.action}
+                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition w-full text-left"
+                        >
+                          {item.icon}
+                          <span className="text-black font-medium">{item.label}</span>
+                        </button>
+                      )
+                    ))}
+                  </div>
+                </div>
+              ))
+             }
 
-            <a
-              href="#courses"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
-              onClick={() => setIsDrawerOpen(false)}
-            >
-              <Icon icon="material-symbols:book-outline" width={24} height={24} className="text-primary" />
-              <span className="text-black font-medium">Mes cours</span>
-            </a>
+            {!isAuthenticated() && (
+              <button
+                onClick={() => {
+                  setIsDrawerOpen(false);
+                  // Ici on pourrait appeler login()
+                }}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition w-full text-left mt-4"
+              >
+                <Icon icon="material-symbols:login" width={24} height={24} className="text-primary" />
+                <span className="text-primary font-medium">Connexion</span>
+              </button>
+            )}
 
-            <a
-              href="#profile"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
-              onClick={() => setIsDrawerOpen(false)}
-            >
-              <Icon icon="material-symbols:person-outline" width={24} height={24} className="text-primary" />
-              <span className="text-black font-medium">Profil</span>
-            </a>
-
-            <a
-              href="#settings"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
-              onClick={() => setIsDrawerOpen(false)}
-            >
-              <Icon icon="material-symbols:settings-outline" width={24} height={24} className="text-primary" />
-              <span className="text-black font-medium">Paramètres</span>
-            </a>
-
-            <button
-              onClick={() => {
-                setIsDrawerOpen(false);
-                // Ici on pourrait appeler logout()
-              }}
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 transition w-full text-left mt-4"
-            >
-              <Icon icon="material-symbols:logout" width={24} height={24} className="text-red-500" />
-              <span className="text-red-500 font-medium">Déconnexion</span>
-            </button>
           </div>
         </nav>
       </div>
