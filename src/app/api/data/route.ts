@@ -7,9 +7,9 @@ import { NextResponse } from 'next/server'
 
 const HeaderData: HeaderType[] = [
   { label: 'Accueil', href: '/' },
-  { label: 'Actualités', href: '/#courses  ' },
-  { label: 'À propos', href: '/#mentor' },
-  { label: 'Contact', href: '/#contact' },
+  { label: 'Actualités', href: '/news' },
+  { label: 'À propos', href: '/about' },
+  { label: 'Contact', href: '/contact' },
   { label: 'Bibliothèque', href: '/documentation' },
 ]
 

@@ -9,10 +9,54 @@ import Newsletter from "@/app/components/Home/Newsletter";
 
 import { Metadata } from "next";
 import { fetchSections } from "./actions/section.actions";
+import { fetchAnneeActive } from "./actions/annee.actions";
 
 export const metadata: Metadata = {
   title: "eLearning",
 };
+
+export interface CalendrierItemType {
+  _id: string
+  photo?: string
+  from: String
+  to: String
+  title: String
+  description: String[]
+  items?: String[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface AnneeType {
+    _id: string
+    debut: Date
+    fin: Date
+    isActive: boolean
+    calendrier: CalendrierItemType[]
+    evenements: {
+        photo?: string
+        title: String
+        description: String[]
+        date: Date
+        createdAt: Date
+        updatedAt: Date
+    }[]
+    galeries: {
+        photo: string
+        title: String
+        description: String[]
+        createdAt: Date
+        updatedAt: Date
+    }[]
+    communiques: {
+        title: String
+        concerne: String
+        date_created: Date
+        content: String[]
+    }[]
+    createdAt: Date
+    updatedAt: Date
+}
 
 export interface PromotionType {
     _id: string
@@ -49,6 +93,9 @@ export interface SectionType {
 
 export default async function Home() {
   const req = await fetchSections();
+  const reqAnnee = await fetchAnneeActive();
+
+  console.log("Annee active fetch result:", reqAnnee);
   console.log("Sections fetch result:", req);
 
   const section: SectionType = req.data?.length ? req.data[0] : {
@@ -80,16 +127,28 @@ export default async function Home() {
   });
 
   console.log("Liste of promotions : ", allPromotions);
+  const anneeActive = reqAnnee.data || {
+    _id: "",
+    debut: new Date(),
+    fin: new Date(),
+    isActive: false,
+    calendrier: [],
+    evenements: [],
+    galeries: [],
+    communiques: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   return (
     <main>
       <Hero section={section} />
       <Companies section={section} />
       <Courses section={section} promotions={allPromotions} />
-      <Mentor />
-      <Testimonial />
+      {anneeActive?._id && <Testimonial annee={anneeActive} />}
+      {/* <Mentor />
       <ContactForm/>
-      <Newsletter />
+      <Newsletter /> */}
     </main>
   );
 }

@@ -18,6 +18,44 @@ export async function fetchUsers(): Promise<{ success: boolean; data?: UserType[
   }
 }
 
+export async function createUser(data: {
+  nomComplet: string;
+  email: string;
+  telephone: string;
+  adresse?: string;
+  matricule?: string;
+  grade: string;
+  fonction?: string;
+  password: string;
+  autorisations?: string[];
+}): Promise<{ success: boolean; data?: UserType; error?: string }> {
+  try {
+    await connectDB();
+
+    if (!data.nomComplet || !data.email || !data.telephone || !data.grade || !data.password) {
+      return { success: false, error: "Required fields are missing" };
+    }
+
+    const newUser = await User.create({
+      nomComplet: data.nomComplet,
+      email: data.email,
+      telephone: data.telephone,
+      adresse: data.adresse,
+      matricule: data.matricule,
+      grade: data.grade,
+      fonction: data.fonction,
+      autorisations: data.autorisations || [],
+      passwordHash: crypto.createHash("sha256").update(data.password).digest("hex"),
+    });
+
+    const plainUser = JSON.parse(JSON.stringify(newUser));
+    return { success: true, data: plainUser as UserType };
+  } catch (error) {
+    console.error("Error creating user:", error);
+    return { success: false, error: "Failed to create user" };
+  }
+}
+
 export async function updateUserPermissions(userId: string, autorisations: string[]): Promise<{ success: boolean; data?: UserType; error?: string }> {
   try {
     await connectDB();

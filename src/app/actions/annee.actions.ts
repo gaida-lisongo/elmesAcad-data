@@ -16,6 +16,22 @@ export async function fetchAnnees(): Promise<{ success: boolean; data?: any[]; e
   }
 }
 
+export async function fetchAnneeActive(): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    await connectDB();
+    const anneeActive = await Annee.findOne({ isActive: true }).lean();
+    if (!anneeActive) {
+      return { success: false, error: "No active annee found" };
+    }
+
+    const plainAnneeActive = JSON.parse(JSON.stringify(anneeActive));
+    return { success: true, data: plainAnneeActive };
+  } catch (error) {
+    console.error("Error fetching active annee:", error);
+    return { success: false, error: "Failed to fetch active annee" };
+  }
+}
+
 export async function createAnnee(data: {
   debut: Date;
   fin: Date;
@@ -93,5 +109,120 @@ export async function deleteAnnee(id: string): Promise<{ success: boolean; error
   } catch (error) {
     console.error("Error deleting annee:", error);
     return { success: false, error: "Failed to delete annee" };
+  }
+}
+
+// CRUD pour Calendrier
+export async function createCalendrier(
+  anneeId: string,
+  data: {
+    photo?: string;
+    from: string;
+    to: string;
+    title: string;
+    description: string;
+    items?: string[];
+  }
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    await connectDB();
+
+    const newCalendrier = {
+      photo: data.photo || '',
+      from: data.from,
+      to: data.to,
+      title: data.title,
+      description: data.description.split(',').map(d => d.trim()),
+      items: data.items || [],
+    };
+
+    const result = await Annee.findByIdAndUpdate(
+      anneeId,
+      {
+        $push: { calendrier: newCalendrier },
+      },
+      { returnDocument: "after" }
+    ).lean();
+
+    if (!result) {
+      return { success: false, error: "Annee not found" };
+    }
+
+    const plainResult = JSON.parse(JSON.stringify(result));
+    return { success: true, data: plainResult };
+  } catch (error) {
+    console.error("Error creating calendrier:", error);
+    return { success: false, error: "Failed to create calendrier" };
+  }
+}
+
+export async function updateCalendrier(
+  anneeId: string,
+  calendrierId: string,
+  data: {
+    photo?: string;
+    from: string;
+    to: string;
+    title: string;
+    description: string;
+    items?: string[];
+  }
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    await connectDB();
+
+    const result = await Annee.findByIdAndUpdate(
+      anneeId,
+      {
+        $set: {
+          "calendrier.$[elem].photo": data.photo || '',
+          "calendrier.$[elem].from": data.from,
+          "calendrier.$[elem].to": data.to,
+          "calendrier.$[elem].title": data.title,
+          "calendrier.$[elem].description": data.description.split(',').map(d => d.trim()),
+          "calendrier.$[elem].items": data.items || [],
+        },
+      },
+      {
+        arrayFilters: [{ "elem._id": calendrierId }],
+        returnDocument: "after",
+      }
+    ).lean();
+
+    if (!result) {
+      return { success: false, error: "Calendrier not found" };
+    }
+
+    const plainResult = JSON.parse(JSON.stringify(result));
+    return { success: true, data: plainResult };
+  } catch (error) {
+    console.error("Error updating calendrier:", error);
+    return { success: false, error: "Failed to update calendrier" };
+  }
+}
+
+export async function deleteCalendrier(
+  anneeId: string,
+  calendrierId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await connectDB();
+
+    const result = await Annee.findByIdAndUpdate(
+      anneeId,
+      {
+        $pull: { calendrier: { _id: calendrierId } },
+      },
+      { returnDocument: "after" }
+    ).lean();
+
+    if (!result) {
+      return { success: false, error: "Annee not found" };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting calendrier:", error);
+    return { success: false, error: "Failed to delete calendrier" };
   }
 }
