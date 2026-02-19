@@ -8,6 +8,7 @@ import Signin from '@/app/components/Auth/SignIn'
 import SignUp from '@/app/components/Auth/SignUp'
 import { Icon } from '@iconify/react/dist/iconify.js'
 import { HeaderType } from '@/app/types/menu'
+import { useAuthStore } from '@/store/auth.store'
 
 const Header: React.FC = () => {
   const [navbarOpen, setNavbarOpen] = useState(false)
@@ -19,6 +20,8 @@ const Header: React.FC = () => {
   const signInRef = useRef<HTMLDivElement>(null)
   const signUpRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
+
+  const { logout, isAuthenticated } = useAuthStore()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,9 +98,13 @@ const Header: React.FC = () => {
               href='#'
               className='hidden lg:block bg-primary text-white hover:bg-primary/15 hover:text-primary py-2 px-6 rounded-full text-lg font-medium'
               onClick={() => {
-                setIsSignInOpen(true)
+                if (isAuthenticated()) {
+                  logout();
+                } else {
+                  setIsSignInOpen(true);
+                }
               }}>
-              Se connecter
+              {isAuthenticated() ? 'Se déconnecter' : 'Se connecter'}
             </Link>
             {isSignInOpen && (
               <div className='fixed top-0 left-0 w-full h-full bg-black/50 flex items-center justify-center z-50'>
@@ -115,7 +122,7 @@ const Header: React.FC = () => {
                       className='text-black hover:text-primary text-24 inline-block me-2'
                     />
                   </button>
-                  <Signin />
+                  <Signin onSuccess={() => setIsSignInOpen(false)} />
                 </div>
               </div>
             )}
