@@ -6,11 +6,11 @@ import { TestimonialType } from '@/app/types/testimonial'
 import { NextResponse } from 'next/server'
 
 const HeaderData: HeaderType[] = [
-  { label: 'Home', href: '/' },
-  { label: 'Courses', href: '/#courses  ' },
-  { label: 'Mentor', href: '/#mentor' },
-  { label: 'Contact Us', href: '/#contact' },
-  { label: 'Docs', href: '/documentation' },
+  { label: 'Accueil', href: '/' },
+  { label: 'Actualités', href: '/#courses  ' },
+  { label: 'À propos', href: '/#mentor' },
+  { label: 'Contact', href: '/#contact' },
+  { label: 'Bibliothèque', href: '/documentation' },
 ]
 
 const TechGaintsData: { imgSrc: string }[] = [

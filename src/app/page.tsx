@@ -8,15 +8,40 @@ import ContactForm from "@/app/components/ContactForm";
 import Newsletter from "@/app/components/Home/Newsletter";
 
 import { Metadata } from "next";
+import { fetchSections } from "./actions/section.actions";
 
 export const metadata: Metadata = {
   title: "eLearning",
 };
 
-export default function Home() {
+export interface SectionType {
+    _id: string
+    mention: string
+    designation: string
+    mission: string
+    promesses: string[]
+    createdAt: Date
+    updatedAt: Date
+}
+
+export default async function Home() {
+  const req = await fetchSections();
+  console.log("Sections data:", req);
+
+  const section: SectionType = req.data?.length ? req.data[0] : {
+    _id: "",
+    mention: "",
+    designation: "",
+    mission: "",
+    promesses: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as SectionType;
+  console.log("First section:", section);
+
   return (
     <main>
-      <Hero />
+      <Hero section={section} />
       <Companies />
       <Courses />
       <Mentor />
