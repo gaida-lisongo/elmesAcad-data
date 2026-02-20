@@ -181,56 +181,69 @@ export default function UnitePage({
           )}
         </div>
 
-        {/* Metrics Banner */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-boxdark">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+        {/* Metrics Cards - E-commerce Style */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {/* Card 1: Crédits UE */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-6 shadow-lg transition-all hover:scale-105 hover:shadow-xl">
+            <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10"></div>
+            <div className="relative">
+              <div className="mb-4 inline-flex rounded-xl bg-white/20 p-3 backdrop-blur-sm">
                 <Icon
                   icon="material-symbols:credit-card-outline"
-                  className="text-2xl text-primary"
+                  className="text-3xl text-white"
                 />
               </div>
-              <div>
-                <p className="text-sm text-bodydark">Crédits UE</p>
-                <p className="text-2xl font-bold text-black dark:text-white">
-                  {Number(unite.credit) || 0}
-                </p>
-              </div>
+              <p className="mb-1 text-sm font-medium text-white/80">
+                Crédits UE
+              </p>
+              <p className="text-4xl font-bold text-white">
+                {Number(unite.credit) || 0}
+              </p>
+              <p className="mt-2 text-xs text-white/70">
+                Crédits de l'unité d'enseignement
+              </p>
             </div>
           </div>
 
-          <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-boxdark">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+          {/* Card 2: Total Éléments */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 to-green-600 p-6 shadow-lg transition-all hover:scale-105 hover:shadow-xl">
+            <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10"></div>
+            <div className="relative">
+              <div className="mb-4 inline-flex rounded-xl bg-white/20 p-3 backdrop-blur-sm">
                 <Icon
                   icon="material-symbols:book-outline"
-                  className="text-2xl text-green-500"
+                  className="text-3xl text-white"
                 />
               </div>
-              <div>
-                <p className="text-sm text-bodydark">Total Éléments</p>
-                <p className="text-2xl font-bold text-black dark:text-white">
-                  {elements.length}
-                </p>
-              </div>
+              <p className="mb-1 text-sm font-medium text-white/80">
+                Total Éléments
+              </p>
+              <p className="text-4xl font-bold text-white">{elements.length}</p>
+              <p className="mt-2 text-xs text-white/70">
+                Éléments constitutifs créés
+              </p>
             </div>
           </div>
 
-          <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-boxdark">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
+          {/* Card 3: Total Crédits EC */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 shadow-lg transition-all hover:scale-105 hover:shadow-xl">
+            <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10"></div>
+            <div className="relative">
+              <div className="mb-4 inline-flex rounded-xl bg-white/20 p-3 backdrop-blur-sm">
                 <Icon
                   icon="material-symbols:credit-score"
-                  className="text-2xl text-blue-500"
+                  className="text-3xl text-white"
                 />
               </div>
-              <div>
-                <p className="text-sm text-bodydark">Total Crédits EC</p>
-                <p className="text-2xl font-bold text-black dark:text-white">
-                  {totalCreditsEC.toFixed(totalCreditsEC % 1 === 0 ? 0 : 1)}
-                </p>
-              </div>
+              <p className="mb-1 text-sm font-medium text-white/80">
+                Total Crédits EC
+              </p>
+              <p className="text-4xl font-bold text-white">
+                {totalCreditsEC.toFixed(totalCreditsEC % 1 === 0 ? 0 : 1)}
+              </p>
+              <p className="mt-2 text-xs text-white/70">
+                Somme des crédits des éléments
+              </p>
             </div>
           </div>
         </div>
