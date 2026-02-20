@@ -92,6 +92,27 @@ export async function fetchElementsByUniteId(
   }
 }
 
+export async function countElementsByUniteId(
+  uniteId: string,
+): Promise<{ success: boolean; count?: number; error?: string }> {
+  try {
+    if (!uniteId || uniteId.length !== 24) {
+      return { success: false, error: "Invalid unite ID" };
+    }
+
+    await connectDB();
+
+    const count = await Element.countDocuments({
+      uniteId: new mongoose.Types.ObjectId(uniteId),
+    });
+
+    return { success: true, count };
+  } catch (error) {
+    console.error("Error counting elements:", error);
+    return { success: false, error: "Failed to count elements" };
+  }
+}
+
 export async function createElement(
   uniteId: string,
   anneeId: string,

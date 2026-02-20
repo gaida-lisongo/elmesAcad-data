@@ -13,12 +13,6 @@ interface UniteType {
   description: string[];
   competences: string[];
   credit: number;
-  elements?: {
-    code: string;
-    designation: string;
-    objectifs: string[];
-    place_ec: string;
-  }[];
 }
 
 interface UniteModalProps {
@@ -272,80 +266,30 @@ export default function UniteModal({
                 </div>
               </div>
 
-              {/* Éléments (Cours) */}
+              {/* Éléments (Cours) - Simplified */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-semibold text-gray-700">
                     Éléments constitutifs (Cours)
                   </h4>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-6 text-center">
+                  <Icon
+                    icon="material-symbols:school-outline"
+                    className="text-gray-300 text-5xl mx-auto mb-3"
+                  />
+                  <p className="text-gray-600 text-sm mb-4">
+                    Gérez les cours de cette unité d'enseignement
+                  </p>
                   <Link
                     href={`/cours/${unite._id}`}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition"
                   >
-                    <Icon icon="material-symbols:settings" width={18} />
+                    <Icon icon="material-symbols:settings" width={20} />
                     Gérer les cours
                   </Link>
                 </div>
-
-                {unite.elements && unite.elements.length > 0 ? (
-                  <div className="space-y-3">
-                    {unite.elements.map((element, index) => (
-                      <div
-                        key={index}
-                        className="border border-gray-200 rounded-lg p-4 hover:border-primary transition"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h5 className="font-semibold text-gray-800">
-                              {element.designation}
-                            </h5>
-                            <p className="text-sm text-gray-500">
-                              Code: {element.code}
-                            </p>
-                          </div>
-                          <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium">
-                            {element.place_ec}
-                          </span>
-                        </div>
-
-                        {element.objectifs && element.objectifs.length > 0 && (
-                          <div className="mt-3">
-                            <p className="text-xs font-medium text-gray-600 mb-1">
-                              Objectifs:
-                            </p>
-                            <ul className="space-y-1">
-                              {element.objectifs.map((obj, i) => (
-                                <li
-                                  key={i}
-                                  className="text-sm text-gray-600 pl-4"
-                                >
-                                  • {obj}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 rounded-lg p-8 text-center">
-                    <Icon
-                      icon="material-symbols:folder-open"
-                      className="text-gray-300 text-5xl mx-auto mb-3"
-                    />
-                    <p className="text-gray-500 text-sm mb-4">
-                      Aucun cours défini pour cette unité
-                    </p>
-                    <Link
-                      href={`/cours/${unite?._id}`}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition"
-                    >
-                      <Icon icon="material-symbols:add" width={18} />
-                      Ajouter le premier cours
-                    </Link>
-                  </div>
-                )}
               </div>
             </div>
           )}

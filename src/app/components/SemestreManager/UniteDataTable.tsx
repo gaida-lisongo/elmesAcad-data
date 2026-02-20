@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { addUnite, deleteUnite } from "@/app/actions/unite.actions";
+import { countElementsByUniteId } from "@/app/actions/unite-element.actions";
 import UniteModal from "./UniteModal";
 
 interface UniteType {
@@ -30,6 +31,9 @@ export default function UniteDataTable({
   onUpdate,
 }: UniteDataTableProps) {
   const [unites, setUnites] = useState<UniteType[]>(initialUnites);
+  const [elementCounts, setElementCounts] = useState<Record<string, number>>(
+    {},
+  );
   const [isAdding, setIsAdding] = useState(false);
   const [selectedUnite, setSelectedUnite] = useState<{
     unite: UniteType;
@@ -42,6 +46,32 @@ export default function UniteDataTable({
     competences: "",
     credit: 0,
   });
+
+  // Fetch element counts for all unites
+  useEffect(() => {
+    const fetchCounts = async () => {
+      const counts: Record<string, number> = {};
+      for (const unite of unites) {
+        if (unite._id) {
+          const result = await countElementsByUniteId(unite._id);
+          if (result.success && result.count !== undefined) {
+            counts[unite._id] = result.count;
+          } else {
+            counts[unite._id] = 0;
+          }
+        }
+      }
+      setElementCounts(counts);
+    };
+
+    if (unites.length > 0) {
+      fetchCounts();
+    }
+  }, [unites]);
+
+  useEffect(() => {
+    setUnites(initialUnites);
+  }, [initialUnites]);
 
   const handleAddUnite = async () => {
     if (
@@ -296,12 +326,12 @@ export default function UniteDataTable({
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
-                      {unite.elements && unite.elements.length > 0 ? (
+                      {unite._id && elementCounts[unite._id] !== undefined ? (
                         <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full font-medium">
-                          {unite.elements.length} cours
+                          {elementCounts[unite._id]} cours
                         </span>
                       ) : (
-                        <span className="text-gray-400">Aucun cours</span>
+                        <span className="text-gray-400">Chargement...</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm text-right">

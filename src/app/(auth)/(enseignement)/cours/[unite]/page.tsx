@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import ElementDataTable from "@/app/components/ElementDataTable";
 import {
@@ -37,6 +38,7 @@ export default function UnitePage({
 }: {
   params: Promise<{ unite: string }>;
 }) {
+  const router = useRouter();
   const unwrappedParams = use(params);
   const uniteId = unwrappedParams.unite;
   const { selectedAnnee } = useAcademicContext();
@@ -133,13 +135,14 @@ export default function UnitePage({
   return (
     <div className="min-h-screen bg-gray-2 p-6 dark:bg-boxdark-2">
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* Breadcrumb */}
-        <div className="text-sm text-bodydark">
-          {metadata?.section} / {metadata?.programme} / {metadata?.semestre} /{" "}
-          <span className="font-semibold text-black dark:text-white">
-            {unite.code} - {unite.designation}
-          </span>
-        </div>
+        {/* Back Button */}
+        <button
+          onClick={() => router.push("/cours")}
+          className="flex items-center gap-2 rounded-lg border border-stroke bg-white px-4 py-2 text-black transition-colors hover:bg-gray-100 dark:border-strokedark dark:bg-boxdark dark:text-white dark:hover:bg-meta-4"
+        >
+          <Icon icon="material-symbols:arrow-back" className="text-xl" />
+          <span className="font-medium">Retour aux cours</span>
+        </button>
 
         {/* Header */}
         <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-boxdark">
