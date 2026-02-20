@@ -1,0 +1,195 @@
+"use server";
+
+import { connectDB } from "@/lib/mongoose";
+import { Section, Element } from "@/lib/models/Section";
+import mongoose from "mongoose";
+
+export async function fetchUniteById(
+  uniteId: string,
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    if (!uniteId || uniteId.length !== 24) {
+      return { success: false, error: "Invalid unite ID" };
+    }
+
+    await connectDB();
+
+    // Find the section containing this unite
+    const section: any = await Section.findOne({
+      "filieres.programmes.semestres.unites._id": new mongoose.Types.ObjectId(
+        uniteId,
+      ),
+    }).lean();
+
+    if (!section) {
+      return { success: false, error: "Unite not found" };
+    }
+
+    // Find the unite in the nested structure
+    let targetUnite: any = null;
+    let semestreName = "";
+    let programmeName = "";
+
+    for (const filiere of section.filieres || []) {
+      for (const programme of filiere.programmes || []) {
+        for (const semestre of programme.semestres || []) {
+          const unite = semestre.unites?.find(
+            (u: any) => String(u._id) === uniteId,
+          );
+          if (unite) {
+            targetUnite = unite;
+            semestreName = semestre.designation;
+            programmeName = `${programme.niveau} - ${programme.designation}`;
+            break;
+          }
+        }
+        if (targetUnite) break;
+      }
+      if (targetUnite) break;
+    }
+
+    if (!targetUnite) {
+      return { success: false, error: "Unite not found" };
+    }
+
+    const plainResult = JSON.parse(
+      JSON.stringify({
+        unite: targetUnite,
+        semestre: semestreName,
+        programme: programmeName,
+        section: section.designation,
+      }),
+    );
+
+    return { success: true, data: plainResult };
+  } catch (error) {
+    console.error("Error fetching unite by id:", error);
+    return { success: false, error: "Failed to fetch unite" };
+  }
+}
+
+export async function fetchElementsByUniteId(
+  uniteId: string,
+): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  try {
+    if (!uniteId || uniteId.length !== 24) {
+      return { success: false, error: "Invalid unite ID" };
+    }
+
+    await connectDB();
+
+    const elements = await Element.find({
+      uniteId: new mongoose.Types.ObjectId(uniteId),
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const plainElements = JSON.parse(JSON.stringify(elements));
+    return { success: true, data: plainElements };
+  } catch (error) {
+    console.error("Error fetching elements:", error);
+    return { success: false, error: "Failed to fetch elements" };
+  }
+}
+
+export async function createElement(
+  uniteId: string,
+  elementData: {
+    code: string;
+    designation: string;
+    objectifs: string;
+    place_ec: string;
+  },
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    if (!uniteId || uniteId.length !== 24) {
+      return { success: false, error: "Invalid unite ID" };
+    }
+
+    await connectDB();
+
+    const newElement = new Element({
+      code: elementData.code,
+      designation: elementData.designation,
+      objectifs: elementData.objectifs
+        .split("\n")
+        .map((o) => o.trim())
+        .filter((o) => o),
+      place_ec: elementData.place_ec,
+      uniteId: new mongoose.Types.ObjectId(uniteId),
+    });
+
+    await newElement.save();
+
+    const plainElement = JSON.parse(JSON.stringify(newElement));
+    return { success: true, data: plainElement };
+  } catch (error) {
+    console.error("Error creating element:", error);
+    return { success: false, error: "Failed to create element" };
+  }
+}
+
+export async function updateElement(
+  elementId: string,
+  elementData: {
+    code: string;
+    designation: string;
+    objectifs: string;
+    place_ec: string;
+  },
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    if (!elementId || elementId.length !== 24) {
+      return { success: false, error: "Invalid element ID" };
+    }
+
+    await connectDB();
+
+    const updatedElement = await Element.findByIdAndUpdate(
+      elementId,
+      {
+        code: elementData.code,
+        designation: elementData.designation,
+        objectifs: elementData.objectifs
+          .split("\n")
+          .map((o) => o.trim())
+          .filter((o) => o),
+        place_ec: elementData.place_ec,
+      },
+      { new: true },
+    ).lean();
+
+    if (!updatedElement) {
+      return { success: false, error: "Element not found" };
+    }
+
+    const plainElement = JSON.parse(JSON.stringify(updatedElement));
+    return { success: true, data: plainElement };
+  } catch (error) {
+    console.error("Error updating element:", error);
+    return { success: false, error: "Failed to update element" };
+  }
+}
+
+export async function deleteElement(
+  elementId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!elementId || elementId.length !== 24) {
+      return { success: false, error: "Invalid element ID" };
+    }
+
+    await connectDB();
+
+    const deletedElement = await Element.findByIdAndDelete(elementId);
+
+    if (!deletedElement) {
+      return { success: false, error: "Element not found" };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting element:", error);
+    return { success: false, error: "Failed to delete element" };
+  }
+}

@@ -43,12 +43,6 @@ export interface IUnite extends Document {
   description: String[];
   competences: String[];
   credit: Number;
-  elements?: {
-    code: String;
-    designation: String;
-    objectifs: String[];
-    place_ec: String;
-  }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,14 +69,6 @@ const UniteSchema = new Schema<IUnite>(
       type: Number,
       required: true,
     },
-    elements: [
-      {
-        code: String,
-        designation: String,
-        objectifs: [String],
-        place_ec: String,
-      },
-    ],
   },
   { timestamps: true },
 );

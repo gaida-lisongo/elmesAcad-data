@@ -279,7 +279,7 @@ export default function UniteModal({
                     Éléments constitutifs (Cours)
                   </h4>
                   <Link
-                    href={`/cours/${promotionId}/${semestreIndex}/${uniteIndex}`}
+                    href={`/cours/${unite._id}`}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition"
                   >
                     <Icon icon="material-symbols:settings" width={18} />
