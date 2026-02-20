@@ -199,12 +199,13 @@ const StageSchema = new Schema<IStage>(
   { timestamps: true },
 );
 
-const Enrollement: Model<IEnrollement> = mongoose.model<IEnrollement>(
-  "Enrollement",
-  EnrollementSchema,
-);
-const Sujet: Model<ISujet> = mongoose.model<ISujet>("Sujet", SujetSchema);
-const Stage: Model<IStage> = mongoose.model<IStage>("Stage", StageSchema);
+const Enrollement: Model<IEnrollement> =
+  mongoose.models.Enrollement ||
+  mongoose.model<IEnrollement>("Enrollement", EnrollementSchema);
+const Sujet: Model<ISujet> =
+  mongoose.models.Sujet || mongoose.model<ISujet>("Sujet", SujetSchema);
+const Stage: Model<IStage> =
+  mongoose.models.Stage || mongoose.model<IStage>("Stage", StageSchema);
 
 export default {
   Enrollement,

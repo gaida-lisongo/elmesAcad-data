@@ -117,8 +117,8 @@ export default function ScrollToTop() {
           pack: "basic",
         },
         {
-          label: "Gestion des enrollments",
-          href: "/enrollments",
+          label: "Gestion des enrollements",
+          href: "/enrollements",
           icon: (
             <Icon
               icon="material-symbols:book-outline"
@@ -161,8 +161,8 @@ export default function ScrollToTop() {
           pack: "basic",
         },
         {
-          label: "Paiements Enrollments",
-          href: "/payments/enrollments",
+          label: "Paiements Enrollements",
+          href: "/payments/enrollements",
           icon: (
             <Icon
               icon="material-symbols:attach-money"
