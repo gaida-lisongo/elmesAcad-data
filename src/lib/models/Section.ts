@@ -3,9 +3,19 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IElement extends Document {
   code: String;
   designation: String;
+  credit: Number;
   objectifs: String[];
   place_ec: String;
   uniteId: mongoose.Types.ObjectId;
+  anneeId: mongoose.Types.ObjectId;
+  titulaireId: mongoose.Types.ObjectId;
+  planning?: {
+    chapitre: String;
+    sections: String[];
+  }[];
+  mode_evaluation?: String[];
+  mode_enseignement?: String[];
+  penalites?: { faute: String; sanction: String }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -14,6 +24,10 @@ const ElementSchema = new Schema<IElement>(
   {
     code: {
       type: String,
+      required: true,
+    },
+    credit: {
+      type: Number,
       required: true,
     },
     designation: {
@@ -33,6 +47,29 @@ const ElementSchema = new Schema<IElement>(
       ref: "Unite",
       required: true,
     },
+    anneeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Annee",
+      required: true,
+    },
+    titulaireId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    planning: [
+      {
+        chapitre: String,
+        sections: [String],
+      },
+    ],
+    mode_evaluation: [String],
+    mode_enseignement: [String],
+    penalites: [
+      {
+        faute: String,
+        sanction: String,
+      },
+    ],
   },
   { timestamps: true },
 );

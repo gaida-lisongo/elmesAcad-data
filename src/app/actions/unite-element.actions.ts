@@ -94,16 +94,22 @@ export async function fetchElementsByUniteId(
 
 export async function createElement(
   uniteId: string,
+  anneeId: string,
   elementData: {
     code: string;
     designation: string;
-    objectifs: string;
+    credit: number;
+    objectifs: string[];
     place_ec: string;
+    titulaireId: string;
   },
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     if (!uniteId || uniteId.length !== 24) {
       return { success: false, error: "Invalid unite ID" };
+    }
+    if (!anneeId || anneeId.length !== 24) {
+      return { success: false, error: "Invalid annee ID" };
     }
 
     await connectDB();
@@ -111,12 +117,14 @@ export async function createElement(
     const newElement = new Element({
       code: elementData.code,
       designation: elementData.designation,
-      objectifs: elementData.objectifs
-        .split("\n")
-        .map((o) => o.trim())
-        .filter((o) => o),
+      credit: elementData.credit,
+      objectifs: elementData.objectifs,
       place_ec: elementData.place_ec,
       uniteId: new mongoose.Types.ObjectId(uniteId),
+      anneeId: new mongoose.Types.ObjectId(anneeId),
+      titulaireId: elementData.titulaireId
+        ? new mongoose.Types.ObjectId(elementData.titulaireId)
+        : undefined,
     });
 
     await newElement.save();
@@ -134,8 +142,10 @@ export async function updateElement(
   elementData: {
     code: string;
     designation: string;
-    objectifs: string;
+    credit: number;
+    objectifs: string[];
     place_ec: string;
+    titulaireId?: string;
   },
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
@@ -145,17 +155,23 @@ export async function updateElement(
 
     await connectDB();
 
+    const updateData: any = {
+      code: elementData.code,
+      designation: elementData.designation,
+      credit: elementData.credit,
+      objectifs: elementData.objectifs,
+      place_ec: elementData.place_ec,
+    };
+
+    if (elementData.titulaireId) {
+      updateData.titulaireId = new mongoose.Types.ObjectId(
+        elementData.titulaireId,
+      );
+    }
+
     const updatedElement = await Element.findByIdAndUpdate(
       elementId,
-      {
-        code: elementData.code,
-        designation: elementData.designation,
-        objectifs: elementData.objectifs
-          .split("\n")
-          .map((o) => o.trim())
-          .filter((o) => o),
-        place_ec: elementData.place_ec,
-      },
+      updateData,
       { new: true },
     ).lean();
 

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import ElementDataTable from "@/app/components/ElementDataTable";
 import {
   fetchUniteById,
   fetchElementsByUniteId,
 } from "@/app/actions/unite-element.actions";
+import { useAcademicContext } from "@/app/contexts/AcademicContext";
 import toast from "react-hot-toast";
 import Loader from "@/app/components/Common/Loader";
 
@@ -14,9 +15,12 @@ interface Element {
   _id: string;
   code: string;
   designation: string;
+  credit: number;
   objectifs: string[];
   place_ec: string;
   uniteId: string;
+  anneeId: string;
+  titulaireId?: string;
 }
 
 interface Unite {
@@ -28,7 +32,14 @@ interface Unite {
   credit: number;
 }
 
-export default function UnitePage({ params }: { params: { unite: string } }) {
+export default function UnitePage({
+  params,
+}: {
+  params: Promise<{ unite: string }>;
+}) {
+  const unwrappedParams = use(params);
+  const uniteId = unwrappedParams.unite;
+  const { selectedAnnee } = useAcademicContext();
   const [unite, setUnite] = useState<Unite | null>(null);
   const [elements, setElements] = useState<Element[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +53,7 @@ export default function UnitePage({ params }: { params: { unite: string } }) {
     setLoading(true);
     try {
       // Fetch unite details
-      const uniteResult = await fetchUniteById(params.unite);
+      const uniteResult = await fetchUniteById(uniteId);
       if (!uniteResult.success || !uniteResult.data) {
         toast.error(uniteResult.error || "Unité non trouvée");
         return;
@@ -56,7 +67,7 @@ export default function UnitePage({ params }: { params: { unite: string } }) {
       });
 
       // Fetch elements
-      const elementsResult = await fetchElementsByUniteId(params.unite);
+      const elementsResult = await fetchElementsByUniteId(uniteId);
       if (!elementsResult.success || !elementsResult.data) {
         toast.error(elementsResult.error || "Erreur lors du chargement");
         return;
@@ -73,10 +84,29 @@ export default function UnitePage({ params }: { params: { unite: string } }) {
 
   useEffect(() => {
     loadData();
-  }, [params.unite]);
+  }, [uniteId]);
 
   if (loading) {
     return <Loader />;
+  }
+
+  if (!selectedAnnee) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <Icon
+            icon="material-symbols:error-outline"
+            className="mx-auto mb-4 text-6xl text-red-500"
+          />
+          <h2 className="text-2xl font-semibold dark:text-white">
+            Aucune année académique sélectionnée
+          </h2>
+          <p className="mt-2 text-bodydark">
+            Veuillez sélectionner une année académique dans la barre latérale
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (!unite) {
@@ -95,8 +125,8 @@ export default function UnitePage({ params }: { params: { unite: string } }) {
     );
   }
 
-  const totalObjectifs = elements.reduce(
-    (sum, el) => sum + el.objectifs.length,
+  const totalCreditsEC = elements.reduce(
+    (sum, el) => sum + (Number(el.credit) || 0),
     0,
   );
 
@@ -191,14 +221,14 @@ export default function UnitePage({ params }: { params: { unite: string } }) {
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
                 <Icon
-                  icon="material-symbols:target"
+                  icon="material-symbols:credit-score"
                   className="text-2xl text-blue-500"
                 />
               </div>
               <div>
-                <p className="text-sm text-bodydark">Total Objectifs</p>
+                <p className="text-sm text-bodydark">Total Crédits EC</p>
                 <p className="text-2xl font-bold text-black dark:text-white">
-                  {totalObjectifs}
+                  {totalCreditsEC.toFixed(totalCreditsEC % 1 === 0 ? 0 : 1)}
                 </p>
               </div>
             </div>
@@ -209,7 +239,8 @@ export default function UnitePage({ params }: { params: { unite: string } }) {
         <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-boxdark">
           <ElementDataTable
             elements={elements}
-            uniteId={params.unite}
+            uniteId={uniteId}
+            anneeId={selectedAnnee._id}
             onRefresh={loadData}
           />
         </div>
