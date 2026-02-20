@@ -6,50 +6,24 @@ import { fetchAnnees, fetchAnneeActive } from "@/app/actions/annee.actions";
 import { fetchSections } from "@/app/actions/section.actions";
 import { fetchSubscriptionsByPromotion } from "@/app/actions/subscription.actions";
 import StudentDataTable from "@/app/components/StudentDataTable";
-
-interface Annee {
-  _id: string;
-  debut: string | Date;
-  fin: string | Date;
-  isActive: boolean;
-}
-
-interface Programme {
-  _id?: string;
-  niveau: string;
-  designation: string;
-  description: string[];
-}
-
-interface Filiere {
-  _id?: string;
-  sigle: string;
-  designation: string;
-  description: string[];
-  programmes?: Programme[];
-}
-
-interface Section {
-  _id: string;
-  mention: string;
-  designation: string;
-  mission: string;
-  promesses: string[];
-  filieres?: Filiere[];
-}
+import AcademicSidebar from "@/app/components/AcademicSidebar";
+import type {
+  AnneeType,
+  SectionType,
+  ProgrammeType,
+  PromotionSelection,
+} from "@/app/components/AcademicSidebar";
 
 export default function StudentsPage() {
-  const [annees, setAnnees] = useState<Annee[]>([]);
-  const [selectedAnnee, setSelectedAnnee] = useState<Annee | null>(null);
-  const [sections, setSections] = useState<Section[]>([]);
-  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
+  const [annees, setAnnees] = useState<AnneeType[]>([]);
+  const [selectedAnnee, setSelectedAnnee] = useState<AnneeType | null>(null);
+  const [sections, setSections] = useState<SectionType[]>([]);
+  const [selectedSection, setSelectedSection] = useState<SectionType | null>(
+    null,
+  );
   const [expandedFiliere, setExpandedFiliere] = useState<string | null>(null);
-  const [selectedPromotion, setSelectedPromotion] = useState<{
-    id: string;
-    name: string;
-    sectionId: string;
-    filiereId: string;
-  } | null>(null);
+  const [selectedPromotion, setSelectedPromotion] =
+    useState<PromotionSelection | null>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -152,33 +126,14 @@ export default function StudentsPage() {
     }
   };
 
-  const handleSelectPromotion = (
-    programme: Programme,
-    sectionId: string,
-    filiereId: string,
-  ) => {
-    console.log("Selecting promotion:", {
-      id: programme._id,
-      name: programme.designation,
-      niveau: programme.niveau,
-    });
-
-    if (!programme._id) {
-      console.error("Programme has no _id:", programme);
-      alert("Erreur: Cette promotion n'a pas d'identifiant valide");
-      return;
-    }
-
-    setSelectedPromotion({
-      id: programme._id,
-      name: `${programme.niveau} - ${programme.designation}`,
-      sectionId,
-      filiereId,
-    });
-  };
-
   const handleRefresh = () => {
     setRefreshKey((prev) => prev + 1);
+  };
+
+  const handleSetSelectedSection = (section: SectionType | null) => {
+    setSelectedSection(section);
+    setExpandedFiliere(null);
+    setSelectedPromotion(null);
   };
 
   if (isLoading) {
@@ -200,125 +155,20 @@ export default function StudentsPage() {
   return (
     <div className="-mx-6 -my-6 flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-80 flex-shrink-0 bg-white border-r border-gray-200 p-6 overflow-y-auto sticky top-0 h-screen">
-        {/* Année académique selector */}
-        <div className="mb-8">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Année académique
-          </label>
-          <select
-            value={selectedAnnee?._id || ""}
-            onChange={(e) => {
-              const annee = annees.find((a) => a._id === e.target.value);
-              setSelectedAnnee(annee || null);
-            }}
-            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary"
-          >
-            {annees.map((annee) => (
-              <option key={annee._id} value={annee._id}>
-                {new Date(annee.debut).getFullYear()} -{" "}
-                {new Date(annee.fin).getFullYear()}
-                {annee.isActive && " (Active)"}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Sections and Filieres */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">
-            Sections & Filières
-          </h3>
-          <div className="space-y-2">
-            {sections.map((section) => (
-              <div key={section._id}>
-                {/* Section Header */}
-                <button
-                  onClick={() => setSelectedSection(section)}
-                  className={`w-full text-left px-4 py-3 rounded-lg font-medium transition ${
-                    selectedSection?._id === section._id
-                      ? "bg-primary text-white"
-                      : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  {section.mention}
-                </button>
-
-                {/* Filieres (shown only for selected section) */}
-                {selectedSection?._id === section._id &&
-                  section.filieres &&
-                  section.filieres.length > 0 && (
-                    <div className="mt-2 ml-4 space-y-2">
-                      {section.filieres.map((filiere) => {
-                        const filiereId = filiere._id || filiere.designation;
-                        const isExpanded = expandedFiliere === filiereId;
-
-                        return (
-                          <div key={filiereId}>
-                            {/* Filiere Header */}
-                            <button
-                              onClick={() =>
-                                setExpandedFiliere(
-                                  isExpanded ? null : filiereId,
-                                )
-                              }
-                              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-                            >
-                              <span>{filiere.sigle}</span>
-                              <Icon
-                                icon={
-                                  isExpanded
-                                    ? "material-symbols:expand-less"
-                                    : "material-symbols:expand-more"
-                                }
-                                width={20}
-                                height={20}
-                              />
-                            </button>
-
-                            {/* Programmes (shown when expanded) */}
-                            {isExpanded &&
-                              filiere.programmes &&
-                              filiere.programmes.length > 0 && (
-                                <div className="mt-1 ml-4 space-y-1">
-                                  {filiere.programmes.map((programme) => (
-                                    <button
-                                      key={
-                                        programme._id || programme.designation
-                                      }
-                                      onClick={() =>
-                                        handleSelectPromotion(
-                                          programme,
-                                          section._id,
-                                          filiereId,
-                                        )
-                                      }
-                                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
-                                        selectedPromotion?.id === programme._id
-                                          ? "bg-primary/10 text-primary font-medium"
-                                          : "text-gray-600 hover:bg-gray-50"
-                                      }`}
-                                    >
-                                      <div className="font-medium">
-                                        {programme.niveau}
-                                      </div>
-                                      <div className="text-xs opacity-75">
-                                        {programme.designation}
-                                      </div>
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <AcademicSidebar
+        annees={annees}
+        sections={sections}
+        selectedAnnee={selectedAnnee}
+        selectedSection={selectedSection}
+        expandedFiliere={expandedFiliere}
+        selectedPromotion={selectedPromotion}
+        onSelectedAnnee={setSelectedAnnee}
+        onSelectedSection={handleSetSelectedSection}
+        onExpandedFiliere={(filiereId) =>
+          setExpandedFiliere((prev) => (prev === filiereId ? null : filiereId))
+        }
+        onSelectedPromotion={setSelectedPromotion}
+      />
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-8">
