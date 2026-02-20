@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import {
   createEnrollement,
   updateEnrollement,
+  deleteEnrollement,
 } from "@/app/actions/enrollement.actions";
 
 interface EnrollementFormModalProps {
@@ -75,6 +76,36 @@ export default function EnrollementFormModal({
     const newDescription = [...description];
     newDescription[index] = value;
     setDescription(newDescription);
+  };
+
+  const handleDelete = async () => {
+    if (!enrollement) return;
+
+    if (
+      !confirm(
+        "Voulez-vous vraiment supprimer cet enrollement ? Cette action est irréversible.",
+      )
+    ) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await deleteEnrollement(enrollement._id);
+
+      if (result.success) {
+        toast.success("Enrollement supprimé avec succès");
+        resetForm();
+        onSuccess();
+        onClose();
+      } else {
+        toast.error(result.error || "Échec de la suppression");
+      }
+    } catch (error) {
+      toast.error("Une erreur est survenue");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -268,34 +299,49 @@ export default function EnrollementFormModal({
         </div>
 
         {/* Actions */}
-        <div className="mt-8 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-stroke px-6 py-2 font-medium text-black transition-colors hover:bg-gray-100 dark:border-strokedark dark:text-white dark:hover:bg-meta-4"
-            disabled={loading}
-          >
-            Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2 font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <Icon
-                  icon="eos-icons:loading"
-                  className="animate-spin text-xl"
-                />
-                Enregistrement...
-              </>
-            ) : (
-              <>
-                <Icon icon="material-symbols:save" />
-                {enrollement ? "Modifier" : "Créer"}
-              </>
-            )}
-          </button>
+        <div className="mt-8 flex items-center justify-between gap-3">
+          {/* Delete button (only in edit mode) */}
+          {enrollement && (
+            <button
+              onClick={handleDelete}
+              disabled={loading}
+              className="flex items-center gap-2 rounded-lg border border-red-500 px-6 py-2 font-medium text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+            >
+              <Icon icon="material-symbols:delete-outline" />
+              Supprimer
+            </button>
+          )}
+
+          {/* Right side actions */}
+          <div className="ml-auto flex gap-3">
+            <button
+              onClick={onClose}
+              className="rounded-lg border border-stroke px-6 py-2 font-medium text-black transition-colors hover:bg-gray-100 dark:border-strokedark dark:text-white dark:hover:bg-meta-4"
+              disabled={loading}
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2 font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <Icon
+                    icon="eos-icons:loading"
+                    className="animate-spin text-xl"
+                  />
+                  Enregistrement...
+                </>
+              ) : (
+                <>
+                  <Icon icon="material-symbols:save" />
+                  {enrollement ? "Modifier" : "Créer"}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

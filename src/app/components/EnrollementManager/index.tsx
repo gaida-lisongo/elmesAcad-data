@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { Icon } from "@iconify/react";
-import toast from "react-hot-toast";
-import { deleteEnrollement } from "@/app/actions/enrollement.actions";
 import EnrollementFormModal from "./EnrollementFormModal";
 import MatiereSelectionModal from "./MatiereSelectionModal";
 
@@ -23,7 +21,6 @@ export default function EnrollementDataTable({
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isMatiereModalOpen, setIsMatiereModalOpen] = useState(false);
   const [selectedEnrollement, setSelectedEnrollement] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
 
   const handleEdit = (enrollement: any) => {
     setSelectedEnrollement(enrollement);
@@ -33,30 +30,6 @@ export default function EnrollementDataTable({
   const handleManageMatieres = (enrollement: any) => {
     setSelectedEnrollement(enrollement);
     setIsMatiereModalOpen(true);
-  };
-
-  const handleDelete = async (enrollementId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    if (!confirm("Voulez-vous vraiment supprimer cet enrollement ?")) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await deleteEnrollement(enrollementId);
-
-      if (result.success) {
-        toast.success("Enrollement supprimé avec succès");
-        onRefresh();
-      } else {
-        toast.error(result.error || "Échec de la suppression");
-      }
-    } catch (error) {
-      toast.error("Une erreur est survenue");
-    } finally {
-      setLoading(false);
-    }
   };
 
   const formatDate = (date: string) => {
@@ -124,17 +97,25 @@ export default function EnrollementDataTable({
               key={enrollement._id}
               className="group relative overflow-hidden rounded-2xl border border-stroke bg-white shadow-sm transition-all hover:shadow-xl dark:border-strokedark dark:bg-boxdark"
             >
-              {/* Card Header with gradient */}
-              <div className="relative h-36 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 p-6">
+              {/* Card Header with Image */}
+              <div className="relative h-48 overflow-hidden">
+                <img
+                  src="/images/courses/mern.webp"
+                  alt={enrollement.designation}
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+                {/* Overlay gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+
                 {/* Status badge */}
-                <div className="absolute right-4 top-4">
+                <div className="absolute right-4 top-4 z-10">
                   {enrollement.isActive ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500 px-3 py-1 text-xs font-bold text-white">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500 px-3 py-1 text-xs font-bold text-white shadow-lg">
                       <Icon icon="material-symbols:check-circle" />
                       Actif
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-400 px-3 py-1 text-xs font-bold text-white">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-400 px-3 py-1 text-xs font-bold text-white shadow-lg">
                       <Icon icon="material-symbols:cancel" />
                       Inactif
                     </span>
@@ -142,14 +123,11 @@ export default function EnrollementDataTable({
                 </div>
 
                 {/* Price */}
-                <div className="absolute bottom-4 left-4">
+                <div className="absolute bottom-4 left-4 z-10">
                   <div className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-white shadow-lg">
                     <Icon icon="material-symbols:payments" />${enrollement.prix}
                   </div>
                 </div>
-
-                {/* Decorative circle */}
-                <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/20"></div>
               </div>
 
               {/* Card Content */}
@@ -207,23 +185,13 @@ export default function EnrollementDataTable({
                     Gérer les matières
                   </button>
 
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(enrollement)}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
-                    >
-                      <Icon icon="material-symbols:edit" />
-                      Modifier
-                    </button>
-                    <button
-                      onClick={(e) => handleDelete(enrollement._id, e)}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-red-500 px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10"
-                      disabled={loading}
-                    >
-                      <Icon icon="material-symbols:delete-outline" />
-                      Supprimer
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => handleEdit(enrollement)}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+                  >
+                    <Icon icon="material-symbols:edit" />
+                    Modifier
+                  </button>
                 </div>
               </div>
 
