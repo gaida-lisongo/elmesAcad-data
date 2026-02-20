@@ -1,16 +1,21 @@
-import mongoose, { Schema, Document, Model, StringExpressionOperatorReturningArray } from "mongoose"
+import mongoose, {
+  Schema,
+  Document,
+  Model,
+  StringExpressionOperatorReturningArray,
+} from "mongoose";
 
 export interface IEtudiant extends Document {
-  nomComplet: string
-  email: string
-  telephone?: string
-  adresse?: string
-  matricule?: string
-  photo?: string
-  grade: string
-  passwordHash: string
-  createdAt: Date
-  updatedAt: Date
+  nomComplet: string;
+  email: string;
+  telephone?: string;
+  adresse?: string;
+  matricule?: string;
+  photo?: string;
+  grade: string;
+  passwordHash: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const EtudiantSchema = new Schema<IEtudiant>(
@@ -47,53 +52,71 @@ const EtudiantSchema = new Schema<IEtudiant>(
     },
     grade: {
       type: String,
-      required: true
+      required: true,
     },
     passwordHash: {
       type: String,
       required: true,
       select: false, // ne retourne pas le hash par défaut
     },
-
-  }, {
+  },
+  {
     timestamps: true,
-  }
-)
+  },
+);
 
 export interface ISubscription extends Document {
-  etudiant: mongoose.Types.ObjectId
-  promotion: mongoose.Types.ObjectId
-  annee: mongoose.Types.ObjectId
-  isValid: boolean
-  createdAt: Date
-  updatedAt: Date
+  etudiant: mongoose.Types.ObjectId;
+  promotion: mongoose.Types.ObjectId;
+  annee: mongoose.Types.ObjectId;
+  isValid: boolean;
+  documents: {
+    title: String;
+    url: String;
+    statut: String;
+  }[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const SubscriptionSchema = new Schema<ISubscription>({
-  etudiant: {
-    type: Schema.Types.ObjectId,
-    ref: "Etudiant",
-    required: true,
+const SubscriptionSchema = new Schema<ISubscription>(
+  {
+    etudiant: {
+      type: Schema.Types.ObjectId,
+      ref: "Etudiant",
+      required: true,
+    },
+    promotion: {
+      type: Schema.Types.ObjectId,
+      ref: "Promotion",
+      required: true,
+    },
+    annee: {
+      type: Schema.Types.ObjectId,
+      ref: "Annee",
+      required: true,
+    },
+    isValid: {
+      type: Boolean,
+      default: true,
+    },
+    documents: {
+      type: [
+        {
+          title: { type: String, required: true },
+          url: { type: String, required: true },
+          statut: { type: String, required: true },
+        },
+      ],
+      default: [],
+    },
   },
-  promotion: {
-    type: Schema.Types.ObjectId,
-    ref: "Promotion",
-    required: true,
-  },
-  annee: {
-    type: Schema.Types.ObjectId,
-    ref: "Annee",
-    required: true,
-  },
-  isValid: {
-    type: Boolean,
-    default: true,
-  },
-}, { timestamps: true})
+  { timestamps: true },
+);
 
 export interface IUser extends IEtudiant {
-  autorisations: string[]
-  fonction?: string
+  autorisations: string[];
+  fonction?: string;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -141,7 +164,7 @@ const UserSchema = new Schema<IUser>(
 
     grade: {
       type: String,
-      required: true
+      required: true,
     },
 
     fonction: {
@@ -157,15 +180,16 @@ const UserSchema = new Schema<IUser>(
   },
   {
     timestamps: true,
-  }
-)
+  },
+);
 
 export const User: Model<IUser> =
-  mongoose.models.User || mongoose.model<IUser>("User", UserSchema)
+  mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
 
 export const Etudiant: Model<IEtudiant> =
-  mongoose.models.Etudiant || mongoose.model<IEtudiant>("Etudiant", EtudiantSchema)
+  mongoose.models.Etudiant ||
+  mongoose.model<IEtudiant>("Etudiant", EtudiantSchema);
 
 export const Subscription: Model<ISubscription> =
-  (mongoose.models.Subscription as Model<ISubscription>) || mongoose.model<ISubscription>("Subscription", SubscriptionSchema)
-
+  (mongoose.models.Subscription as Model<ISubscription>) ||
+  mongoose.model<ISubscription>("Subscription", SubscriptionSchema);

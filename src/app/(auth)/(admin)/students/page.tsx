@@ -96,12 +96,19 @@ export default function StudentsPage() {
 
             if (firstFiliere.programmes && firstFiliere.programmes.length > 0) {
               const firstProgramme = firstFiliere.programmes[0];
-              setSelectedPromotion({
-                id: firstProgramme._id || "",
+              console.log("Auto-selecting first promotion:", {
+                id: firstProgramme._id,
                 name: firstProgramme.designation,
-                sectionId: firstSection._id,
-                filiereId: firstFiliere._id || "",
+                niveau: firstProgramme.niveau,
               });
+              if (firstProgramme._id) {
+                setSelectedPromotion({
+                  id: firstProgramme._id,
+                  name: `${firstProgramme.niveau} - ${firstProgramme.designation}`,
+                  sectionId: firstSection._id,
+                  filiereId: firstFiliere._id || "",
+                });
+              }
             }
           }
         }
@@ -116,11 +123,18 @@ export default function StudentsPage() {
   const loadStudents = async () => {
     if (!selectedPromotion || !selectedAnnee) return;
 
+    console.log("Loading students for:", {
+      promotionId: selectedPromotion.id,
+      promotionName: selectedPromotion.name,
+      anneeId: selectedAnnee._id,
+    });
+
     try {
       const result = await fetchSubscriptionsByPromotion(
         selectedPromotion.id,
         selectedAnnee._id,
       );
+      console.log("Fetched students:", result);
       if (result.success && result.data) {
         // Transform data to match EnrolledStudent structure
         const transformedData = result.data.map((item: any) => ({
@@ -143,9 +157,21 @@ export default function StudentsPage() {
     sectionId: string,
     filiereId: string,
   ) => {
-    setSelectedPromotion({
-      id: programme._id || "",
+    console.log("Selecting promotion:", {
+      id: programme._id,
       name: programme.designation,
+      niveau: programme.niveau,
+    });
+
+    if (!programme._id) {
+      console.error("Programme has no _id:", programme);
+      alert("Erreur: Cette promotion n'a pas d'identifiant valide");
+      return;
+    }
+
+    setSelectedPromotion({
+      id: programme._id,
+      name: `${programme.niveau} - ${programme.designation}`,
       sectionId,
       filiereId,
     });
@@ -273,7 +299,12 @@ export default function StudentsPage() {
                                           : "text-gray-600 hover:bg-gray-50"
                                       }`}
                                     >
-                                      {programme.designation}
+                                      <div className="font-medium">
+                                        {programme.niveau}
+                                      </div>
+                                      <div className="text-xs opacity-75">
+                                        {programme.designation}
+                                      </div>
                                     </button>
                                   ))}
                                 </div>
@@ -293,7 +324,6 @@ export default function StudentsPage() {
       <div className="flex-1 overflow-y-auto p-8">
         {selectedPromotion && selectedAnnee ? (
           <StudentDataTable
-            key={`${selectedPromotion.id}-${selectedAnnee._id}-${refreshKey}`}
             initialStudents={students}
             promotionId={selectedPromotion.id}
             promotionName={selectedPromotion.name}

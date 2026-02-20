@@ -10,11 +10,20 @@ export interface SubscriptionType {
   promotion: string;
   annee: string;
   isValid: boolean;
+  documents?: {
+    title: string;
+    url: string;
+    statut: string;
+  }[];
   createdAt?: string;
   updatedAt?: string;
 }
 
-export async function fetchSubscriptions(): Promise<{ success: boolean; data?: SubscriptionType[]; error?: string }> {
+export async function fetchSubscriptions(): Promise<{
+  success: boolean;
+  data?: SubscriptionType[];
+  error?: string;
+}> {
   try {
     await connectDB();
     const subscriptions = await Subscription.find().lean();
@@ -28,16 +37,16 @@ export async function fetchSubscriptions(): Promise<{ success: boolean; data?: S
 
 export async function fetchSubscriptionsByPromotion(
   promotionId: string,
-  anneeId: string
+  anneeId: string,
 ): Promise<{ success: boolean; data?: any[]; error?: string }> {
   try {
     await connectDB();
-    
+
     const subscriptions = await Subscription.find({
       promotion: new mongoose.Types.ObjectId(promotionId),
       annee: new mongoose.Types.ObjectId(anneeId),
     })
-      .populate('etudiant', '-passwordHash')
+      .populate("etudiant", "-passwordHash")
       .lean();
 
     const plainSubscriptions = JSON.parse(JSON.stringify(subscriptions));
@@ -49,11 +58,11 @@ export async function fetchSubscriptionsByPromotion(
 }
 
 export async function fetchSubscriptionsByStudent(
-  studentId: string
+  studentId: string,
 ): Promise<{ success: boolean; data?: SubscriptionType[]; error?: string }> {
   try {
     await connectDB();
-    
+
     const subscriptions = await Subscription.find({
       etudiant: new mongoose.Types.ObjectId(studentId),
     }).lean();
@@ -111,20 +120,25 @@ export async function updateSubscription(
     isValid?: boolean;
     promotionId?: string;
     anneeId?: string;
-  }
+  },
 ): Promise<{ success: boolean; data?: SubscriptionType; error?: string }> {
   try {
     await connectDB();
 
     const dataToUpdate: any = {};
-    if (updateData.isValid !== undefined) dataToUpdate.isValid = updateData.isValid;
-    if (updateData.promotionId) dataToUpdate.promotion = new mongoose.Types.ObjectId(updateData.promotionId);
-    if (updateData.anneeId) dataToUpdate.annee = new mongoose.Types.ObjectId(updateData.anneeId);
+    if (updateData.isValid !== undefined)
+      dataToUpdate.isValid = updateData.isValid;
+    if (updateData.promotionId)
+      dataToUpdate.promotion = new mongoose.Types.ObjectId(
+        updateData.promotionId,
+      );
+    if (updateData.anneeId)
+      dataToUpdate.annee = new mongoose.Types.ObjectId(updateData.anneeId);
 
     const updatedSubscription = await Subscription.findByIdAndUpdate(
       id,
       dataToUpdate,
-      { returnDocument: 'after' }
+      { returnDocument: "after" },
     ).lean();
 
     if (!updatedSubscription) {
@@ -139,10 +153,12 @@ export async function updateSubscription(
   }
 }
 
-export async function deleteSubscription(id: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteSubscription(
+  id: string,
+): Promise<{ success: boolean; error?: string }> {
   try {
     await connectDB();
-    
+
     const deletedSubscription = await Subscription.findByIdAndDelete(id);
 
     if (!deletedSubscription) {
@@ -167,8 +183,12 @@ export async function createSubscriptionsFromCSV(
     matricule?: string;
     grade: string;
     password: string;
-  }>
-): Promise<{ success: boolean; data?: { created: number; errors: string[] }; error?: string }> {
+  }>,
+): Promise<{
+  success: boolean;
+  data?: { created: number; errors: string[] };
+  error?: string;
+}> {
   try {
     await connectDB();
 
@@ -200,7 +220,10 @@ export async function createSubscriptionsFromCSV(
             adresse: row.adresse,
             matricule: row.matricule,
             grade: row.grade,
-            passwordHash: crypto.createHash("sha256").update(row.password).digest("hex"),
+            passwordHash: crypto
+              .createHash("sha256")
+              .update(row.password)
+              .digest("hex"),
           });
         }
 
@@ -212,7 +235,9 @@ export async function createSubscriptionsFromCSV(
         });
 
         if (existingSubscription) {
-          errors.push(`Ligne ${i + 1}: Inscription existe déjà pour ${row.email}`);
+          errors.push(
+            `Ligne ${i + 1}: Inscription existe déjà pour ${row.email}`,
+          );
           continue;
         }
 
@@ -232,10 +257,133 @@ export async function createSubscriptionsFromCSV(
 
     return {
       success: true,
-      data: { created, errors }
+      data: { created, errors },
     };
   } catch (error) {
     console.error("Error creating subscriptions from CSV:", error);
     return { success: false, error: "Failed to process CSV data" };
+  }
+}
+
+export async function fetchAllSubscriptionsWithDetails(): Promise<{
+  success: boolean;
+  data?: any[];
+  error?: string;
+}> {
+  try {
+    await connectDB();
+
+    const subscriptions = await Subscription.find()
+      .populate("etudiant", "-passwordHash")
+      .populate("annee")
+      .lean();
+
+    // Load sections to get promotion details
+    const Section = require("@/lib/models/Section").Section;
+    const sections = await Section.find().lean();
+
+    // Map promotions
+    const enrichedSubscriptions = subscriptions.map((sub: any) => {
+      let promotionInfo = null;
+
+      // Find promotion in sections
+      for (const section of sections) {
+        if (section.filieres) {
+          for (const filiere of section.filieres) {
+            if (filiere.programmes) {
+              const programme = filiere.programmes.find(
+                (p: any) => String(p._id) === String(sub.promotion),
+              );
+              if (programme) {
+                promotionInfo = {
+                  _id: programme._id,
+                  niveau: programme.niveau,
+                  designation: programme.designation,
+                  filiere: {
+                    sigle: filiere.sigle,
+                    designation: filiere.designation,
+                  },
+                  section: {
+                    mention: section.mention,
+                    designation: section.designation,
+                  },
+                };
+                break;
+              }
+            }
+          }
+        }
+        if (promotionInfo) break;
+      }
+
+      return {
+        ...sub,
+        promotion: promotionInfo || sub.promotion,
+      };
+    });
+
+    const plainSubscriptions = JSON.parse(
+      JSON.stringify(enrichedSubscriptions),
+    );
+    return { success: true, data: plainSubscriptions };
+  } catch (error) {
+    console.error("Error fetching all subscriptions:", error);
+    return { success: false, error: "Failed to fetch subscriptions" };
+  }
+}
+
+export async function updateSubscriptionDocumentStatus(
+  subscriptionId: string,
+  documentIndex: number,
+  newStatut: string,
+): Promise<{ success: boolean; data?: SubscriptionType; error?: string }> {
+  try {
+    await connectDB();
+
+    const subscription = await Subscription.findById(subscriptionId);
+    if (!subscription) {
+      return { success: false, error: "Subscription not found" };
+    }
+
+    if (
+      !subscription.documents ||
+      subscription.documents.length <= documentIndex
+    ) {
+      return { success: false, error: "Document not found" };
+    }
+
+    subscription.documents[documentIndex].statut = newStatut;
+    await subscription.save();
+
+    const plainSubscription = JSON.parse(JSON.stringify(subscription));
+    return { success: true, data: plainSubscription as SubscriptionType };
+  } catch (error) {
+    console.error("Error updating document status:", error);
+    return { success: false, error: "Failed to update document status" };
+  }
+}
+
+export async function updateSubscriptionValidation(
+  subscriptionId: string,
+  isValid: boolean,
+): Promise<{ success: boolean; data?: SubscriptionType; error?: string }> {
+  try {
+    await connectDB();
+
+    const updatedSubscription = await Subscription.findByIdAndUpdate(
+      subscriptionId,
+      { isValid },
+      { returnDocument: "after" },
+    ).lean();
+
+    if (!updatedSubscription) {
+      return { success: false, error: "Subscription not found" };
+    }
+
+    const plainSubscription = JSON.parse(JSON.stringify(updatedSubscription));
+    return { success: true, data: plainSubscription as SubscriptionType };
+  } catch (error) {
+    console.error("Error updating subscription validation:", error);
+    return { success: false, error: "Failed to update subscription" };
   }
 }
