@@ -149,7 +149,7 @@ export default function UnitePage({
             </h1>
             <div className="mt-2 flex items-center gap-2">
               <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-                {unite.credit} Crédits
+                {Number(unite.credit) || 0} Crédits
               </span>
             </div>
           </div>
@@ -194,7 +194,7 @@ export default function UnitePage({
               <div>
                 <p className="text-sm text-bodydark">Crédits UE</p>
                 <p className="text-2xl font-bold text-black dark:text-white">
-                  {unite.credit}
+                  {Number(unite.credit) || 0}
                 </p>
               </div>
             </div>
