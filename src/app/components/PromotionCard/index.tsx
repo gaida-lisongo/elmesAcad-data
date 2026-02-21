@@ -117,7 +117,7 @@ const PromotionCard = ({
 
       <div className="px-3 pt-4">
         <Link
-          href={`/promotions/${promotion._id}`}
+          href={`/programmes/${promotion._id}`}
           className="text-black text-base font-semibold hover:text-primary line-clamp-2"
         >
           {String(promotion.designation)}
