@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { useAuthStore } from "@/store/auth.store";
 import UniteCard from "@/app/components/UniteCard";
+import StageDataTable from "@/app/components/StageManager";
+import SujetDataTable from "@/app/components/SujetManager";
+import EnrollementManager from "@/app/components/EnrollementManager";
 import {
   addPlanningToHoraire,
   updatePlanningInHoraire,
@@ -18,6 +21,9 @@ interface ProgrammeClientProps {
   section: any;
   horaires: any[];
   anneeActive: any;
+  stages: any[];
+  sujets: any[];
+  enrollements: any[];
   totalSemestres: number;
   totalCredits: number;
   totalUnites: number;
@@ -29,6 +35,9 @@ export default function ProgrammeClient({
   section,
   horaires: initialHoraires,
   anneeActive,
+  stages,
+  sujets,
+  enrollements,
   totalSemestres,
   totalCredits,
   totalUnites,
@@ -186,7 +195,7 @@ export default function ProgrammeClient({
             </div>
 
             {semestre.unites && semestre.unites.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-3">
                 {semestre.unites.map((unite: any, uniteIdx: number) => (
                   <div
                     key={uniteIdx}
@@ -209,38 +218,71 @@ export default function ProgrammeClient({
   };
 
   const renderStages = () => {
+    if (!anneeActive) {
+      return (
+        <div className="text-center py-10 text-gray-500">
+          <Icon
+            icon="solar:case-outline"
+            className="text-6xl mx-auto mb-4 text-gray-400"
+          />
+          <p>Aucune année académique active</p>
+        </div>
+      );
+    }
+
     return (
-      <div className="text-center py-10 text-gray-500">
-        <Icon
-          icon="solar:case-outline"
-          className="text-6xl mx-auto mb-4 text-gray-400"
-        />
-        <p>Stages à venir - En développement</p>
-      </div>
+      <StageDataTable
+        stages={stages}
+        anneeId={anneeActive._id}
+        promotionId={programme._id}
+        onRefresh={() => window.location.reload()}
+      />
     );
   };
 
   const renderSujets = () => {
+    if (!anneeActive) {
+      return (
+        <div className="text-center py-10 text-gray-500">
+          <Icon
+            icon="solar:document-text-outline"
+            className="text-6xl mx-auto mb-4 text-gray-400"
+          />
+          <p>Aucune année académique active</p>
+        </div>
+      );
+    }
+
     return (
-      <div className="text-center py-10 text-gray-500">
-        <Icon
-          icon="solar:document-text-outline"
-          className="text-6xl mx-auto mb-4 text-gray-400"
-        />
-        <p>Sujets à venir - En développement</p>
-      </div>
+      <SujetDataTable
+        sujets={sujets}
+        anneeId={anneeActive._id}
+        promotionId={programme._id}
+        onRefresh={() => window.location.reload()}
+      />
     );
   };
 
   const renderSessions = () => {
+    if (!anneeActive) {
+      return (
+        <div className="text-center py-10 text-gray-500">
+          <Icon
+            icon="solar:calendar-outline"
+            className="text-6xl mx-auto mb-4 text-gray-400"
+          />
+          <p>Aucune année académique active</p>
+        </div>
+      );
+    }
+
     return (
-      <div className="text-center py-10 text-gray-500">
-        <Icon
-          icon="solar:calendar-outline"
-          className="text-6xl mx-auto mb-4 text-gray-400"
-        />
-        <p>Sessions à venir - En développement</p>
-      </div>
+      <EnrollementManager
+        enrollements={enrollements}
+        anneeId={anneeActive._id}
+        promotionId={programme._id}
+        onRefresh={() => window.location.reload()}
+      />
     );
   };
 

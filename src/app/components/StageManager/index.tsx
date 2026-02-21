@@ -14,7 +14,7 @@ interface StageDataTableProps {
 }
 
 export default function StageDataTable({
-  stages,
+  stages = [],
   anneeId,
   promotionId,
   onRefresh,
