@@ -123,6 +123,21 @@ export interface IProgramme extends Document {
   updatedAt: Date;
 }
 
+export interface IHoraire extends Document {
+  anneeId: mongoose.Types.ObjectId;
+  promotionId: mongoose.Types.ObjectId;
+  semestreId: mongoose.Types.ObjectId;
+  planing: {
+    debut: Date;
+    fin: Date;
+    description: String;
+    elementId: mongoose.Types.ObjectId;
+    isActive: Boolean;
+  }[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 const ProgrammeSchema = new Schema<IProgramme>(
   {
     niveau: {
@@ -142,6 +157,35 @@ const ProgrammeSchema = new Schema<IProgramme>(
         designation: String,
         credit: Number,
         unites: [UniteSchema],
+      },
+    ],
+  },
+  { timestamps: true },
+);
+
+const HoraireSchema = new Schema<IHoraire>(
+  {
+    anneeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Annee",
+      required: true,
+    },
+    promotionId: {
+      type: Schema.Types.ObjectId,
+      ref: "Promotion",
+      required: true,
+    },
+    semestreId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+    },
+    planing: [
+      {
+        debut: Date,
+        fin: Date,
+        description: String,
+        elementId: mongoose.Types.ObjectId,
+        isActive: Boolean,
       },
     ],
   },
@@ -200,5 +244,7 @@ export const Unite: Model<IUnite> =
 export const Programme: Model<IProgramme> =
   mongoose.models.Programme ||
   mongoose.model<IProgramme>("Programme", ProgrammeSchema);
+export const Horaire: Model<IHoraire> =
+  mongoose.models.Horaire || mongoose.model<IHoraire>("Horaire", HoraireSchema);
 export const Section: Model<ISection> =
   mongoose.models.Section || mongoose.model<ISection>("Section", SectionSchema);
