@@ -387,3 +387,113 @@ export async function updateSubscriptionValidation(
     return { success: false, error: "Failed to update subscription" };
   }
 }
+
+// Fonction helper pour générer un matricule unique
+async function generateMatricule(): Promise<string> {
+  const year = new Date().getFullYear().toString().slice(-2);
+  const count = await Subscription.countDocuments();
+  const number = (count + 1).toString().padStart(4, "0");
+  return `ETU${year}${number}`;
+}
+
+// Inscription complète : créer étudiant + subscription
+export async function createInscription(data: {
+  studentData: {
+    nomComplet: string;
+    email: string;
+    telephone?: string;
+    adresse?: string;
+    password: string;
+    grade: string;
+  };
+  promotionId: string;
+  anneeId: string;
+  documents: {
+    title: string;
+    url: string;
+  }[];
+}): Promise<{
+  success: boolean;
+  data?: { student: any; subscription: any };
+  error?: string;
+}> {
+  try {
+    await connectDB();
+
+    // Vérifier si l'email existe déjà
+    const { Etudiant } = await import("@/lib/models/User");
+    const existingStudent = await Etudiant.findOne({
+      email: data.studentData.email,
+    });
+
+    if (existingStudent) {
+      return {
+        success: false,
+        error: "Un étudiant avec cet email existe déjà",
+      };
+    }
+
+    // Générer un matricule unique
+    const matricule = await generateMatricule();
+
+    // Créer l'étudiant avec hash du mot de passe
+    const crypto = await import("crypto");
+    const passwordHash = crypto
+      .createHash("sha256")
+      .update(data.studentData.password)
+      .digest("hex");
+
+    const newStudent = await Etudiant.create({
+      ...data.studentData,
+      matricule,
+      passwordHash,
+    });
+
+    // Vérifier si une subscription existe déjà
+    const existingSubscription = await Subscription.findOne({
+      etudiant: newStudent._id,
+      promotion: new mongoose.Types.ObjectId(data.promotionId),
+      annee: new mongoose.Types.ObjectId(data.anneeId),
+    });
+
+    if (existingSubscription) {
+      return {
+        success: false,
+        error: "Une inscription existe déjà pour cette promotion",
+      };
+    }
+
+    // Créer la subscription avec documents
+    const newSubscription = await Subscription.create({
+      etudiant: newStudent._id,
+      promotion: new mongoose.Types.ObjectId(data.promotionId),
+      annee: new mongoose.Types.ObjectId(data.anneeId),
+      isValid: false, // En attente de validation par défaut
+      documents: data.documents.map((doc) => ({
+        title: doc.title,
+        url: doc.url,
+        statut: "en_attente",
+      })),
+    });
+
+    // Populate pour retourner les données complètes
+    const populatedSubscription = await Subscription.findById(
+      newSubscription._id,
+    )
+      .populate("etudiant", "-passwordHash")
+      .populate("annee")
+      .lean();
+
+    const plainData = JSON.parse(
+      JSON.stringify({
+        student: newStudent,
+        subscription: populatedSubscription,
+      }),
+    );
+
+    return { success: true, data: plainData };
+  } catch (error) {
+    console.error("Error creating inscription:", error);
+    return { success: false, error: "Erreur lors de l'inscription" };
+  }
+}
