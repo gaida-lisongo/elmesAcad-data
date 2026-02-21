@@ -3,5 +3,9 @@ export default function UniteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen bg-gray-2 pt-16 dark:bg-boxdark-2 lg:pt-20">
+      {children}
+    </div>
+  );
 }

@@ -59,16 +59,18 @@ function StatCard({
   value,
   sub,
   gradient,
+  isLong = false,
 }: {
   icon: string;
   label: string;
   value: string | number;
   sub?: string;
   gradient: string;
+  isLong?: boolean;
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl ${gradient} p-5 shadow-md`}
+      className={`relative overflow-hidden rounded-2xl ${gradient} p-4 shadow-md sm:p-5`}
     >
       <div className="absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-white/10" />
       <div className="relative">
@@ -76,7 +78,11 @@ function StatCard({
           <Icon icon={icon} className="text-2xl text-white" />
         </div>
         <p className="mb-0.5 text-xs font-medium text-white/80">{label}</p>
-        <p className="text-3xl font-bold text-white">{value}</p>
+        <p
+          className={`font-bold text-white ${isLong ? "line-clamp-2 text-base sm:text-lg" : "text-3xl"}`}
+        >
+          {value}
+        </p>
         {sub && <p className="mt-1 text-xs text-white/70">{sub}</p>}
       </div>
     </div>
@@ -224,7 +230,7 @@ export default function UniteDetailPage({
   /* ── loading skeleton ── */
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-2 dark:bg-boxdark-2">
+      <div className="flex items-center justify-center py-32">
         <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           <p className="text-bodydark">Chargement de l'unité…</p>
@@ -235,7 +241,7 @@ export default function UniteDetailPage({
 
   if (!unite) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-2 dark:bg-boxdark-2">
+      <div className="flex items-center justify-center py-32">
         <div className="text-center">
           <Icon
             icon="material-symbols:error-outline"
@@ -250,14 +256,14 @@ export default function UniteDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-2 dark:bg-boxdark-2">
+    <div>
       {/* ── Academic year banner ── */}
       {annee && (
         <div className="border-b border-stroke bg-white dark:border-strokedark dark:bg-boxdark">
-          <div className="mx-auto flex max-w-7xl items-center gap-3 px-6 py-3">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 py-3 sm:px-6">
             <Icon
               icon="material-symbols:calendar-month-outline"
-              className="text-xl text-primary"
+              className="shrink-0 text-xl text-primary"
             />
             <span className="text-sm font-medium text-black dark:text-white">
               Année académique active :
@@ -270,16 +276,16 @@ export default function UniteDetailPage({
       )}
 
       {/* ── Page body ── */}
-      <div className="mx-auto max-w-7xl px-6 py-8">
-        <div className="flex flex-col gap-8 lg:flex-row">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
           {/* ════════════════ LEFT COLUMN (50%) ════════════════ */}
-          <div className="flex w-full flex-col gap-6 lg:w-1/2">
+          <div className="flex min-w-0 w-full flex-col gap-6 lg:w-1/2">
             {/* Code + Designation */}
-            <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-boxdark">
-              <span className="mb-2 inline-block rounded-lg bg-primary/10 px-3 py-1 font-mono text-sm font-bold text-primary">
+            <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-6 dark:bg-boxdark">
+              <span className="mb-2 inline-block break-all rounded-lg bg-primary/10 px-3 py-1 font-mono text-sm font-bold text-primary">
                 {unite.code}
               </span>
-              <h1 className="mt-2 text-3xl font-extrabold leading-tight text-black dark:text-white">
+              <h1 className="mt-2 break-words text-xl font-extrabold leading-tight text-black sm:text-3xl dark:text-white">
                 {unite.designation}
               </h1>
               {metadata && (
@@ -362,35 +368,35 @@ export default function UniteDetailPage({
           </div>
 
           {/* ════════════════ RIGHT COLUMN (50%) ════════════════ */}
-          <div className="flex w-full flex-col gap-6 lg:w-1/2">
+          <div className="flex min-w-0 w-full flex-col gap-6 lg:w-1/2">
             {/* Small info cards: Programme + Semestre */}
             {metadata && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col items-start gap-2 rounded-2xl border border-stroke bg-white p-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
-                  <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="flex min-w-0 flex-col items-start gap-2 rounded-2xl border border-stroke bg-white p-3 shadow-sm sm:p-4 dark:border-strokedark dark:bg-boxdark">
+                  <div className="flex items-center gap-1.5">
                     <Icon
                       icon="material-symbols:school-outline"
-                      className="text-xl text-primary"
+                      className="shrink-0 text-lg text-primary"
                     />
                     <span className="text-xs font-semibold uppercase tracking-wide text-bodydark">
                       Promotion
                     </span>
                   </div>
-                  <p className="text-sm font-bold text-black dark:text-white">
+                  <p className="line-clamp-3 text-xs font-bold text-black sm:text-sm dark:text-white">
                     {metadata.programme}
                   </p>
                 </div>
-                <div className="flex flex-col items-start gap-2 rounded-2xl border border-stroke bg-white p-4 shadow-sm dark:border-strokedark dark:bg-boxdark">
-                  <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-col items-start gap-2 rounded-2xl border border-stroke bg-white p-3 shadow-sm sm:p-4 dark:border-strokedark dark:bg-boxdark">
+                  <div className="flex items-center gap-1.5">
                     <Icon
                       icon="material-symbols:calendar-today-outline"
-                      className="text-xl text-blue-500"
+                      className="shrink-0 text-lg text-blue-500"
                     />
                     <span className="text-xs font-semibold uppercase tracking-wide text-bodydark">
                       Semestre
                     </span>
                   </div>
-                  <p className="text-sm font-bold text-black dark:text-white">
+                  <p className="line-clamp-3 text-xs font-bold text-black sm:text-sm dark:text-white">
                     {metadata.semestre}
                   </p>
                 </div>
@@ -426,6 +432,7 @@ export default function UniteDetailPage({
                 value={metadata?.filiere ?? "—"}
                 sub="Appartenance"
                 gradient="bg-gradient-to-br from-orange-500 to-orange-600"
+                isLong
               />
             </div>
 
