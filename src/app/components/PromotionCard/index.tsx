@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { useAuthStore } from "@/store/auth.store";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface PromotionCardProps {
   promotion: any;
@@ -115,9 +116,12 @@ const PromotionCard = ({
       </div>
 
       <div className="px-3 pt-4">
-        <h6 className="text-black text-base font-semibold hover:text-primary line-clamp-2">
+        <Link
+          href={`/promotions/${promotion._id}`}
+          className="text-black text-base font-semibold hover:text-primary line-clamp-2"
+        >
           {String(promotion.designation)}
-        </h6>
+        </Link>
         <p className="text-sm font-normal pt-2 text-black/70 line-clamp-2">
           {String(promotion.filiere || promotion.filiereName || "")}
         </p>
@@ -131,7 +135,7 @@ const PromotionCard = ({
             </div>
           </div>
           <p className="font-medium text-primary">
-            {calculateTotalCredits(promotion.semestres)} pts
+            {calculateTotalCredits(promotion.semestres)} Crédits
           </p>
         </div>
         <div className="flex justify-between pt-2 text-xs">
