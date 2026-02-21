@@ -29,6 +29,8 @@ export async function fetchUniteById(
     let targetUnite: any = null;
     let semestreName = "";
     let programmeName = "";
+    let filiereName = "";
+    let filiereId = "";
 
     for (const filiere of section.filieres || []) {
       for (const programme of filiere.programmes || []) {
@@ -40,6 +42,8 @@ export async function fetchUniteById(
             targetUnite = unite;
             semestreName = semestre.designation;
             programmeName = `${programme.niveau} - ${programme.designation}`;
+            filiereName = filiere.designation;
+            filiereId = String(filiere._id || "");
             break;
           }
         }
@@ -58,6 +62,8 @@ export async function fetchUniteById(
         semestre: semestreName,
         programme: programmeName,
         section: section.designation,
+        filiere: filiereName,
+        filiereId,
       }),
     );
 
