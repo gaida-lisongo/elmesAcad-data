@@ -136,7 +136,7 @@ export default function ScrollToTop() {
       items: [
         {
           label: "Paiements Stages",
-          href: "/payments/stages",
+          href: "/finance/stages",
           icon: (
             <Icon
               icon="material-symbols:attach-money"
@@ -149,7 +149,7 @@ export default function ScrollToTop() {
         },
         {
           label: "Paiements Sujets",
-          href: "/payments/sujets",
+          href: "/finance/sujets",
           icon: (
             <Icon
               icon="material-symbols:attach-money"
@@ -162,7 +162,7 @@ export default function ScrollToTop() {
         },
         {
           label: "Paiements Enrollements",
-          href: "/payments/enrollements",
+          href: "/finance/enrollements",
           icon: (
             <Icon
               icon="material-symbols:attach-money"
