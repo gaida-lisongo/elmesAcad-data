@@ -2,7 +2,7 @@
 
 import { connectDB } from "@/lib/mongoose";
 import RecetteModels from "@/lib/models/Recette";
-import { Section } from "@/lib/models/Section";
+import { Section, Element } from "@/lib/models/Section";
 import { Annee } from "@/lib/models/Annee";
 import { Etudiant } from "@/lib/models/User";
 import mongoose from "mongoose";
@@ -13,9 +13,7 @@ export type ProduitType = "enrollement" | "stage" | "sujet";
 /* ─────────────────────────────────────────────────────────── */
 /*  Helper: resolve promotion name from sections               */
 /* ─────────────────────────────────────────────────────────── */
-async function resolvePromotion(
-  promotionId: string,
-): Promise<{
+async function resolvePromotion(promotionId: string): Promise<{
   promotionName: string;
   sectionName: string;
   filiereName: string;
@@ -70,8 +68,14 @@ export async function fetchProduitById(
     if (!id || id.length !== 24)
       return { success: false, error: "ID invalide" };
     await connectDB();
-
-    const produit = await MODEL[type].findById(id).lean();
+    const request =
+      type == "enrollement"
+        ? MODEL[type]
+            .findById(id)
+            .populate({ path: "matieres.matiereId", model: Element })
+            .lean()
+        : MODEL[type].findById(id).lean();
+    const produit = await request;
     if (!produit) return { success: false, error: "Produit non trouvé" };
 
     const p: any = produit;

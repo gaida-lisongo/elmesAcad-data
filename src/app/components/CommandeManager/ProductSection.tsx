@@ -18,6 +18,7 @@ function formatDate(d: string) {
 
 /* ── Enrollement: liste des matières + horaires ─────────── */
 function EnrollementSection({ produit }: { produit: any }) {
+    console.log("produit enro detail : ", produit);
   const matieres: any[] = produit.matieres ?? [];
   return (
     <div>
@@ -50,7 +51,7 @@ function EnrollementSection({ produit }: { produit: any }) {
                   {i + 1}
                 </div>
                 <span className="text-sm font-medium text-black dark:text-white">
-                  {m.matiereId ?? `Matière ${i + 1}`}
+                  {m.matiereId?.designation ?? `Matière ${i + 1}`}
                 </span>
               </div>
               {m.date_epreuve && (
