@@ -131,7 +131,7 @@ export interface IHoraire extends Document {
     debut: Date;
     fin: Date;
     description: String;
-    elementId: mongoose.Types.ObjectId;
+    uniteId?: mongoose.Types.ObjectId;
     isActive: Boolean;
   }[];
   createdAt: Date;
@@ -172,7 +172,7 @@ const HoraireSchema = new Schema<IHoraire>(
     },
     promotionId: {
       type: Schema.Types.ObjectId,
-      ref: "Promotion",
+      ref: "Programme",
       required: true,
     },
     semestreId: {
@@ -184,7 +184,10 @@ const HoraireSchema = new Schema<IHoraire>(
         debut: Date,
         fin: Date,
         description: String,
-        elementId: mongoose.Types.ObjectId,
+        uniteId: {
+          type: Schema.Types.ObjectId,
+          ref: "Unite",
+        },
         isActive: Boolean,
       },
     ],

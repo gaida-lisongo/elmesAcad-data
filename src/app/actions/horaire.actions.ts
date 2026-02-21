@@ -1,7 +1,8 @@
 "use server";
 
 import { connectDB } from "@/lib/mongoose";
-import { Horaire } from "@/lib/models/Section";
+import { Horaire, Programme } from "@/lib/models/Section";
+import { Annee } from "@/lib/models/Annee";
 import { revalidatePath } from "next/cache";
 
 // Fetch horaires pour une promotion donnée
@@ -16,7 +17,6 @@ export async function fetchHoraires(promotionId: string, anneeId?: string) {
 
     const horaires = await Horaire.find(query)
       .populate("anneeId")
-      .populate("promotionId")
       .lean();
 
     return {
@@ -37,15 +37,32 @@ export async function createHoraire(data: {
   anneeId: string;
   promotionId: string;
   semestreId: string;
+  plannings?: {
+    debut: Date;
+    fin: Date;
+    description: string;
+    elementId?: string;
+    isActive: boolean;
+  }[];
 }) {
   try {
     await connectDB();
+
+    // Map elementId to uniteId in plannings
+    const mappedPlannings =
+      data.plannings?.map((p) => ({
+        debut: p.debut,
+        fin: p.fin,
+        description: p.description,
+        ...(p.elementId && { uniteId: p.elementId }),
+        isActive: p.isActive,
+      })) || [];
 
     const newHoraire = new Horaire({
       anneeId: data.anneeId,
       promotionId: data.promotionId,
       semestreId: data.semestreId,
-      planing: [],
+      planing: mappedPlannings,
     });
 
     await newHoraire.save();
@@ -159,7 +176,19 @@ export async function addPlanningToHoraire(
       };
     }
 
-    horaire.planing.push(planning as any);
+    // Map elementId to uniteId
+    const mappedPlanning: any = {
+      debut: planning.debut,
+      fin: planning.fin,
+      description: planning.description,
+      isActive: planning.isActive,
+    };
+
+    if (planning.elementId) {
+      mappedPlanning.uniteId = planning.elementId;
+    }
+
+    horaire.planing.push(mappedPlanning);
     await horaire.save();
 
     revalidatePath("/programmes");

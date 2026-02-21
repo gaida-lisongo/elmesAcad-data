@@ -4,13 +4,10 @@ import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { useAuthStore } from "@/store/auth.store";
 import UniteCard from "@/app/components/UniteCard";
-import {
-  addPlanningToHoraire,
-  updatePlanningInHoraire,
-  removePlanningFromHoraire,
-  createHoraire,
-  deleteHoraire,
-} from "@/app/actions/horaire.actions";
+import HoraireModal from "@/app/components/Modals/HoraireModal";
+import PlanningModal from "@/app/components/Modals/PlanningModal";
+import DeleteModal from "@/app/components/Modals/DeleteModal";
+import { updatePlanningInHoraire } from "@/app/actions/horaire.actions";
 
 interface ProgrammeClientProps {
   programme: any;
@@ -44,15 +41,18 @@ export default function ProgrammeClient({
   const [activeTab, setActiveTab] = useState("cours");
   const [horaires, setHoraires] = useState(initialHoraires);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Modal states
+  const [showHoraireModal, setShowHoraireModal] = useState(false);
   const [showPlanningModal, setShowPlanningModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedSemestre, setSelectedSemestre] = useState<string | null>(null);
   const [selectedHoraire, setSelectedHoraire] = useState<any>(null);
-  const [planningFormData, setPlanningFormData] = useState({
-    debut: "",
-    fin: "",
-    description: "",
-    elementId: "",
-    isActive: true,
-  });
+  const [deleteTarget, setDeleteTarget] = useState<{
+    horaireId: string;
+    planningId: string;
+    description?: string;
+  } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -74,68 +74,6 @@ export default function ProgrammeClient({
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
-
-  const handleAddPlanning = async () => {
-    if (!selectedHoraire || !planningFormData.debut || !planningFormData.fin) {
-      alert("Veuillez remplir tous les champs obligatoires");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const result = await addPlanningToHoraire(selectedHoraire._id, {
-        ...planningFormData,
-        debut: new Date(planningFormData.debut),
-        fin: new Date(planningFormData.fin),
-      });
-
-      if (!result.success) {
-        alert(result.error || "Erreur lors de l'ajout du planning");
-        return;
-      }
-
-      alert("Planning ajouté avec succès");
-      setShowPlanningModal(false);
-      setPlanningFormData({
-        debut: "",
-        fin: "",
-        description: "",
-        elementId: "",
-        isActive: true,
-      });
-      window.location.reload();
-    } catch (error) {
-      console.error("Error adding planning:", error);
-      alert("Une erreur est survenue");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeletePlanning = async (
-    horaireId: string,
-    planningId: string,
-  ) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce planning ?")) return;
-
-    setIsSubmitting(true);
-    try {
-      const result = await removePlanningFromHoraire(horaireId, planningId);
-
-      if (!result.success) {
-        alert(result.error || "Erreur lors de la suppression");
-        return;
-      }
-
-      alert("Planning supprimé avec succès");
-      window.location.reload();
-    } catch (error) {
-      console.error("Error deleting planning:", error);
-      alert("Une erreur est survenue");
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const togglePlanningStatus = async (
@@ -368,20 +306,11 @@ export default function ProgrammeClient({
 
         {/* Horaires Section */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center mb-4">
             <h3 className="text-lg font-bold text-midnight_text flex items-center gap-2">
               <Icon icon="solar:calendar-outline" width={24} />
               Horaires de l'année
             </h3>
-            {mounted && hydrated && isAuthenticated() && (
-              <button
-                onClick={() => alert("Créer horaire - À implémenter")}
-                className="text-primary hover:text-primary/80 text-sm flex items-center gap-1"
-              >
-                <Icon icon="material-symbols:add" width={18} />
-                Ajouter
-              </button>
-            )}
           </div>
 
           {anneeActive ? (
@@ -399,104 +328,137 @@ export default function ProgrammeClient({
             </p>
           )}
 
-          {horaires.length > 0 ? (
-            <div className="space-y-3">
-              {horaires.map((horaire: any, idx: number) => (
+          <div className="space-y-3">
+            {programme.semestres?.map((semestre: any, idx: number) => {
+              const semestreNum = semestre?._id;
+              const horaire = horaires.find(
+                (h: any) => String(h.semestreId) === String(semestreNum),
+              );
+
+              return (
                 <div
-                  key={idx}
+                  key={semestreNum}
                   className="border border-gray-200 rounded-lg p-4 hover:border-primary transition"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <p className="font-medium text-sm text-midnight_text">
-                        Semestre {horaire.semestreId}
+                        {semestre.designation}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {semestre.credit} crédits
                       </p>
                     </div>
                     {mounted && hydrated && isAuthenticated() && (
-                      <button
-                        onClick={() => {
-                          setSelectedHoraire(horaire);
-                          setShowPlanningModal(true);
-                        }}
-                        className="text-primary hover:text-primary/80 text-xs flex items-center gap-1"
-                      >
-                        <Icon icon="material-symbols:add" width={16} />
-                      </button>
+                      <>
+                        {horaire ? (
+                          <button
+                            onClick={() => {
+                              setSelectedHoraire(horaire);
+                              setShowPlanningModal(true);
+                            }}
+                            className="text-primary hover:text-primary/80 text-xs flex items-center gap-1"
+                            disabled={isSubmitting}
+                          >
+                            <Icon icon="material-symbols:add" width={16} />
+                            Planning
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setSelectedSemestre(semestreNum);
+                              setShowHoraireModal(true);
+                            }}
+                            className="text-white bg-primary hover:bg-primary/90 text-xs px-3 py-1 rounded-lg flex items-center gap-1"
+                            disabled={isSubmitting}
+                          >
+                            <Icon icon="material-symbols:add" width={16} />
+                            Créer horaire
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
 
-                  {horaire.planing && horaire.planing.length > 0 ? (
-                    <div className="space-y-2">
-                      {horaire.planing.map((plan: any, planIdx: number) => (
-                        <div
-                          key={planIdx}
-                          className={`text-xs p-3 rounded-lg ${
-                            plan.isActive
-                              ? "bg-green-50 border border-green-200"
-                              : "bg-gray-50 border border-gray-200"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between mb-1">
-                            <p className="font-medium">
-                              {plan.description || "Sans description"}
-                            </p>
-                            {mounted && hydrated && isAuthenticated() && (
-                              <div className="flex gap-1">
-                                <button
-                                  onClick={() =>
-                                    togglePlanningStatus(
-                                      horaire._id,
-                                      plan._id,
-                                      plan.isActive,
-                                    )
-                                  }
-                                  className="text-primary hover:text-primary/80"
-                                  title={
-                                    plan.isActive ? "Désactiver" : "Activer"
-                                  }
-                                >
-                                  <Icon
-                                    icon={
-                                      plan.isActive
-                                        ? "solar:eye-outline"
-                                        : "solar:eye-closed-outline"
+                  {horaire ? (
+                    horaire.planing && horaire.planing.length > 0 ? (
+                      <div className="space-y-2">
+                        {horaire.planing.map((plan: any, planIdx: number) => (
+                          <div
+                            key={planIdx}
+                            className={`text-xs p-3 rounded-lg ${
+                              plan.isActive
+                                ? "bg-green-50 border border-green-200"
+                                : "bg-gray-50 border border-gray-200"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-1">
+                              <p className="font-medium">
+                                {plan.description || "Sans description"}
+                              </p>
+                              {mounted && hydrated && isAuthenticated() && (
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() =>
+                                      togglePlanningStatus(
+                                        horaire._id,
+                                        plan._id,
+                                        plan.isActive,
+                                      )
                                     }
-                                    width={16}
-                                  />
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleDeletePlanning(horaire._id, plan._id)
-                                  }
-                                  className="text-red-500 hover:text-red-600"
-                                  disabled={isSubmitting}
-                                  title="Supprimer"
-                                >
-                                  <Icon
-                                    icon="material-symbols:delete"
-                                    width={16}
-                                  />
-                                </button>
-                              </div>
-                            )}
+                                    className="text-primary hover:text-primary/80"
+                                    title={
+                                      plan.isActive ? "Désactiver" : "Activer"
+                                    }
+                                  >
+                                    <Icon
+                                      icon={
+                                        plan.isActive
+                                          ? "solar:eye-outline"
+                                          : "solar:eye-closed-outline"
+                                      }
+                                      width={16}
+                                    />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setDeleteTarget({
+                                        horaireId: horaire._id,
+                                        planningId: plan._id,
+                                        description: plan.description,
+                                      });
+                                      setShowDeleteModal(true);
+                                    }}
+                                    className="text-red-500 hover:text-red-600"
+                                    disabled={isSubmitting}
+                                    title="Supprimer"
+                                  >
+                                    <Icon
+                                      icon="material-symbols:delete"
+                                      width={16}
+                                    />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-gray-600">
+                              {formatDate(plan.debut)} - {formatDate(plan.fin)}
+                            </p>
                           </div>
-                          <p className="text-gray-600">
-                            {formatDate(plan.debut)} - {formatDate(plan.fin)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500">Aucun planning</p>
+                    )
                   ) : (
-                    <p className="text-xs text-gray-500">Aucun planning</p>
+                    <p className="text-xs text-gray-500">
+                      Créez un horaire pour ajouter des plannings
+                    </p>
                   )}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 text-center py-4">
-              Aucun horaire disponible
-            </p>
-          )}
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -531,124 +493,66 @@ export default function ProgrammeClient({
         </div>
       </div>
 
-      {/* Modal Add Planning */}
-      {showPlanningModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-midnight_text">
-                Ajouter un planning
-              </h3>
-              <button
-                onClick={() => setShowPlanningModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <Icon icon="material-symbols:close" width={24} height={24} />
-              </button>
-            </div>
+      {/* Modals */}
+      <HoraireModal
+        isOpen={showHoraireModal}
+        onClose={() => {
+          setShowHoraireModal(false);
+          setSelectedSemestre(null);
+        }}
+        anneeId={anneeActive?._id || ""}
+        promotionId={programme._id}
+        semestreId={selectedSemestre || ""}
+        semestreDesignation={
+          programme.semestres?.find((s: any) => s._id === selectedSemestre)
+            ?.designation
+        }
+        semestreCredit={
+          programme.semestres?.find((s: any) => s._id === selectedSemestre)
+            ?.credit
+        }
+        anneeDesignation={`${new Date(anneeActive?.debut || "").getFullYear()} - ${new Date(anneeActive?.fin || "").getFullYear()}`}
+        unites={
+          programme.semestres?.find((s: any) => s._id === selectedSemestre)
+            ?.unites || []
+        }
+      />
 
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date de début *
-                </label>
-                <input
-                  type="datetime-local"
-                  value={planningFormData.debut}
-                  onChange={(e) =>
-                    setPlanningFormData({
-                      ...planningFormData,
-                      debut: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-                  disabled={isSubmitting}
-                />
-              </div>
+      <PlanningModal
+        isOpen={showPlanningModal}
+        onClose={() => {
+          setShowPlanningModal(false);
+          setSelectedHoraire(null);
+        }}
+        horaireId={selectedHoraire?._id || ""}
+        semestreDesignation={
+          programme.semestres?.find(
+            (s: any) => String(s._id) === String(selectedHoraire?.semestreId),
+          )?.designation
+        }
+        semestreCredit={
+          programme.semestres?.find(
+            (s: any) => String(s._id) === String(selectedHoraire?.semestreId),
+          )?.credit
+        }
+        anneeDesignation={`${new Date(anneeActive?.debut || "").getFullYear()} - ${new Date(anneeActive?.fin || "").getFullYear()}`}
+        unites={
+          programme.semestres?.find(
+            (s: any) => String(s._id) === String(selectedHoraire?.semestreId),
+          )?.unites || []
+        }
+      />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date de fin *
-                </label>
-                <input
-                  type="datetime-local"
-                  value={planningFormData.fin}
-                  onChange={(e) =>
-                    setPlanningFormData({
-                      ...planningFormData,
-                      fin: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={planningFormData.description}
-                  onChange={(e) =>
-                    setPlanningFormData({
-                      ...planningFormData,
-                      description: e.target.value,
-                    })
-                  }
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-                  placeholder="Description du planning..."
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={planningFormData.isActive}
-                  onChange={(e) =>
-                    setPlanningFormData({
-                      ...planningFormData,
-                      isActive: e.target.checked,
-                    })
-                  }
-                  className="w-4 h-4 text-primary"
-                  disabled={isSubmitting}
-                />
-                <label htmlFor="isActive" className="text-sm text-gray-700">
-                  Actif
-                </label>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowPlanningModal(false)}
-                disabled={isSubmitting}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleAddPlanning}
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <Icon icon="eos-icons:loading" width={20} height={20} />
-                    Ajout...
-                  </span>
-                ) : (
-                  "Ajouter"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteTarget(null);
+        }}
+        horaireId={deleteTarget?.horaireId || ""}
+        planningId={deleteTarget?.planningId || ""}
+        planningDescription={deleteTarget?.description}
+      />
     </div>
   );
 }
