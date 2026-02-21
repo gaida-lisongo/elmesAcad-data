@@ -46,7 +46,7 @@ const UniteCard = ({
       codeField: null,
       creditField: "prix",
       descriptionField: "description",
-      detailUrl: `/stage/${item._id}`,
+      detailUrl: `/produit/stage-${item._id}`,
       creditLabel: "$",
     },
     sujet: {
@@ -55,7 +55,7 @@ const UniteCard = ({
       codeField: null,
       creditField: "prix",
       descriptionField: "description",
-      detailUrl: `/sujet/${item._id}`,
+      detailUrl: `/produit/sujet-${item._id}`,
       creditLabel: "$",
     },
     enrollement: {
@@ -64,7 +64,7 @@ const UniteCard = ({
       codeField: null,
       creditField: "prix",
       descriptionField: "description",
-      detailUrl: `/enrollement/${item._id}`,
+      detailUrl: `/produit/enrollement-${item._id}`,
       creditLabel: "$",
     },
   };
