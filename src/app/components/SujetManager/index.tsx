@@ -14,7 +14,7 @@ interface SujetDataTableProps {
 }
 
 export default function SujetDataTable({
-  sujets,
+  sujets = [],
   anneeId,
   promotionId,
   onRefresh,

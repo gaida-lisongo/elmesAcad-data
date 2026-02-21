@@ -4,9 +4,6 @@ import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { useAuthStore } from "@/store/auth.store";
 import UniteCard from "@/app/components/UniteCard";
-import StageDataTable from "@/app/components/StageManager";
-import SujetDataTable from "@/app/components/SujetManager";
-import EnrollementManager from "@/app/components/EnrollementManager";
 import {
   addPlanningToHoraire,
   updatePlanningInHoraire,
@@ -202,7 +199,7 @@ export default function ProgrammeClient({
                     className="animate-fadeInUp"
                     style={{ animationDelay: `${uniteIdx * 50}ms` }}
                   >
-                    <UniteCard unite={unite} showActions={false} />
+                    <UniteCard item={unite} type="unite" showActions={false} />
                   </div>
                 ))}
               </div>
@@ -230,13 +227,30 @@ export default function ProgrammeClient({
       );
     }
 
+    if (stages.length === 0) {
+      return (
+        <div className="text-center py-10 text-gray-500">
+          <Icon
+            icon="solar:case-outline"
+            className="text-6xl mx-auto mb-4 text-gray-400"
+          />
+          <p>Aucun stage disponible pour cette promotion</p>
+        </div>
+      );
+    }
+
     return (
-      <StageDataTable
-        stages={stages}
-        anneeId={anneeActive._id}
-        promotionId={programme._id}
-        onRefresh={() => window.location.reload()}
-      />
+      <div className="space-y-3">
+        {stages.map((stage: any, idx: number) => (
+          <div
+            key={idx}
+            className="animate-fadeInUp"
+            style={{ animationDelay: `${idx * 50}ms` }}
+          >
+            <UniteCard item={stage} type="stage" showActions={false} />
+          </div>
+        ))}
+      </div>
     );
   };
 
@@ -253,13 +267,30 @@ export default function ProgrammeClient({
       );
     }
 
+    if (sujets.length === 0) {
+      return (
+        <div className="text-center py-10 text-gray-500">
+          <Icon
+            icon="solar:document-text-outline"
+            className="text-6xl mx-auto mb-4 text-gray-400"
+          />
+          <p>Aucun sujet disponible pour cette promotion</p>
+        </div>
+      );
+    }
+
     return (
-      <SujetDataTable
-        sujets={sujets}
-        anneeId={anneeActive._id}
-        promotionId={programme._id}
-        onRefresh={() => window.location.reload()}
-      />
+      <div className="space-y-3">
+        {sujets.map((sujet: any, idx: number) => (
+          <div
+            key={idx}
+            className="animate-fadeInUp"
+            style={{ animationDelay: `${idx * 50}ms` }}
+          >
+            <UniteCard item={sujet} type="sujet" showActions={false} />
+          </div>
+        ))}
+      </div>
     );
   };
 
@@ -276,13 +307,34 @@ export default function ProgrammeClient({
       );
     }
 
+    if (enrollements.length === 0) {
+      return (
+        <div className="text-center py-10 text-gray-500">
+          <Icon
+            icon="solar:calendar-outline"
+            className="text-6xl mx-auto mb-4 text-gray-400"
+          />
+          <p>Aucune session disponible pour cette promotion</p>
+        </div>
+      );
+    }
+
     return (
-      <EnrollementManager
-        enrollements={enrollements}
-        anneeId={anneeActive._id}
-        promotionId={programme._id}
-        onRefresh={() => window.location.reload()}
-      />
+      <div className="space-y-3">
+        {enrollements.map((enrollement: any, idx: number) => (
+          <div
+            key={idx}
+            className="animate-fadeInUp"
+            style={{ animationDelay: `${idx * 50}ms` }}
+          >
+            <UniteCard
+              item={enrollement}
+              type="enrollement"
+              showActions={false}
+            />
+          </div>
+        ))}
+      </div>
     );
   };
 

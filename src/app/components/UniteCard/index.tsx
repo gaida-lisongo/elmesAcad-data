@@ -3,29 +3,78 @@
 import { Icon } from "@iconify/react";
 import { useAuthStore } from "@/store/auth.store";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface UniteCardProps {
-  unite: any;
-  onEdit?: (unite: any) => void;
-  onDelete?: (unite: any) => void;
-  isSubmitting?: boolean;
+  item: any;
+  type: "unite" | "stage" | "sujet" | "enrollement";
   showActions?: boolean;
+  onEdit?: (item: any) => void;
+  onDelete?: (item: any) => void;
+  isSubmitting?: boolean;
 }
 
 const UniteCard = ({
-  unite,
+  item,
+  type,
+  showActions = false,
   onEdit,
   onDelete,
   isSubmitting = false,
-  showActions = true,
 }: UniteCardProps) => {
   const { isAuthenticated, hydrated } = useAuthStore();
   const [mounted, setMounted] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Configuration par type
+  const config = {
+    unite: {
+      icon: "solar:notebook-minimalistic-outline",
+      labelField: "designation",
+      codeField: "code",
+      creditField: "credit",
+      descriptionField: "description",
+      detailUrl: `/unite/${item._id}`,
+      creditLabel: "Crédits",
+    },
+    stage: {
+      icon: "material-symbols:business",
+      labelField: "designation",
+      codeField: null,
+      creditField: "prix",
+      descriptionField: "description",
+      detailUrl: `/stage/${item._id}`,
+      creditLabel: "$",
+    },
+    sujet: {
+      icon: "solar:document-text-outline",
+      labelField: "designation",
+      codeField: null,
+      creditField: "prix",
+      descriptionField: "description",
+      detailUrl: `/sujet/${item._id}`,
+      creditLabel: "$",
+    },
+    enrollement: {
+      icon: "solar:calendar-outline",
+      labelField: "designation",
+      codeField: null,
+      creditField: "prix",
+      descriptionField: "description",
+      detailUrl: `/enrollement/${item._id}`,
+      creditLabel: "$",
+    },
+  };
+
+  const currentConfig = config[type];
+
+  const getDescription = () => {
+    const desc = item[currentConfig.descriptionField];
+    return Array.isArray(desc) ? desc.join(" ") : String(desc);
+  };
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg hover:shadow-md transition-all">
@@ -35,7 +84,7 @@ const UniteCard = ({
           <div className="flex items-start gap-3 flex-1">
             <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
               <Icon
-                icon="solar:notebook-minimalistic-outline"
+                icon={currentConfig.icon}
                 className="text-primary text-2xl"
               />
             </div>
@@ -45,63 +94,35 @@ const UniteCard = ({
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div>
                   <h3 className="text-base font-semibold text-midnight_text">
-                    {String(unite.designation)}
+                    {String(item[currentConfig.labelField])}
                   </h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Code: {String(unite.code)}
-                  </p>
+                  {currentConfig.codeField && item[currentConfig.codeField] && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Code: {String(item[currentConfig.codeField])}
+                    </p>
+                  )}
                 </div>
-                <span className="flex-shrink-0 bg-green-500 text-white text-xs font-medium px-3 py-1 rounded-full">
-                  {String(unite.credit)} Crédits
-                </span>
+                {item[currentConfig.creditField] && (
+                  <span className="flex-shrink-0 bg-green-500 text-white text-xs font-medium px-3 py-1 rounded-full">
+                    {type === "unite"
+                      ? `${String(item[currentConfig.creditField])} ${currentConfig.creditLabel}`
+                      : `${currentConfig.creditLabel}${String(item[currentConfig.creditField])}`}
+                  </span>
+                )}
               </div>
 
               {/* Description */}
-              <p
-                className={`text-sm text-gray-600 ${isExpanded ? "" : "line-clamp-2"}`}
-              >
-                {Array.isArray(unite.description)
-                  ? unite.description.join(" ")
-                  : String(unite.description)}
-              </p>
-
-              {/* Competences */}
-              {unite.competences && unite.competences.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-3">
-                  {unite.competences
-                    .slice(0, isExpanded ? undefined : 3)
-                    .map((comp: string, idx: number) => (
-                      <span
-                        key={idx}
-                        className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full"
-                      >
-                        {comp}
-                      </span>
-                    ))}
-                  {!isExpanded && unite.competences.length > 3 && (
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                      +{unite.competences.length - 3} autres
-                    </span>
-                  )}
-                </div>
-              )}
+              <p className="text-sm text-gray-600">{getDescription()}</p>
 
               {/* Actions Row */}
               <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
+                <Link
+                  href={currentConfig.detailUrl}
                   className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"
                 >
-                  <Icon
-                    icon={
-                      isExpanded
-                        ? "solar:alt-arrow-up-outline"
-                        : "solar:alt-arrow-down-outline"
-                    }
-                    width={14}
-                  />
-                  {isExpanded ? "Voir moins" : "Voir plus"}
-                </button>
+                  <Icon icon="solar:eye-outline" width={14} />
+                  Voir le détail
+                </Link>
 
                 {mounted &&
                   hydrated &&
@@ -111,14 +132,14 @@ const UniteCard = ({
                   onDelete && (
                     <>
                       <button
-                        onClick={() => onEdit(unite)}
+                        onClick={() => onEdit(item)}
                         className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"
                       >
                         <Icon icon="material-symbols:edit" width={14} />
                         Éditer
                       </button>
                       <button
-                        onClick={() => onDelete(unite)}
+                        onClick={() => onDelete(item)}
                         className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
                         disabled={isSubmitting}
                       >

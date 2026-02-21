@@ -14,7 +14,7 @@ interface EnrollementDataTableProps {
 }
 
 export default function EnrollementDataTable({
-  enrollements,
+  enrollements = [],
   anneeId,
   promotionId,
   onRefresh,
