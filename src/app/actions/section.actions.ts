@@ -3,7 +3,11 @@
 import { connectDB } from "@/lib/mongoose";
 import { Section } from "@/lib/models/Section";
 
-export async function fetchSections(): Promise<{ success: boolean; data?: any[]; error?: string }> {
+export async function fetchSections(): Promise<{
+  success: boolean;
+  data?: any[];
+  error?: string;
+}> {
   try {
     await connectDB();
     const sections = await Section.find().lean();
@@ -15,27 +19,46 @@ export async function fetchSections(): Promise<{ success: boolean; data?: any[];
   }
 }
 
-export async function createSection(data: { mention: string; designation: string; mission: string; promesses: string[] }): Promise<{ success: boolean; data?: any; error?: string }> {
+export async function createSection(data: {
+  mention: string;
+  designation: string;
+  mission: string;
+  promesses: string[];
+}): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     await connectDB();
     const newSection = new Section(data);
     const savedSection = await newSection.save();
-    return { success: true, data: savedSection };
+    const plainSection = JSON.parse(JSON.stringify(savedSection));
+    return { success: true, data: plainSection };
   } catch (error) {
     console.error("Error creating section:", error);
     return { success: false, error: "Failed to create section" };
   }
 }
 
-export async function updateSection(id: string, data: Partial<{ mention: string; designation: string; mission: string; promesses: string[] }>): Promise<{ success: boolean; data?: any; error?: string }> {
+export async function updateSection(
+  id: string,
+  data: Partial<{
+    mention: string;
+    designation: string;
+    mission: string;
+    promesses: string[];
+  }>,
+): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     // Validate ID before attempting update
-    if (!id || id === '' || id.length !== 24) {
-      return { success: false, error: "Invalid section ID. Please create a section first." };
+    if (!id || id === "" || id.length !== 24) {
+      return {
+        success: false,
+        error: "Invalid section ID. Please create a section first.",
+      };
     }
 
     await connectDB();
-    const updatedSection = await Section.findByIdAndUpdate(id, data, { returnDocument: 'after' }).lean();
+    const updatedSection = await Section.findByIdAndUpdate(id, data, {
+      returnDocument: "after",
+    }).lean();
     if (!updatedSection) {
       return { success: false, error: "Section not found" };
     }

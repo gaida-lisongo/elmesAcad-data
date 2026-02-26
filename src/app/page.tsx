@@ -11,7 +11,7 @@ import { fetchSections } from "./actions/section.actions";
 import { fetchAnneeActive } from "./actions/annee.actions";
 
 export const metadata: Metadata = {
-  title: "BTP | Accueil",
+  title: "Accueil | ElmesAcad",
 };
 
 export interface CalendrierItemType {
@@ -94,8 +94,8 @@ export default async function Home() {
   const req = await fetchSections();
   const reqAnnee = await fetchAnneeActive();
 
-  console.log("Annee active fetch result:", reqAnnee);
-  console.log("Sections fetch result:", req);
+  // console.log("Annee active fetch result:", reqAnnee);
+  // console.log("Sections fetch result:", req);
 
   const section: SectionType = req.data?.length
     ? req.data[0]
