@@ -33,7 +33,7 @@ export default function ProgrammeBanner({
           className="w-full h-full object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/70 to-white/60 flex items-center justify-center">
+        <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/70 to-white/60 flex items-center justify-center pt-55">
           <div className="container text-gray-900 px-4">
             {/* Profile Section */}
             <div className="flex flex-col items-center text-center mb-6">

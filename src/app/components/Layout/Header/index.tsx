@@ -185,7 +185,7 @@ const Header: React.FC = () => {
           } z-50`}
         >
           <div className="flex items-center justify-between gap-2 p-4">
-            <div>
+            <div className="h-15 ">
               <Logo />
             </div>
             {/*  */}

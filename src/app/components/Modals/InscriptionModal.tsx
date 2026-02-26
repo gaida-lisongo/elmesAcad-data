@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { createInscription } from "@/app/actions/subscription.actions";
+import { DocumentsStudent, InfoStudent, ResumeStudent } from "./StepsFrom";
 
 interface InscriptionModalProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ interface InscriptionModalProps {
   sectionNom: string;
 }
 
-interface StudentData {
+export interface StudentData {
   nomComplet: string;
   email: string;
   telephone: string;
@@ -26,7 +27,7 @@ interface StudentData {
   grade: string;
 }
 
-interface Document {
+export interface Document {
   title: string;
   url: string;
 }
@@ -303,316 +304,35 @@ export default function InscriptionModal({
         <div className="p-6">
           {/* Étape 1: Informations étudiant */}
           {currentStep === 1 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-midnight_text mb-4">
-                Vos informations personnelles
-              </h3>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nom complet *
-                </label>
-                <input
-                  type="text"
-                  value={studentData.nomComplet}
-                  onChange={(e) =>
-                    setStudentData({
-                      ...studentData,
-                      nomComplet: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-                  placeholder="Prénom et nom"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  value={studentData.email}
-                  onChange={(e) =>
-                    setStudentData({ ...studentData, email: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-                  placeholder="votre.email@example.com"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Téléphone
-                </label>
-                <input
-                  type="tel"
-                  value={studentData.telephone}
-                  onChange={(e) =>
-                    setStudentData({
-                      ...studentData,
-                      telephone: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-                  placeholder="+243 000 000 000"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Adresse
-                </label>
-                <textarea
-                  value={studentData.adresse}
-                  onChange={(e) =>
-                    setStudentData({ ...studentData, adresse: e.target.value })
-                  }
-                  rows={2}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-                  placeholder="Votre adresse complète"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Mot de passe *
-                </label>
-                <input
-                  type="password"
-                  value={studentData.password}
-                  onChange={(e) =>
-                    setStudentData({ ...studentData, password: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-                  placeholder="Minimum 6 caractères"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirmer le mot de passe *
-                </label>
-                <input
-                  type="password"
-                  value={studentData.confirmPassword}
-                  onChange={(e) =>
-                    setStudentData({
-                      ...studentData,
-                      confirmPassword: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-                  placeholder="Confirmez votre mot de passe"
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
+            <InfoStudent
+              studentData={studentData}
+              setStudentData={setStudentData}
+              isSubmitting={isSubmitting}
+            />
           )}
 
           {/* Étape 2: Documents */}
           {currentStep === 2 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-midnight_text">
-                  Vos documents
-                </h3>
-                <button
-                  onClick={addDocument}
-                  className="text-primary hover:text-primary/80 text-sm flex items-center gap-1"
-                  disabled={isSubmitting}
-                >
-                  <Icon icon="material-symbols:add" width={18} />
-                  Ajouter un document
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                {documents.map((doc, index) => (
-                  <div
-                    key={index}
-                    className="border border-gray-200 rounded-lg p-4"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-medium text-gray-700">
-                        Document {index + 1}
-                      </h4>
-                      {documents.length > 1 && (
-                        <button
-                          onClick={() => removeDocument(index)}
-                          className="text-red-500 hover:text-red-600"
-                          disabled={isSubmitting}
-                        >
-                          <Icon icon="material-symbols:delete" width={18} />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Titre du document
-                        </label>
-                        <input
-                          type="text"
-                          value={doc.title}
-                          onChange={(e) =>
-                            updateDocument(index, "title", e.target.value)
-                          }
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-                          placeholder="Ex: Diplôme d'État"
-                          disabled={isSubmitting}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          URL du document
-                        </label>
-                        <input
-                          type="url"
-                          value={doc.url}
-                          onChange={(e) =>
-                            updateDocument(index, "url", e.target.value)
-                          }
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-                          placeholder="https://..."
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-xs text-blue-700">
-                  <Icon
-                    icon="material-symbols:info"
-                    width={16}
-                    className="inline mr-1"
-                  />
-                  Les documents seront vérifiés par l'administration avant
-                  validation de votre inscription.
-                </p>
-              </div>
-            </div>
+            <DocumentsStudent
+              documents={documents}
+              addDocument={addDocument}
+              removeDocument={removeDocument}
+              updateDocument={updateDocument}
+              isSubmitting={isSubmitting}
+            />
           )}
 
           {/* Étape 3: Résumé */}
           {currentStep === 3 && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-midnight_text mb-4">
-                Vérifiez vos informations
-              </h3>
-
-              {/* Informations personnelles */}
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-midnight_text mb-3 flex items-center gap-2">
-                  <Icon icon="material-symbols:person" width={20} />
-                  Informations personnelles
-                </h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Nom complet:</span>
-                    <span className="font-medium">
-                      {studentData.nomComplet}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Email:</span>
-                    <span className="font-medium">{studentData.email}</span>
-                  </div>
-                  {studentData.telephone && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Téléphone:</span>
-                      <span className="font-medium">
-                        {studentData.telephone}
-                      </span>
-                    </div>
-                  )}
-                  {studentData.adresse && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Adresse:</span>
-                      <span className="font-medium">{studentData.adresse}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Promotion */}
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-midnight_text mb-3 flex items-center gap-2">
-                  <Icon icon="material-symbols:school" width={20} />
-                  Promotion
-                </h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Programme:</span>
-                    <span className="font-medium">{promotionNom}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Niveau:</span>
-                    <span className="font-medium">{promotionNiveau}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Filière:</span>
-                    <span className="font-medium">{filiereNom}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Section:</span>
-                    <span className="font-medium">{sectionNom}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Année académique:</span>
-                    <span className="font-medium">{anneeDesignation}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Documents */}
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-midnight_text mb-3 flex items-center gap-2">
-                  <Icon icon="material-symbols:folder" width={20} />
-                  Documents fournis
-                </h4>
-                <div className="space-y-2">
-                  {documents
-                    .filter((doc) => doc.title && doc.url)
-                    .map((doc, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded"
-                      >
-                        <Icon
-                          icon="material-symbols:description"
-                          width={16}
-                          className="text-primary"
-                        />
-                        <span className="font-medium">{doc.title}</span>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-xs text-yellow-700">
-                  <Icon
-                    icon="material-symbols:warning"
-                    width={16}
-                    className="inline mr-1"
-                  />
-                  En validant, vous confirmez que toutes les informations
-                  fournies sont exactes. Votre inscription sera soumise à
-                  validation administrative.
-                </p>
-              </div>
-            </div>
+            <ResumeStudent
+              studentData={studentData}
+              promotionNom={promotionNom}
+              promotionNiveau={promotionNiveau}
+              anneeDesignation={anneeDesignation}
+              filiereNom={filiereNom}
+              sectionNom={sectionNom}
+              documents={documents}
+            />
           )}
 
           {/* Étape 4: Attestation d'inscription */}

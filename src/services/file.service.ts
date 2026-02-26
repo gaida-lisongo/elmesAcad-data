@@ -40,7 +40,9 @@ export async function uploadFichier(file: File) {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("apiKey", apiKey);
-    formData.append("secretKey", aiSecret);
+    formData.append("apiSecret", aiSecret);
+
+    console.log("Base URL for file upload:", baseUrl);
 
     const req = await fetch(`${baseUrl}/upload`, {
       method: "POST",
@@ -48,7 +50,10 @@ export async function uploadFichier(file: File) {
     });
 
     if (!req.ok) {
-      throw new Error("Failed to upload file");
+      const errorData = await req.json().catch(() => ({}));
+      throw new Error(
+        errorData.error || `Upload failed with status ${req.status}`,
+      );
     }
 
     const res = await req.json();
@@ -61,6 +66,6 @@ export async function uploadFichier(file: File) {
     return url;
   } catch (error) {
     console.error("Error uploading file:", error);
-    throw new Error("Failed to upload file");
+    throw error instanceof Error ? error : new Error("Failed to upload file");
   }
 }

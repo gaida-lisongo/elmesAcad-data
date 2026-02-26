@@ -7,8 +7,8 @@ const Logo = () => {
       <Image
         src={"/images/logo/logo.png"}
         alt="logo"
-        width={100}
-        height={100}
+        width={45}
+        height={45}
         style={{
           width: "auto",
           height: "auto",

@@ -81,7 +81,7 @@ export default async function ProgrammePage({
       />
 
       {/* Content */}
-      <main className="container py-10">
+      <main className="container mt-10 py-10">
         <ProgrammeClient
           programme={programme}
           filiere={filiere}
