@@ -90,7 +90,7 @@ export default async function ProgrammePage({
           anneeActive={anneeActive}
           stages={stages}
           sujets={sujets}
-          enrollements={enrollements}
+          enrollements={enrollements ?? []}
           totalSemestres={totalSemestres}
           totalCredits={totalCredits}
           totalUnites={totalUnites}

@@ -40,7 +40,7 @@ function Field({
 }
 
 const inputCls =
-  "w-full rounded-xl border border-stroke bg-gray-2 px-3 py-2.5 text-sm text-black outline-none focus:border-primary dark:border-strokedark dark:bg-boxdark-2 dark:text-white";
+  "w-full rounded-xl border border-stroke bg-gray-2 px-3 py-2.5 text-sm text-black outline-none focus:border-primary dark:border-strokedark dark:bg-boxdark-2";
 
 /* ── Step indicator ────────────────────── */
 function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
@@ -56,7 +56,7 @@ function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
             <div className="flex flex-col items-center gap-1">
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-colors
-                  ${done ? "bg-green-500 text-white" : active ? "bg-primary text-white" : "bg-stroke text-bodydark dark:bg-strokedark"}`}
+                  ${done ? "bg-green-500 text-white" : active ? "bg-primary text-white" : "bg-stroke text-bodydark"}`}
               >
                 {done ? <Icon icon="material-symbols:check" /> : n}
               </div>
@@ -68,7 +68,7 @@ function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
             </div>
             {i < 2 && (
               <div
-                className={`mx-1 h-0.5 flex-1 ${done ? "bg-green-500" : "bg-stroke dark:bg-strokedark"}`}
+                className={`mx-1 h-0.5 flex-1 ${done ? "bg-green-500" : "bg-stroke"}`}
               />
             )}
           </div>
@@ -99,9 +99,7 @@ function ConfigEnrollement({
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-bodydark">
           Résumé de l'inscription
         </p>
-        <p className="text-sm font-bold text-black dark:text-white">
-          {produit.designation}
-        </p>
+        <p className="text-sm font-bold text-black">{produit.designation}</p>
         <p className="mt-1 text-xs text-bodydark">
           {matieres.length} matières programmées
         </p>
@@ -389,12 +387,16 @@ export default function CommandeManager({
       produitId: produit._id,
       etudiantId: student._id,
       telephone,
+      amount: Number(produit.prix),
+      reference: `${student?.nomComplet ?? student?.matricule ?? "ETUDIANT"} - ${produit.designation}`,
     });
     setLoadingCommande(false);
     if (!res.success || !res.data) {
       toast.error(res.error ?? "Erreur");
       return;
     }
+
+    console.log("Commande initialized with ID:", res.data);
     setCommandeId(res.data.commandeId);
     setOrderNumber(res.data.orderNumber);
     toast.success("Commande initialisée !");
@@ -403,7 +405,23 @@ export default function CommandeManager({
   /* ── Step 2: finalize ── */
   const handleFinalize = async (config: object) => {
     setLoadingFinalize(true);
-    const res = await finalizeCommande(type, commandeId, config as any);
+    const payload = {
+      category: type,
+      student: student?.nomComplet,
+      classe: promotionName,
+      produit: produit.designation,
+      amount: Number(produit.prix),
+      phone: telephone,
+      reference: orderNumber,
+      description: `CommandeId: ${commandeId}`,
+      orderNumber,
+    };
+    const res = await finalizeCommande(
+      type,
+      commandeId,
+      payload,
+      config as any,
+    );
     setLoadingFinalize(false);
     if (!res.success) {
       toast.error(res.error ?? "Erreur");
@@ -444,9 +462,7 @@ export default function CommandeManager({
           icon="material-symbols:shopping-cart-outline"
           className="text-2xl text-primary"
         />
-        <h2 className="text-lg font-bold text-black dark:text-white">
-          Formulaire de commande
-        </h2>
+        <h2 className="text-lg font-bold text-black">Formulaire de commande</h2>
         <span className="ml-auto rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
           {TYPE_LABEL[type]}
         </span>
@@ -515,7 +531,7 @@ export default function CommandeManager({
             <div className="flex items-center justify-between">
               <span className="text-sm text-bodydark">Montant à payer</span>
               <span className="text-lg font-bold text-primary">
-                {Number(produit.prix).toLocaleString("fr-FR")} FC
+                {Number(produit.prix).toLocaleString("fr-FR")} $
               </span>
             </div>
           </div>
@@ -582,7 +598,7 @@ export default function CommandeManager({
             />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-black dark:text-white">
+            <h3 className="text-xl font-bold text-black ">
               Commande confirmée !
             </h3>
             <p className="mt-1 text-sm text-bodydark">

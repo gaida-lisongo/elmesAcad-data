@@ -138,9 +138,7 @@ export default function ProduitPage({
             icon="material-symbols:error-outline"
             className="mx-auto mb-4 text-6xl text-red-500"
           />
-          <h2 className="text-2xl font-semibold dark:text-white">
-            Produit non trouvé
-          </h2>
+          <h2 className="text-2xl font-semibold">Produit non trouvé</h2>
         </div>
       </div>
     );
@@ -152,7 +150,7 @@ export default function ProduitPage({
   const fin = produit.fin ?? produit.date_fin;
 
   return (
-    <div>
+    <div className="min-h-screen pt-10">
       {/* ── Academic year banner ── */}
       {annee && (
         <div className="border-b border-stroke bg-white dark:border-strokedark dark:bg-boxdark">
@@ -161,7 +159,7 @@ export default function ProduitPage({
               icon="material-symbols:calendar-month-outline"
               className="shrink-0 text-xl text-primary"
             />
-            <span className="text-sm font-medium text-black dark:text-white">
+            <span className="text-sm font-medium text-black">
               Année académique active :
             </span>
             <span className="rounded-full bg-primary/10 px-3 py-0.5 text-sm font-semibold text-primary">
@@ -186,7 +184,7 @@ export default function ProduitPage({
                   {cfg.label}
                 </span>
               </div>
-              <h1 className="break-words text-xl font-extrabold leading-tight text-black sm:text-2xl dark:text-white">
+              <h1 className="break-words text-xl font-extrabold leading-tight text-black sm:text-2xl">
                 {produit.designation}
               </h1>
               {sectionName && (
@@ -214,9 +212,7 @@ export default function ProduitPage({
                     icon="material-symbols:description-outline"
                     className="text-2xl text-primary"
                   />
-                  <h2 className="text-lg font-bold text-black dark:text-white">
-                    Description
-                  </h2>
+                  <h2 className="text-lg font-bold text-black">Description</h2>
                 </div>
                 <ul className="space-y-2">
                   {produit.description.map((d: string, i: number) => (
@@ -250,7 +246,7 @@ export default function ProduitPage({
                     Promotion
                   </span>
                 </div>
-                <p className="line-clamp-3 text-xs font-bold text-black sm:text-sm dark:text-white">
+                <p className="line-clamp-3 text-xs font-bold text-black sm:text-sm">
                   {promotionName}
                 </p>
               </div>
@@ -264,7 +260,7 @@ export default function ProduitPage({
                     Type
                   </span>
                 </div>
-                <p className="line-clamp-3 text-xs font-bold text-black sm:text-sm dark:text-white">
+                <p className="line-clamp-3 text-xs font-bold text-black sm:text-sm">
                   {cfg.label}
                 </p>
               </div>

@@ -10,6 +10,8 @@ import crypto from "crypto";
 
 export type ProduitType = "enrollement" | "stage" | "sujet";
 
+const apiKey = process.env.API_KEY || "default";
+const secretKey = process.env.SECRET_KEY || "default";
 /* ─────────────────────────────────────────────────────────── */
 /*  Helper: resolve promotion name from sections               */
 /* ─────────────────────────────────────────────────────────── */
@@ -130,7 +132,13 @@ export async function fetchStudentByMatricule(matricule: string): Promise<{
 /* ─────────────────────────────────────────────────────────── */
 export async function initCommande(
   type: ProduitType,
-  data: { produitId: string; etudiantId: string; telephone: string },
+  data: {
+    produitId: string;
+    etudiantId: string;
+    telephone: string;
+    amount: number;
+    reference: string;
+  },
 ): Promise<{
   success: boolean;
   data?: { commandeId: string; orderNumber: string };
@@ -139,8 +147,41 @@ export async function initCommande(
   try {
     await connectDB();
 
-    const orderNumber = `ORD-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
-    const reference = crypto.randomBytes(8).toString("hex").toUpperCase();
+    const payload = {
+      amount: data.amount,
+      reference: data.reference,
+      phone: data.telephone,
+    };
+
+    const paymentRes = await fetch(`${process.env.BASE_URL}/flexpay`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!paymentRes.ok) {
+      const errorData = await paymentRes.json().catch(() => ({}));
+      throw new Error(
+        errorData.error ||
+          `Payment initiation failed with status ${paymentRes.status}`,
+      );
+    }
+
+    const paymentData = await paymentRes.json();
+
+    const { success, message } = paymentData;
+
+    if (!success) {
+      throw new Error(message || "Payment initiation failed");
+    }
+
+    const { orderNumber } = paymentData?.data || {
+      orderNumber: `ORD-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`,
+    };
+
+    console.log("Payment initiation response:", paymentData);
+
+    const reference = `${data.reference} - ${orderNumber}`;
 
     const idField: Record<ProduitType, string> = {
       enrollement: "enrollementId",
@@ -176,6 +217,16 @@ export async function initCommande(
 export async function finalizeCommande(
   type: ProduitType,
   commandeId: string,
+  data: {
+    category: string;
+    student: string;
+    classe: string;
+    amount: number;
+    phone: string;
+    reference: string;
+    orderNumber: string;
+    description?: string;
+  },
   config: Partial<{
     // stage
     rapport: string;
@@ -191,8 +242,72 @@ export async function finalizeCommande(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await connectDB();
+    //Checking Payment status from FlexPay
+    const paymentStatusReq = await fetch(
+      `${process.env.BASE_URL}/flexpay?orderNumber=${data.orderNumber}`,
+    );
+    if (!paymentStatusReq.ok) {
+      const errorData = await paymentStatusReq.json().catch(() => ({}));
+      throw new Error(
+        errorData.error ||
+          `Payment status check failed with status ${paymentStatusReq.status}`,
+      );
+    }
+
+    const paymentStatusRes = await paymentStatusReq.json();
+    const { success, message } = paymentStatusRes;
+
+    if (!success) {
+      throw new Error(message || "Payment verification failed");
+    }
+
+    const paymentInfo = paymentStatusRes?.data;
+
+    console.log("Payment status response:", paymentStatusRes);
+
+    //Persist commande in control-plane
+    const payload = {
+      category: data.category,
+      student: data.student,
+      classe: data.classe,
+      amount: data.amount,
+      phone: data.phone,
+      reference: data.reference,
+      description: data.description,
+      status: paymentInfo?.status == "0" ? "complete" : "pending",
+    };
+
+    const recordReq = await fetch(`${process.env.BASE_URL}/transactions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "x-api-secret": secretKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!recordReq.ok) {
+      const errorData = await recordReq.json().catch(() => ({}));
+      throw new Error(
+        errorData.error ||
+          `Transaction recording failed with status ${recordReq.status}`,
+      );
+    }
+
+    const recordRes = await recordReq.json();
+    const { success: recordSuccess, message: recordMessage } = recordRes;
+
+    if (!recordSuccess) {
+      throw new Error(recordMessage || "Transaction recording failed");
+    }
+
+    const recordData = recordRes?.data;
+
+    console.log("Transaction recording response:", recordRes);
+
     await COMMANDE_MODEL[type].findByIdAndUpdate(commandeId, {
-      $set: { ...config, status: "ok" },
+      $set: { ...config, status: paymentInfo?.status == "0" ? "ok" : "paid" },
     });
     return { success: true };
   } catch (err) {

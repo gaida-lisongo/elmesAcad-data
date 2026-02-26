@@ -18,7 +18,7 @@ function formatDate(d: string) {
 
 /* ── Enrollement: liste des matières + horaires ─────────── */
 function EnrollementSection({ produit }: { produit: any }) {
-    console.log("produit enro detail : ", produit);
+  console.log("produit enro detail : ", produit);
   const matieres: any[] = produit.matieres ?? [];
   return (
     <div>
@@ -27,9 +27,7 @@ function EnrollementSection({ produit }: { produit: any }) {
           icon="material-symbols:calendar-today-outline"
           className="text-2xl text-primary"
         />
-        <h2 className="text-lg font-bold text-black dark:text-white">
-          Horaire de la session
-        </h2>
+        <h2 className="text-lg font-bold text-black">Horaire de la session</h2>
         {produit.debut && produit.fin && (
           <span className="ml-auto rounded-full bg-primary/10 px-3 py-0.5 text-xs font-semibold text-primary">
             {formatDate(produit.debut)} → {formatDate(produit.fin)}
@@ -47,10 +45,10 @@ function EnrollementSection({ produit }: { produit: any }) {
               className="flex items-center justify-between rounded-xl bg-gray-2 px-4 py-3 dark:bg-boxdark-2"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold">
                   {i + 1}
                 </div>
-                <span className="text-sm font-medium text-black dark:text-white">
+                <span className="text-sm font-medium text-black">
                   {m.matiereId?.designation ?? `Matière ${i + 1}`}
                 </span>
               </div>
@@ -77,7 +75,7 @@ function StageSection({ produit }: { produit: any }) {
           icon="material-symbols:business-outline"
           className="text-2xl text-primary"
         />
-        <h2 className="text-lg font-bold text-black dark:text-white">
+        <h2 className="text-lg font-bold text-black">
           Entreprises disponibles
         </h2>
         <span className="ml-auto rounded-full bg-primary/10 px-3 py-0.5 text-xs font-semibold text-primary">
@@ -96,9 +94,7 @@ function StageSection({ produit }: { produit: any }) {
               key={i}
               className="rounded-xl border border-stroke bg-gray-2 p-3 dark:border-strokedark dark:bg-boxdark-2"
             >
-              <p className="font-semibold text-black dark:text-white">
-                {e.nom}
-              </p>
+              <p className="font-semibold text-black">{e.nom}</p>
               {e.adresse && (
                 <p className="mt-0.5 flex items-center gap-1 text-xs text-bodydark">
                   <Icon
@@ -133,7 +129,7 @@ function SujetSection({ produit }: { produit: any }) {
           icon="material-symbols:checklist-outline"
           className="text-2xl text-primary"
         />
-        <h2 className="text-lg font-bold text-black dark:text-white">
+        <h2 className="text-lg font-bold text-black">
           Critères d'un bon sujet
         </h2>
       </div>
@@ -144,9 +140,7 @@ function SujetSection({ produit }: { produit: any }) {
         <div className="space-y-2">
           {criteres.map((c: any, i: number) => (
             <div key={i} className="rounded-xl bg-gray-2 p-3 dark:bg-boxdark-2">
-              <p className="text-sm font-semibold text-black dark:text-white">
-                {c.critere}
-              </p>
+              <p className="text-sm font-semibold text-black">{c.critere}</p>
               {c.description && (
                 <p className="mt-1 text-xs text-bodydark">{c.description}</p>
               )}
