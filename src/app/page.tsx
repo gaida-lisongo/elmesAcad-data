@@ -10,8 +10,14 @@ import { Metadata } from "next";
 import { fetchSections } from "./actions/section.actions";
 import { fetchAnneeActive } from "./actions/annee.actions";
 
+// Favicon defini dans layout.tsx et titre
 export const metadata: Metadata = {
   title: "Accueil | ElmesAcad",
+  description: "Plateforme d'apprentissage en ligne - ElmesAcad",
+  icons: {
+    icon: "/favicon.ico",
+  }
+
 };
 
 export interface CalendrierItemType {

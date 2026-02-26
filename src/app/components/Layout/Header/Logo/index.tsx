@@ -5,9 +5,7 @@ const Logo = () => {
   return (
     <Link href="/">
       <Image
-        src={
-          "https://res.cloudinary.com/dujxkvyf8/image/upload/v1772005745/clients-logos/ujjl3wehvghmxrrkltnx.png"
-        }
+        src={"/images/logo/logo.png"}
         alt="logo"
         width={100}
         height={100}
