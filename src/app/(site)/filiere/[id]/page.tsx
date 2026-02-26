@@ -6,7 +6,7 @@ import Link from "next/link";
 import PromotionCard from "@/app/components/PromotionCard";
 
 export const metadata: Metadata = {
-  title: "Filière | eLearning",
+  title: "Filière | ElmesAcad",
 };
 
 interface PageProps {

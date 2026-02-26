@@ -148,7 +148,7 @@ export async function initCommande(
     await connectDB();
 
     const payload = {
-      amount: data.amount,
+      amount: data.amount - data.amount * 0.024, // Apply 5% discount
       reference: data.reference,
       phone: data.telephone,
     };
