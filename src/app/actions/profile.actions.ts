@@ -4,11 +4,13 @@ import { connectDB } from "@/lib/mongoose";
 import { User } from "@/lib/models/User";
 import crypto from "crypto";
 
-export async function fetchUserById(userId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+export async function fetchUserById(
+  userId: string,
+): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     await connectDB();
     const user = await User.findById(userId).select("-passwordHash").lean();
-    
+
     if (!user) {
       return { success: false, error: "User not found" };
     }
@@ -29,7 +31,8 @@ export async function updateProfile(
     telephone: string;
     adresse: string;
     fonction: string;
-  }>
+    photo: string;
+  }>,
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     await connectDB();
@@ -40,6 +43,7 @@ export async function updateProfile(
     if (data.telephone) updateData.telephone = data.telephone;
     if (data.adresse) updateData.adresse = data.adresse;
     if (data.fonction) updateData.fonction = data.fonction;
+    if (data.photo) updateData.photo = data.photo;
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
       returnDocument: "after",
@@ -62,7 +66,7 @@ export async function updateProfile(
 export async function changePassword(
   userId: string,
   currentPassword: string,
-  newPassword: string
+  newPassword: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await connectDB();
@@ -89,7 +93,10 @@ export async function changePassword(
 
     // Check if new password is different from current
     if (trimmedCurrentPassword === trimmedNewPassword) {
-      return { success: false, error: "Le nouveau mot de passe doit être différent de l'actuel" };
+      return {
+        success: false,
+        error: "Le nouveau mot de passe doit être différent de l'actuel",
+      };
     }
 
     // Update password with trimmed new password

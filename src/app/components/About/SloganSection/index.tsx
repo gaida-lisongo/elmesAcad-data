@@ -1,10 +1,72 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { useAuthStore } from "@/store/auth.store";
 import { updateSlogan, createSlogan } from "@/app/actions/slogan.actions";
+import { uploadImage } from "@/services/file.service";
+
+// Composant Counter pour l'animation
+const Counter = ({
+  target,
+  duration = 2000,
+}: {
+  target: number;
+  duration?: number;
+}) => {
+  const [count, setCount] = useState(0);
+  const countRef = useRef<HTMLSpanElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isVisible) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (countRef.current) {
+      observer.observe(countRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [isVisible]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    let startTime: number;
+    let animationFrame: number;
+
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = timestamp - startTime;
+      const percentage = Math.min(progress / duration, 1);
+
+      // Easing function pour une animation plus fluide
+      const easeOutQuart = 1 - Math.pow(1 - percentage, 4);
+      const current = Math.floor(easeOutQuart * target);
+
+      setCount(current);
+
+      if (percentage < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      } else {
+        setCount(target);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [target, duration, isVisible]);
+
+  return <span ref={countRef}>{count}</span>;
+};
 
 interface SloganSectionProps {
   slogan: {
@@ -59,21 +121,9 @@ const SloganSection = ({
     if (!file) return;
 
     setUploadingImage(true);
-    const formDataUpload = new FormData();
-    formDataUpload.append("file", file);
-    formDataUpload.append("upload_preset", "ml_default");
-
     try {
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-        {
-          method: "POST",
-          body: formDataUpload,
-        },
-      );
-
-      const data = await response.json();
-      setFormData((prev) => ({ ...prev, photo: data.secure_url }));
+      const url = await uploadImage(file);
+      setFormData((prev) => ({ ...prev, photo: url }));
     } catch (error) {
       console.error("Error uploading image:", error);
       alert("Erreur lors du téléchargement de l'image");
@@ -157,9 +207,10 @@ const SloganSection = ({
   };
 
   return (
-    <section className="bg-white py-20">
+    <section className="bg-white py-20 mt-10">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        {/* Photo and Text Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
           {/* Image Section */}
           <div className="relative h-[400px] lg:h-[500px] rounded-2xl overflow-hidden shadow-xl">
             {isEditing && mounted && hydrated && isAuthenticated() ? (
@@ -208,23 +259,8 @@ const SloganSection = ({
             )}
           </div>
 
-          {/* Content Section */}
-          <div className="space-y-8">
-            {/* Edit Button */}
-            {mounted && hydrated && isAuthenticated() && !isEditing && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-lg font-medium transition shadow-md"
-              >
-                <Icon
-                  icon="material-symbols:edit-outline"
-                  width={20}
-                  height={20}
-                />
-                Modifier
-              </button>
-            )}
-
+          {/* Title and Description */}
+          <div className="space-y-6">
             {/* Designation */}
             {isEditing ? (
               <input
@@ -299,95 +335,107 @@ const SloganSection = ({
                 </div>
               )}
             </div>
-
-            {/* Metrics */}
-            <div className="grid grid-cols-2 gap-4 pt-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
-                <div className="flex items-center gap-3 mb-2">
-                  <Icon
-                    icon="solar:diploma-bold-duotone"
-                    className="text-blue-600 text-3xl"
-                  />
-                  <h3 className="text-3xl font-bold text-blue-600">
-                    {metrics.promotions}
-                  </h3>
-                </div>
-                <p className="text-sm text-gray-600 font-medium">Promotions</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl">
-                <div className="flex items-center gap-3 mb-2">
-                  <Icon
-                    icon="solar:book-bookmark-bold-duotone"
-                    className="text-green-600 text-3xl"
-                  />
-                  <h3 className="text-3xl font-bold text-green-600">
-                    {metrics.unites}
-                  </h3>
-                </div>
-                <p className="text-sm text-gray-600 font-medium">
-                  Cours (Unités)
-                </p>
-              </div>
-
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl">
-                <div className="flex items-center gap-3 mb-2">
-                  <Icon
-                    icon="solar:document-text-bold-duotone"
-                    className="text-purple-600 text-3xl"
-                  />
-                  <h3 className="text-3xl font-bold text-purple-600">
-                    {metrics.sujets}
-                  </h3>
-                </div>
-                <p className="text-sm text-gray-600 font-medium">Sujets</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl">
-                <div className="flex items-center gap-3 mb-2">
-                  <Icon
-                    icon="solar:case-round-bold-duotone"
-                    className="text-orange-600 text-3xl"
-                  />
-                  <h3 className="text-3xl font-bold text-orange-600">
-                    {metrics.stages}
-                  </h3>
-                </div>
-                <p className="text-sm text-gray-600 font-medium">Stages</p>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            {isEditing && (
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={handleCancel}
-                  disabled={isLoading}
-                  className="flex items-center gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300 px-6 py-3 rounded-lg font-medium transition disabled:opacity-50"
-                >
-                  <Icon icon="material-symbols:close" width={20} height={20} />
-                  Annuler
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={isLoading || uploadingImage}
-                  className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 px-6 py-3 rounded-lg font-medium transition disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <Icon icon="eos-icons:loading" width={20} height={20} />
-                  ) : (
-                    <Icon
-                      icon="material-symbols:check"
-                      width={20}
-                      height={20}
-                    />
-                  )}
-                  {isLoading ? "Enregistrement..." : "Enregistrer"}
-                </button>
-              </div>
-            )}
           </div>
         </div>
+        {/* Edit Button */}
+        {mounted && hydrated && isAuthenticated() && !isEditing && (
+          <div className="flex justify-end mb-6">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2 bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-lg font-medium transition shadow-md"
+            >
+              <Icon
+                icon="material-symbols:edit-outline"
+                width={20}
+                height={20}
+              />
+              Modifier
+            </button>
+          </div>
+        )}
+
+        {/* Metrics - 4 columns on separate line */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl hover:shadow-lg transition-shadow">
+            <div className="flex flex-col items-center text-center">
+              <Icon
+                icon="solar:diploma-bold-duotone"
+                className="text-blue-600 text-4xl mb-3"
+              />
+              <h3 className="text-4xl font-bold text-blue-600 mb-2">
+                <Counter target={metrics.promotions} />
+              </h3>
+              <p className="text-sm text-gray-600 font-medium">Promotions</p>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl hover:shadow-lg transition-shadow">
+            <div className="flex flex-col items-center text-center">
+              <Icon
+                icon="solar:book-bookmark-bold-duotone"
+                className="text-green-600 text-4xl mb-3"
+              />
+              <h3 className="text-4xl font-bold text-green-600 mb-2">
+                <Counter target={metrics.unites} />
+              </h3>
+              <p className="text-sm text-gray-600 font-medium">
+                Cours (Unités)
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl hover:shadow-lg transition-shadow">
+            <div className="flex flex-col items-center text-center">
+              <Icon
+                icon="solar:document-text-bold-duotone"
+                className="text-purple-600 text-4xl mb-3"
+              />
+              <h3 className="text-4xl font-bold text-purple-600 mb-2">
+                <Counter target={metrics.sujets} />
+              </h3>
+              <p className="text-sm text-gray-600 font-medium">Sujets</p>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl hover:shadow-lg transition-shadow">
+            <div className="flex flex-col items-center text-center">
+              <Icon
+                icon="solar:case-round-bold-duotone"
+                className="text-orange-600 text-4xl mb-3"
+              />
+              <h3 className="text-4xl font-bold text-orange-600 mb-2">
+                <Counter target={metrics.stages} />
+              </h3>
+              <p className="text-sm text-gray-600 font-medium">Stages</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        {isEditing && (
+          <div className="flex gap-3 justify-center mt-12">
+            <button
+              onClick={handleCancel}
+              disabled={isLoading}
+              className="flex items-center gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300 px-6 py-3 rounded-lg font-medium transition disabled:opacity-50"
+            >
+              <Icon icon="material-symbols:close" width={20} height={20} />
+              Annuler
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isLoading || uploadingImage}
+              className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 px-6 py-3 rounded-lg font-medium transition disabled:opacity-50"
+            >
+              {isLoading ? (
+                <Icon icon="eos-icons:loading" width={20} height={20} />
+              ) : (
+                <Icon icon="material-symbols:check" width={20} height={20} />
+              )}
+              {isLoading ? "Enregistrement..." : "Enregistrer"}
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
