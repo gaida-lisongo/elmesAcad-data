@@ -88,6 +88,20 @@ export interface IContact extends Document {
   updatedAt: Date;
 }
 
+export interface IMessage extends Document {
+  contactId: mongoose.Types.ObjectId;
+  from: {
+    firstname: string;
+    lastname: string;
+    email: string;
+    phone: string;
+  };
+  content: string;
+  isRead: boolean;
+  createdAd: Date;
+  updatedAt: Date;
+}
+
 const AnneeSchema = new Schema<IAnnee>(
   {
     debut: {
@@ -244,6 +258,28 @@ const ContactSchema = new Schema<IContact>(
   { timestamps: true },
 );
 
+const MessageSchema = new Schema<IMessage>(
+  {
+    contactId: {
+      type: Schema.Types.ObjectId,
+      ref: "Contact",
+      required: true,
+    },
+    from: {
+      firstname: { type: String, required: true },
+      lastname: { type: String, required: true },
+      email: { type: String, required: true },
+      phone: { type: String, required: true },
+    },
+    content: { type: String, required: true },
+    isRead: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { timestamps: true },
+);
+
 export const Annee: Model<IAnnee> =
   mongoose.models.Annee || mongoose.model<IAnnee>("Annee", AnneeSchema);
 export const Slogan: Model<ISlogan> =
@@ -257,3 +293,5 @@ export const Team: Model<ITeam> =
   mongoose.models.Team || mongoose.model<ITeam>("Team", TeamSchema);
 export const Contact: Model<IContact> =
   mongoose.models.Contact || mongoose.model<IContact>("Contact", ContactSchema);
+export const Message: Model<IMessage> =
+  mongoose.models.Message || mongoose.model<IMessage>("Message", MessageSchema);
