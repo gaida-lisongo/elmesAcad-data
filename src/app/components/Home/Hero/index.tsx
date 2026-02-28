@@ -6,6 +6,11 @@ import { SectionType } from "@/app/page";
 import { useAuthStore } from "@/store/auth.store";
 import { useState, useEffect } from "react";
 import { updateSection, createSection } from "@/app/actions/section.actions";
+import { fetchStudentByMatricule } from "@/app/actions/produit.actions";
+import {
+  fetchSubscriptionsByStudent,
+  SubscriptionType,
+} from "@/app/actions/subscription.actions";
 import { useClientService } from "@/services/client.service";
 
 const Hero = ({ section }: { section: SectionType }) => {
@@ -20,6 +25,20 @@ const Hero = ({ section }: { section: SectionType }) => {
     mission: String(section?.mission || ""),
     promesses: (section?.promesses || []).map((p) => String(p)),
   });
+  const [matricule, setMatricule] = useState("");
+  const [isCheckingMatricule, setIsCheckingMatricule] = useState(false);
+  const [showMatriculeModal, setShowMatriculeModal] = useState(false);
+  const [matriculeResult, setMatriculeResult] = useState<{
+    found: boolean;
+    student?: {
+      _id: string;
+      nomComplet: string;
+      email: string;
+      matricule: string;
+    };
+    subscriptions?: SubscriptionType[];
+    error?: string;
+  }>({ found: false });
 
   useEffect(() => {
     setMounted(true);
@@ -99,6 +118,50 @@ const Hero = ({ section }: { section: SectionType }) => {
     setIsEditing(false);
   };
 
+  const handleCheckMatricule = async () => {
+    const cleanMatricule = matricule.trim();
+    if (!cleanMatricule) {
+      alert("Veuillez saisir un matricule");
+      return;
+    }
+
+    setIsCheckingMatricule(true);
+    try {
+      const studentResult = await fetchStudentByMatricule(cleanMatricule);
+
+      if (!studentResult.success || !studentResult.data) {
+        setMatriculeResult({
+          found: false,
+          error: studentResult.error || "Aucun compte trouvé pour ce matricule.",
+        });
+        setShowMatriculeModal(true);
+        return;
+      }
+
+      const subscriptionsResult = await fetchSubscriptionsByStudent(
+        studentResult.data._id,
+      );
+
+      setMatriculeResult({
+        found: true,
+        student: studentResult.data,
+        subscriptions: subscriptionsResult.success
+          ? subscriptionsResult.data || []
+          : [],
+      });
+      setShowMatriculeModal(true);
+    } catch (error) {
+      console.error("Erreur vérification matricule:", error);
+      setMatriculeResult({
+        found: false,
+        error: "Une erreur est survenue pendant la vérification.",
+      });
+      setShowMatriculeModal(true);
+    } finally {
+      setIsCheckingMatricule(false);
+    }
+  };
+
   return (
     <section id="home-section" className="bg-slate-gray">
       <div className="container pt-16">
@@ -161,18 +224,34 @@ const Hero = ({ section }: { section: SectionType }) => {
               </p>
             )}
 
-            {/* Search Bar - Not editable */}
+            {/* Search Bar - Vérification matricule */}
             <div className="relative rounded-full">
               <input
                 type="text"
-                name="course"
+                name="matricule"
+                value={matricule}
+                onChange={(e) => setMatricule(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleCheckMatricule();
+                  }
+                }}
                 className="py-4 pl-8 pr-20 text-lg w-full text-black rounded-full border border-black/10 focus:outline-hidden focus:border-primary duration-300 shadow-input-shadow"
-                placeholder="Search engineering courses..."
+                placeholder="Entrez votre matricule pour vérifier votre compte"
                 autoComplete="off"
               />
-              <button className="group border border-secondary bg-secondary hover:bg-transparent p-3 rounded-full absolute right-2 top-1.5 duration-300 hover:cursor-pointer">
+              <button
+                onClick={handleCheckMatricule}
+                disabled={isCheckingMatricule}
+                className="group border border-secondary bg-secondary hover:bg-transparent p-3 rounded-full absolute right-2 top-1.5 duration-300 hover:cursor-pointer disabled:opacity-50"
+              >
                 <Icon
-                  icon="solar:magnifer-linear"
+                  icon={
+                    isCheckingMatricule
+                      ? "eos-icons:loading"
+                      : "solar:magnifer-linear"
+                  }
                   className="text-white group-hover:text-primary text-2xl inline-block duration-300"
                 />
               </button>
@@ -308,6 +387,102 @@ const Hero = ({ section }: { section: SectionType }) => {
           </div>
         </div>
       </div>
+
+      {showMatriculeModal && (
+        <div className="fixed inset-0 z-[999] bg-black/50 p-4 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-midnight_text">
+                Vérification du matricule
+              </h3>
+              <button
+                onClick={() => setShowMatriculeModal(false)}
+                className="text-gray-500 hover:text-primary transition-colors"
+              >
+                <Icon icon="material-symbols:close-rounded" width={28} height={28} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
+              {matriculeResult.found && matriculeResult.student ? (
+                <div className="space-y-5">
+                  <div className="rounded-xl bg-green-50 border border-green-300 px-4 py-3">
+                    <p className="text-green-700 font-medium">
+                      Compte trouvé pour ce matricule.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="rounded-xl border border-gray-200 p-4">
+                      <p className="text-xs uppercase text-gray-500 mb-1">Nom complet</p>
+                      <p className="text-black font-medium">
+                        {matriculeResult.student.nomComplet}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 p-4">
+                      <p className="text-xs uppercase text-gray-500 mb-1">Email</p>
+                      <p className="text-black font-medium break-all">
+                        {matriculeResult.student.email}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 p-4 sm:col-span-2">
+                      <p className="text-xs uppercase text-gray-500 mb-1">Matricule</p>
+                      <p className="text-black font-medium">
+                        {matriculeResult.student.matricule}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-lg font-semibold text-midnight_text mb-3">
+                      Inscriptions ({matriculeResult.subscriptions?.length || 0})
+                    </h4>
+
+                    {(matriculeResult.subscriptions || []).length > 0 ? (
+                      <div className="space-y-3">
+                        {(matriculeResult.subscriptions || []).map((subscription) => (
+                          <div
+                            key={subscription._id}
+                            className="border border-gray-200 rounded-xl p-4"
+                          >
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <p className="text-sm text-black/70">
+                                Promotion ID: {subscription.promotion}
+                              </p>
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full ${
+                                  subscription.isValid
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
+                                {subscription.isValid ? "Valide" : "Non valide"}
+                              </span>
+                            </div>
+                            {subscription.createdAt && (
+                              <p className="text-xs text-gray-500 mt-2">
+                                Créée le {new Date(subscription.createdAt).toLocaleDateString("fr-FR")}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-black/60">Aucune inscription trouvée.</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-red-50 border border-red-300 px-4 py-3">
+                  <p className="text-red-700 font-medium">
+                    {matriculeResult.error || "Aucun compte trouvé pour ce matricule."}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
