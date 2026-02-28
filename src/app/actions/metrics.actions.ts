@@ -21,7 +21,7 @@ export async function fetchMetrics(anneeId?: string) {
           console.log(
             `Processing promo: ${promo.designation} with ID: ${promo._id}, semestres: ${promo.semestres}`,
           );
-          const promoUnites = promo.semestres.reduce((semCount, semestre) => {
+          const promoUnites = promo.semestres.reduce((semCount: number, semestre: any) => {
             return semCount + (semestre.unites ? semestre.unites.length : 0);
           }, 0);
           return count + promoUnites;

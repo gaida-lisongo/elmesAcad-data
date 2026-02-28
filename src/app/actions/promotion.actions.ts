@@ -17,8 +17,9 @@ export async function fetchPromotionsByFiliere(
       return { success: false, error: "Filiere not found" };
     }
 
-    const filiere = section.filieres?.find(
-      (f) => String(f._id || "") === filiereId,
+    const filieres = (section.filieres || []) as any[];
+    const filiere = filieres.find(
+      (f: any) => String(f?._id || "") === filiereId,
     );
     if (!filiere) {
       return { success: false, error: "Filiere not found" };
@@ -46,8 +47,8 @@ export async function fetchAllPromotions(): Promise<{
     const allPromotions: any[] = [];
 
     sections.forEach((section) => {
-      section.filieres?.forEach((filiere) => {
-        filiere.programmes?.forEach((programme) => {
+      ((section.filieres || []) as any[]).forEach((filiere: any) => {
+        ((filiere.programmes || []) as any[]).forEach((programme: any) => {
           allPromotions.push({
             ...programme,
             filiereId: filiere._id,
@@ -139,15 +140,16 @@ export async function updatePromotion(
       return { success: false, error: "Section not found" };
     }
 
-    const filiere = section.filieres?.find(
-      (f) => String(f._id || "") === filiereId,
+    const filieres = (section.filieres || []) as any[];
+    const filiere = filieres.find(
+      (f: any) => String(f?._id || "") === filiereId,
     );
     if (!filiere || !filiere.programmes) {
       return { success: false, error: "Filiere or programme not found" };
     }
 
     // Update the promotion at the given index
-    const updatedProgrammes = [...filiere.programmes];
+    const updatedProgrammes = [...(filiere.programmes as any[])];
     updatedProgrammes[promotionIndex] = {
       ...updatedProgrammes[promotionIndex],
       niveau: data.niveau,
@@ -203,16 +205,17 @@ export async function deletePromotion(
       return { success: false, error: "Section not found" };
     }
 
-    const filiere = section.filieres?.find(
-      (f) => String(f._id || "") === filiereId,
+    const filieres = (section.filieres || []) as any[];
+    const filiere = filieres.find(
+      (f: any) => String(f?._id || "") === filiereId,
     );
     if (!filiere || !filiere.programmes) {
       return { success: false, error: "Filiere or programmes not found" };
     }
 
     // Remove the promotion at the given index
-    const updatedProgrammes = filiere.programmes.filter(
-      (_, i) => i !== promotionIndex,
+    const updatedProgrammes = (filiere.programmes as any[]).filter(
+      (_: any, i: number) => i !== promotionIndex,
     );
 
     const result = await Section.findByIdAndUpdate(
@@ -263,10 +266,11 @@ export async function updatePromotionById(
     let filiereIndex = -1;
     let promotionIndex = -1;
 
-    for (let i = 0; i < section.filieres.length; i++) {
-      const programmes = section.filieres[i].programmes || [];
+    const filieres = (section.filieres || []) as any[];
+    for (let i = 0; i < filieres.length; i++) {
+      const programmes = (filieres[i].programmes || []) as any[];
       const pIndex = programmes.findIndex(
-        (p) => String(p._id || "") === promotionId,
+        (p: any) => String(p?._id || "") === promotionId,
       );
       if (pIndex !== -1) {
         filiereIndex = i;
@@ -293,7 +297,7 @@ export async function updatePromotionById(
       },
       {
         arrayFilters: [
-          { "filiere._id": section.filieres[filiereIndex]._id },
+          { "filiere._id": filieres[filiereIndex]._id },
           { "programme._id": new mongoose.Types.ObjectId(promotionId) },
         ],
         returnDocument: "after",
@@ -334,10 +338,11 @@ export async function deletePromotionById(
     let filiereIndex = -1;
     let promotionIndex = -1;
 
-    for (let i = 0; i < section.filieres.length; i++) {
-      const programmes = section.filieres[i].programmes || [];
+    const filieres = (section.filieres || []) as any[];
+    for (let i = 0; i < filieres.length; i++) {
+      const programmes = (filieres[i].programmes || []) as any[];
       const pIndex = programmes.findIndex(
-        (p) => String(p._id || "") === promotionId,
+        (p: any) => String(p?._id || "") === promotionId,
       );
       if (pIndex !== -1) {
         filiereIndex = i;
@@ -360,7 +365,7 @@ export async function deletePromotionById(
       },
       {
         arrayFilters: [
-          { "filiere._id": section.filieres[filiereIndex]._id },
+          { "filiere._id": filieres[filiereIndex]._id },
           { "programme._id": new mongoose.Types.ObjectId(promotionId) },
         ],
       },
@@ -379,7 +384,7 @@ export async function deletePromotionById(
         },
       },
       {
-        arrayFilters: [{ "filiere._id": section.filieres[filiereIndex]._id }],
+        arrayFilters: [{ "filiere._id": filieres[filiereIndex]._id }],
       },
     );
 

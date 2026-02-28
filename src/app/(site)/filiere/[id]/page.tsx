@@ -10,13 +10,13 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function FilierePage({ params }: PageProps) {
-  const { id } = params;
+  const { id } = await params;
   const result = await fetchFiliereById(id);
 
   if (!result.success || !result.data) {

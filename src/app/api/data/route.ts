@@ -10,7 +10,6 @@ const HeaderData: HeaderType[] = [
   { label: "Programmes", href: "/programmes" },
   { label: "À propos", href: "/about" },
   { label: "Contact", href: "/contact" },
-  { label: "Bibliothèque", href: "/documentation" },
 ];
 
 const TechGaintsData: { imgSrc: string }[] = [
