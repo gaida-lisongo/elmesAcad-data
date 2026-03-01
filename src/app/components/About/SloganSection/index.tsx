@@ -90,7 +90,7 @@ const SloganSection = ({
   metrics,
   anneeId,
 }: SloganSectionProps) => {
-  const { isAuthenticated, hydrated } = useAuthStore();
+  const { isAuthenticated, hydrated, isSuperAdmin } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -213,7 +213,7 @@ const SloganSection = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
           {/* Image Section */}
           <div className="relative h-[400px] lg:h-[500px] rounded-2xl overflow-hidden shadow-xl">
-            {isEditing && mounted && hydrated && isAuthenticated() ? (
+            {isEditing && mounted && hydrated && isSuperAdmin ? (
               <div className="relative h-full bg-gray-100 flex items-center justify-center">
                 {formData.photo ? (
                   <Image
@@ -338,7 +338,7 @@ const SloganSection = ({
           </div>
         </div>
         {/* Edit Button */}
-        {mounted && hydrated && isAuthenticated() && !isEditing && (
+        {mounted && hydrated && isSuperAdmin && !isEditing && (
           <div className="flex justify-end mb-6">
             <button
               onClick={() => setIsEditing(true)}

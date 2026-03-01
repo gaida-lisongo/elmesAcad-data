@@ -41,7 +41,7 @@ const TeamSection = ({
   services,
   anneeId,
 }: TeamSectionProps) => {
-  const { isAuthenticated, hydrated } = useAuthStore();
+  const { isAuthenticated, hydrated, isSuperAdmin } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -159,7 +159,7 @@ const TeamSection = ({
             <h2 className="text-4xl font-bold text-midnight_text">
               Notre Équipe
             </h2>
-            {mounted && hydrated && isAuthenticated() && !isEditing && (
+            {mounted && hydrated && isSuperAdmin && !isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
                 className="flex items-center gap-2 bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-lg font-medium transition shadow-md"
@@ -186,7 +186,7 @@ const TeamSection = ({
               className="bg-gradient-to-br from-slate-50 to-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 relative"
             >
               {/* Delete Button */}
-              {isEditing && (
+              {isEditing && isSuperAdmin && (
                 <button
                   onClick={() => handleDeleteMember(member._id)}
                   disabled={isLoading}
@@ -219,7 +219,7 @@ const TeamSection = ({
                   </p>
                 </div>
 
-                {isEditing ? (
+                {isEditing && isSuperAdmin ? (
                   <select
                     value={member.serviceId?._id || ""}
                     onChange={(e) =>
@@ -260,7 +260,7 @@ const TeamSection = ({
         </div>
 
         {/* Add New Member */}
-        {isEditing && (
+        {isEditing && isSuperAdmin && (
           <div className="max-w-2xl mx-auto">
             {showAddMember ? (
               <div className="bg-blue-50 p-8 rounded-2xl border-2 border-dashed border-blue-300">

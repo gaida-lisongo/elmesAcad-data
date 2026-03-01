@@ -37,7 +37,7 @@ const StructureSection = ({
   structure: initialStructure,
   anneeId,
 }: StructureSectionProps) => {
-  const { isAuthenticated, hydrated } = useAuthStore();
+  const { isAuthenticated, hydrated, isSuperAdmin } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -235,7 +235,7 @@ const StructureSection = ({
 
           {/* Edit Button */}
           <div className="flex justify-start lg:justify-end items-start">
-            {mounted && hydrated && isAuthenticated() && !isEditing && (
+            {mounted && hydrated && isSuperAdmin && !isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
                 className="flex items-center gap-2 bg-primary text-white hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition shadow-md"
