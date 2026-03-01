@@ -2,6 +2,7 @@
 
 import { connectDB } from "@/lib/mongoose";
 import { Subscription } from "@/lib/models/User";
+import { Programme } from "@/lib/models/Section";
 import mongoose from "mongoose";
 
 export interface SubscriptionType {
