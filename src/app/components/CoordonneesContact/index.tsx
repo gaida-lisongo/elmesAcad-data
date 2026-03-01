@@ -23,7 +23,7 @@ export default function CoordonneesContact({
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isSuperAdmin } = useAuthStore();
 
   const [formData, setFormData] = useState({
     adresse: contact?.adresse || "",
@@ -89,7 +89,7 @@ export default function CoordonneesContact({
     <section className="bg-gradient-to-br from-blue-50 to-white py-16">
       <div className="container mx-auto px-4">
         {/* Edit Button */}
-        {mounted && hydrated && isAuthenticated() && !isEditing && (
+        {mounted && hydrated && isSuperAdmin && !isEditing && (
           <div className="flex justify-end mb-6">
             <button
               onClick={() => setIsEditing(true)}
@@ -129,7 +129,7 @@ export default function CoordonneesContact({
               <h3 className="text-xl font-bold text-midnight_text mb-3">
                 Adresse
               </h3>
-              {isEditing ? (
+              {isEditing && isSuperAdmin ? (
                 <input
                   type="text"
                   name="adresse"
@@ -159,7 +159,7 @@ export default function CoordonneesContact({
               <h3 className="text-xl font-bold text-midnight_text mb-3">
                 Email
               </h3>
-              {isEditing ? (
+              {isEditing && isSuperAdmin ? (
                 <input
                   type="email"
                   name="email"
@@ -192,7 +192,7 @@ export default function CoordonneesContact({
               <h3 className="text-xl font-bold text-midnight_text mb-3">
                 Téléphone
               </h3>
-              {isEditing ? (
+              {isEditing && isSuperAdmin ? (
                 <input
                   type="tel"
                   name="phone"
@@ -215,7 +215,7 @@ export default function CoordonneesContact({
         </div>
 
         {/* Action Buttons */}
-        {isEditing && (
+        {isEditing && isSuperAdmin && (
           <div className="flex gap-3 justify-center mt-8">
             <button
               onClick={handleCancel}
