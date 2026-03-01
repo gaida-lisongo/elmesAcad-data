@@ -13,8 +13,8 @@ export const TitulaireSidebar = ({ elements }: TitulaireSidebarProps) => {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  const isActive = (elementId: string) => {
-    return pathname.includes(elementId);
+  const isActive = () => {
+    return pathname.includes("/charge-horaire");
   };
 
   return (
@@ -35,37 +35,51 @@ export const TitulaireSidebar = ({ elements }: TitulaireSidebarProps) => {
       >
         <div className="p-6">
           <h2 className="text-lg font-bold mb-6 text-black dark:text-white">
-            Éléments Constitutifs
+            Gestion Pédagogique
           </h2>
 
-          <div className="space-y-2">
-            {elements.length > 0 ? (
-              elements.map((element) => {
-                const isActiveElement = isActive(element._id);
-                return (
-                  <Link
+          <div className="space-y-3">
+            <Link
+              href="/charge-horaire"
+              onClick={() => setIsOpen(false)}
+              className={`flex items-center gap-3 p-3 rounded-md transition-colors ${
+                isActive()
+                  ? "bg-primary text-white font-semibold"
+                  : "text-black dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800"
+              }`}
+            >
+              <span className="text-lg">📋</span>
+              <span>Dashboard Pédagogique</span>
+            </Link>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-gray-300 dark:border-slate-700">
+            <h3 className="text-sm font-bold mb-3 text-gray-700 dark:text-gray-400 uppercase">
+              Vos Éléments
+            </h3>
+
+            <div className="space-y-2">
+              {elements.length > 0 ? (
+                elements.map((element) => (
+                  <div
                     key={element._id}
-                    href={`/charge-horaire/${element._id}`}
-                    onClick={() => setIsOpen(false)}
-                    className={`block p-3 rounded-md transition-colors ${
-                      isActiveElement
-                        ? "bg-primary text-white font-semibold"
-                        : "text-black dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800"
-                    }`}
+                    className="p-3 rounded-md bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:border-primary dark:hover:border-primary transition-colors"
                   >
-                    <div className="font-medium">{element.code}</div>
-                    <div className="text-sm truncate">
+                    <div className="font-semibold text-gray-900 dark:text-white text-sm">
+                      {element.code}
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 truncate mt-1">
                       {element.designation}
                     </div>
-                    <div className="text-xs opacity-75">
+                    <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
                       {element.credit} crédits
                     </div>
-                  </Link>
-                );
-              })
-            ) : (
-              <p className="text-gray-500 text-sm">Aucun élément trouvé</p>
-            )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-sm">Aucun élément trouvé</p>
+              )}
+            </div>
           </div>
         </div>
       </aside>

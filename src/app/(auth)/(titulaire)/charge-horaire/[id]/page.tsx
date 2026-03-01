@@ -37,7 +37,7 @@ export default function ChargeHorairePage() {
     { label: "Fiche cotation", value: "fiche-cotation" },
     { label: "Activités", value: "activities" },
     { label: "Ressources", value: "ressources" },
-    // { label: "Recours", value: "recours" }, // Futur
+    { label: "Recours", value: "recours" }, // Futur
   ];
 
   return (
