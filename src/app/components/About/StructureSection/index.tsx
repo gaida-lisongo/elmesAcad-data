@@ -212,12 +212,12 @@ const StructureSection = ({
         {/* Header Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center text-center mb-16">
           {/* Title and Description in center of section */}
-          <div className="space-y-6">
-            <h2 className="text-4xl font-bold text-midnight_text">
+          <div className="space-y-6 text-center">
+            <h2 className="text-4xl text-center font-bold text-midnight_text">
               Notre Structure
             </h2>
 
-            {isEditing ? (
+            {isEditing && isSuperAdmin ? (
               <textarea
                 value={formData.description}
                 onChange={handleInputChange}
