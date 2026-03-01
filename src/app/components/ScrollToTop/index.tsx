@@ -19,7 +19,8 @@ interface NavMenu {
 export default function ScrollToTop() {
   const [isVisible, setIsVisible] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user, logout, isSuperAdmin, setSuperAdmin } =
+    useAuthStore();
   const drawerRef = useRef<HTMLDivElement>(null);
 
   const currentPack = process.env.NEXT_PUBLIC_PACK || "basic"; // Récupérer le pack de l'utilisateur depuis les variables d'environnement ou le store
@@ -209,6 +210,7 @@ export default function ScrollToTop() {
   ];
 
   console.log("User autorisations:", user?.autorisations);
+  console.log("Is Admin :", isSuperAdmin);
   //Save menu user in useMemo to avoid re-rendering the menu on every render
   const filteredNavMenu = user?.autorisations
     ? navMenu.filter((menu) => user?.autorisations.includes(menu.category))
@@ -232,6 +234,12 @@ export default function ScrollToTop() {
       setIsDrawerOpen(false);
     }
   };
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      setSuperAdmin();
+    }
+  }, [isAuthenticated()]);
 
   useEffect(() => {
     // Button is displayed after scrolling for 500 pixels
@@ -267,7 +275,7 @@ export default function ScrollToTop() {
           {isAuthenticated() && (
             <button
               onClick={() => setIsDrawerOpen(true)}
-              className="bg-primary text-white hover:bg-primary/15 hover:text-primary text-sm font-medium px-4 py-3.5 leading-none rounded-lg text-nowrap transition duration-300 ease-in-out"
+              className={`${isSuperAdmin ? "bg-primary" : "bg-secondary"} text-white hover:${isSuperAdmin ? "bg-primary/15" : "bg-secondary/15"} hover:text-primary text-sm font-medium px-4 py-3.5 leading-none rounded-lg text-nowrap transition duration-300 ease-in-out`}
             >
               {user?.matricule || "Mon compte"}
             </button>
