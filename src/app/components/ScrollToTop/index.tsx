@@ -33,7 +33,12 @@ export default function ScrollToTop() {
           label: "Charge Horaire",
           href: "/charge-horaire",
           icon: (
-            <Icon icon="mdi-light:account" width={24} height={24} />
+            <Icon
+              icon="mdi-light:account"
+              width={24}
+              height={24}
+              className="text-primary"
+            />
             // <Icon
             //   icon=" material-symbols:calendar-month-outline"
             //   width={24}
@@ -44,33 +49,29 @@ export default function ScrollToTop() {
           pack: "pro",
         },
         {
-          label: "Actiités",
-          href: "/activites",
-          icon: <Icon icon="mdi-light:account" width={24} height={24} />,
-          pack: "pro",
-        },
-        {
-          label: "Ressources",
-          href: "/ressources",
-          icon: <Icon icon="mdi-light:account" width={24} height={24} />,
-          pack: "pro",
-        },
-        {
-          label: "Recours",
-          href: "/recours",
-          icon: <Icon icon="mdi-light:account" width={24} height={24} />,
-          pack: "pro",
-        },
-        {
           label: "Mails",
           href: "/mails",
-          icon: <Icon icon="mdi-light:account" width={24} height={24} />,
+          icon: (
+            <Icon
+              icon="mdi-light:email"
+              width={24}
+              height={24}
+              className="text-primary"
+            />
+          ),
           pack: "pro",
         },
         {
           label: "Retraits",
           href: "/retraits",
-          icon: <Icon icon="mdi-light:account" width={24} height={24} />,
+          icon: (
+            <Icon
+              icon="mdi-light:currency-usd"
+              width={24}
+              height={24}
+              className="text-primary"
+            />
+          ),
           pack: "pro",
         },
       ],

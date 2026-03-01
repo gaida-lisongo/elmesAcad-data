@@ -129,6 +129,33 @@ export async function fetchElementByTitulaireIdAndAnneeId(
   }
 }
 
+export async function fetchElementById(
+  elementId: string,
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    if (!elementId || elementId.length !== 24) {
+      return { success: false, error: "Invalid element ID" };
+    }
+
+    await connectDB();
+
+    const element = await Element.findById(elementId)
+      .populate("uniteId")
+      .populate("anneeId")
+      .populate("titulaireId")
+      .lean();
+
+    if (!element) {
+      return { success: false, error: "Element not found" };
+    }
+    const plainElement = JSON.parse(JSON.stringify(element));
+    return { success: true, data: plainElement };
+  } catch (error) {
+    console.error("Error fetching element by id:", error);
+    return { success: false, error: "Failed to fetch element" };
+  }
+}
+
 export async function countElementsByUniteId(
   uniteId: string,
 ): Promise<{ success: boolean; count?: number; error?: string }> {

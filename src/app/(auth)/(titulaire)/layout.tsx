@@ -3,8 +3,31 @@
 import { fetchAnneeActive } from "@/app/actions/annee.actions";
 import { fetchElementByTitulaireIdAndAnneeId } from "@/app/actions/unite-element.actions";
 import Loader from "@/app/components/Common/Loader";
+import { TitulaireSidebar } from "@/app/components/TitulaireSidebar/TitulaireSidebar";
+import { AnneeType } from "@/app/page";
 import { useAuthStore } from "@/store/auth.store";
 import { useEffect, useState } from "react";
+
+export interface ElementType {
+  _id: string;
+  anneeId: AnneeType;
+  code: string;
+  credit: number;
+  designation: string;
+  planning?: {
+    chapitre: String;
+    sections: String[];
+  }[];
+  mode_evaluation?: String[];
+  mode_enseignement?: String[];
+  penalites?: { faute: String; sanction: String }[];
+  place_ec: string;
+  objectifs: string[];
+  titulaireId: string;
+  uniteId: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function TituliaireLayout({
   children,
@@ -13,7 +36,7 @@ export default function TituliaireLayout({
 }>) {
   const { user } = useAuthStore();
   const [currentAnnee, setCurrentAnnee] = useState<any | null>(null);
-  const [elments, setElments] = useState<any[]>([]);
+  const [elments, setElments] = useState<ElementType[]>([]);
 
   const [loading, setLoading] = useState(false);
 
@@ -53,6 +76,12 @@ export default function TituliaireLayout({
     return <Loader />;
   }
 
-  console.log("Elements for titulaire:", elments);
-  return <div className="flex min-h-screen">{children}</div>;
+  return (
+    <div className="flex min-h-screen">
+      <TitulaireSidebar elements={elments} />
+      <main className="flex-1 md:ml-0 ml-0 w-full">
+        {children}
+      </main>
+    </div>
+  );
 }
