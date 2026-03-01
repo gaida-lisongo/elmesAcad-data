@@ -36,7 +36,7 @@ export default function ProgrammeClient({
   totalCredits,
   totalUnites,
 }: ProgrammeClientProps) {
-  const { isAuthenticated, hydrated } = useAuthStore();
+  const { isAuthenticated, hydrated, isSuperAdmin } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState("cours");
   const [horaires, setHoraires] = useState(initialHoraires);
@@ -349,7 +349,7 @@ export default function ProgrammeClient({
                         {semestre.credit} crédits
                       </p>
                     </div>
-                    {mounted && hydrated && isAuthenticated() && (
+                    {mounted && hydrated && isSuperAdmin && (
                       <>
                         {horaire ? (
                           <button
@@ -396,7 +396,7 @@ export default function ProgrammeClient({
                               <p className="font-medium">
                                 {plan.description || "Sans description"}
                               </p>
-                              {mounted && hydrated && isAuthenticated() && (
+                              {mounted && hydrated && isSuperAdmin && (
                                 <div className="flex gap-1">
                                   <button
                                     onClick={() =>

@@ -19,7 +19,7 @@ interface CoursesProps {
 }
 
 const Courses = (data: CoursesProps) => {
-  const { isAuthenticated, hydrated } = useAuthStore();
+  const { isAuthenticated, hydrated, isSuperAdmin } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [allPromotions, setAllPromotions] = useState(data.promotions || []);
   const [loading, setLoading] = useState(false);
@@ -43,10 +43,6 @@ const Courses = (data: CoursesProps) => {
   }, []);
 
   const totalPromotions = allPromotions.length;
-  console.log("Total promotions: ", totalPromotions);
-
-  // Log the list of promotions for debugging
-  console.log("Liste of promotions : ", allPromotions);
 
   // Filtered promotions based on search term
   const filteredPromotions =
@@ -235,7 +231,7 @@ const Courses = (data: CoursesProps) => {
               </button>
             </div>
 
-            {mounted && hydrated && isAuthenticated() && (
+            {mounted && hydrated && isSuperAdmin && (
               <button
                 onClick={openCreateModal}
                 className="flex items-center gap-2 bg-primary text-white hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition shadow-md whitespace-nowrap"

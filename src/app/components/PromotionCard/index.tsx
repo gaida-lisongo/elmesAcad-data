@@ -21,7 +21,7 @@ const PromotionCard = ({
   isSubmitting = false,
   showActions = true,
 }: PromotionCardProps) => {
-  const { isAuthenticated, hydrated } = useAuthStore();
+  const { isAuthenticated, hydrated, isSuperAdmin } = useAuthStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -91,7 +91,7 @@ const PromotionCard = ({
         </div>
         {mounted &&
           hydrated &&
-          isAuthenticated() &&
+          isSuperAdmin &&
           showActions &&
           onEdit &&
           onDelete && (
