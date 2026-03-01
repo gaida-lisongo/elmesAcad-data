@@ -200,7 +200,7 @@ const Courses = (data: CoursesProps) => {
   };
 
   return (
-    <section id="courses" className="scroll-mt-12 pb-20">
+    <section id="courses" className="scroll-mt-12 mt-15 pb-20">
       <div className="container">
         {/* Moteur de recherche */}
         <div className="mb-10">
