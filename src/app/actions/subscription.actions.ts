@@ -86,13 +86,58 @@ export async function fetchSubscriptionsByStudent(
     const subscriptions = await Subscription.find({
       etudiant: new mongoose.Types.ObjectId(studentId),
     })
-      .populate("promotion")
       .populate("annee")
       .lean();
 
     console.log("Fetched subscriptions for student:", subscriptions);
 
-    const plainSubscriptions = JSON.parse(JSON.stringify(subscriptions));
+    // Load sections to get promotion details
+    const Section = require("@/lib/models/Section").Section;
+    const sections = await Section.find().lean();
+
+    // Map promotions
+    const enrichedSubscriptions = subscriptions.map((sub: any) => {
+      let promotionInfo = null;
+
+      // Find promotion in sections
+      for (const section of sections) {
+        if (section.filieres) {
+          for (const filiere of section.filieres) {
+            if (filiere.programmes) {
+              const programme = filiere.programmes.find(
+                (p: any) => String(p._id) === String(sub.promotion),
+              );
+              if (programme) {
+                promotionInfo = {
+                  _id: programme._id,
+                  niveau: programme.niveau,
+                  designation: programme.designation,
+                  filiere: {
+                    sigle: filiere.sigle,
+                    designation: filiere.designation,
+                  },
+                  section: {
+                    mention: section.mention,
+                    designation: section.designation,
+                  },
+                };
+                break;
+              }
+            }
+          }
+        }
+        if (promotionInfo) break;
+      }
+
+      return {
+        ...sub,
+        promotion: promotionInfo || sub.promotion,
+      };
+    });
+
+    const plainSubscriptions = JSON.parse(
+      JSON.stringify(enrichedSubscriptions),
+    );
     return { success: true, data: plainSubscriptions as SubscriptionType[] };
   } catch (error) {
     console.error("Error fetching subscriptions by student:", error);
