@@ -133,7 +133,7 @@ const Header: React.FC = () => {
                 </div>
               </div>
             )}
-            <Link
+            {/* <Link
               href="#"
               className="hidden lg:block bg-primary/15 hover:bg-primary text-primary hover:text-white py-2 px-6 rounded-full text-lg font-medium"
               onClick={() => {
@@ -141,7 +141,7 @@ const Header: React.FC = () => {
               }}
             >
               Sign Up
-            </Link>
+            </Link> */}
             {isSignUpOpen && (
               <div className="fixed top-0 left-0 w-full h-full bg-black/50 flex items-center justify-center z-50">
                 <div
@@ -211,6 +211,20 @@ const Header: React.FC = () => {
                 href="#"
                 className="bg-transparent border border-primary text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white"
                 onClick={() => {
+                  if (isAuthenticated()) {
+                    logout();
+                  } else {
+                    setIsSignInOpen(true);
+                    setNavbarOpen(false);
+                  }
+                }}
+              >
+                {isAuthenticated() ? "Se déconnecter" : "Se connecter"}
+              </Link>
+              {/* <Link
+                href="#"
+                className="bg-transparent border border-primary text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white"
+                onClick={() => {
                   setIsSignInOpen(true);
                   setNavbarOpen(false);
                 }}
@@ -226,7 +240,7 @@ const Header: React.FC = () => {
                 }}
               >
                 Sign Up
-              </Link>
+              </Link> */}
             </div>
           </nav>
         </div>
