@@ -98,6 +98,37 @@ export async function fetchElementsByUniteId(
   }
 }
 
+export async function fetchElementByTitulaireIdAndAnneeId(
+  titulaireId: string,
+  anneeId: string,
+): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  try {
+    if (!titulaireId || titulaireId.length !== 24) {
+      return { success: false, error: "Invalid titulaire ID" };
+    }
+    if (!anneeId || anneeId.length !== 24) {
+      return { success: false, error: "Invalid annee ID" };
+    }
+
+    await connectDB();
+
+    const elements = await Element.find({
+      titulaireId: new mongoose.Types.ObjectId(titulaireId),
+      anneeId: new mongoose.Types.ObjectId(anneeId),
+    })
+      .populate("uniteId")
+      .populate("anneeId")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const plainElements = JSON.parse(JSON.stringify(elements));
+    return { success: true, data: plainElements };
+  } catch (error) {
+    console.error("Error fetching elements by titulaire and annee:", error);
+    return { success: false, error: "Failed to fetch elements" };
+  }
+}
+
 export async function countElementsByUniteId(
   uniteId: string,
 ): Promise<{ success: boolean; count?: number; error?: string }> {
