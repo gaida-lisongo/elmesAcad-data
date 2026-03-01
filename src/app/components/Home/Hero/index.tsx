@@ -49,10 +49,11 @@ const Hero = ({ section }: { section: SectionType }) => {
       hydrated,
       "authenticated:",
       isAuthenticated(),
-      "user:",
-      user,
     );
-  }, [hydrated, isAuthenticated, user]);
+  }, [hydrated, isAuthenticated]);
+
+  console.log("User: ", user);
+  console.log("Client: ", client);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
