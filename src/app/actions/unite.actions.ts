@@ -1,7 +1,7 @@
 "use server";
 
 import { connectDB } from "@/lib/mongoose";
-import { Section } from "@/lib/models/Section";
+import { Section, Programme, Unite } from "@/lib/models/Section";
 import mongoose from "mongoose";
 
 export async function addUnite(
@@ -197,5 +197,95 @@ export async function deleteUnite(
   } catch (error) {
     console.error("Error deleting unite:", error);
     return { success: false, error: "Failed to delete unite" };
+  }
+}
+
+// Find the promotion containing this unite and return the updated promotion with populated data
+export async function fetchPromotionByUniteId(
+  uniteId: string,
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    if (!uniteId || uniteId.length !== 24) {
+      return { success: false, error: "Invalid unite ID" };
+    }
+
+    await connectDB();
+
+    console.log("Fetching promotion for unite ID:", uniteId);
+
+    // Find the section containing this unite
+    const section: any = await Section.findOne({
+      "filieres.programmes.semestres.unites._id": new mongoose.Types.ObjectId(
+        uniteId,
+      ),
+    }).lean();
+
+    console.log("Section found:", section ? "Yes" : "No");
+
+    if (!section) {
+      return { success: false, error: "Unite not found in section" };
+    }
+
+    // Find the unite and programme in the nested structure
+    let targetUnite: any = null;
+    let targetProgramme: any = null;
+    let targetFiliere: any = null;
+    let targetSemestre: any = null;
+
+    for (const filiere of section.filieres || []) {
+      for (const programme of filiere.programmes || []) {
+        for (const semestre of programme.semestres || []) {
+          const unite = semestre.unites?.find(
+            (u: any) => String(u._id) === uniteId,
+          );
+          if (unite) {
+            targetUnite = unite;
+            targetProgramme = programme;
+            targetFiliere = filiere;
+            targetSemestre = semestre;
+            break;
+          }
+        }
+        if (targetUnite) break;
+      }
+      if (targetUnite) break;
+    }
+
+    console.log("Unite found:", targetUnite ? "Yes" : "No");
+
+    if (!targetUnite || !targetProgramme) {
+      return { success: false, error: "Unite not found in programme" };
+    }
+
+    const plainResult = JSON.parse(
+      JSON.stringify({
+        programme: {
+          _id: targetProgramme._id,
+          niveau: targetProgramme.niveau,
+          designation: targetProgramme.designation,
+          description: targetProgramme.description,
+          semestres: targetProgramme.semestres,
+        },
+        unite: targetUnite,
+        semestre: {
+          designation: targetSemestre.designation,
+          credit: targetSemestre.credit,
+        },
+        filiere: {
+          _id: targetFiliere._id,
+          sigle: targetFiliere.sigle,
+          designation: targetFiliere.designation,
+        },
+        section: {
+          mention: section.mention,
+          designation: section.designation,
+        },
+      }),
+    );
+
+    return { success: true, data: plainResult };
+  } catch (error) {
+    console.error("Error fetching promotion by unite:", error);
+    return { success: false, error: "Failed to fetch promotion" };
   }
 }

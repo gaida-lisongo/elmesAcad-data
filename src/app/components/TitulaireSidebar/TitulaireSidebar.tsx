@@ -13,8 +13,12 @@ export const TitulaireSidebar = ({ elements }: TitulaireSidebarProps) => {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  const isActive = () => {
-    return pathname.includes("/charge-horaire");
+  const isActiveDashboard = () => {
+    return pathname === "/charge-horaire";
+  };
+
+  const isActiveElement = (elementId: string) => {
+    return pathname.includes(`/charge-horaire/${elementId}`);
   };
 
   return (
@@ -38,43 +42,49 @@ export const TitulaireSidebar = ({ elements }: TitulaireSidebarProps) => {
             Gestion Pédagogique
           </h2>
 
-          <div className="space-y-3">
+          {/* Dashboard Link */}
+          <div className="space-y-3 mb-8">
             <Link
               href="/charge-horaire"
               onClick={() => setIsOpen(false)}
               className={`flex items-center gap-3 p-3 rounded-md transition-colors ${
-                isActive()
+                isActiveDashboard()
                   ? "bg-primary text-white font-semibold"
                   : "text-black dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800"
               }`}
             >
-              <span className="text-lg">📋</span>
-              <span>Dashboard Pédagogique</span>
+              <span className="text-lg">📊</span>
+              <span>Dashboard</span>
             </Link>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-gray-300 dark:border-slate-700">
+          {/* Elements Section */}
+          <div className="border-t border-gray-300 dark:border-slate-700 pt-6">
             <h3 className="text-sm font-bold mb-3 text-gray-700 dark:text-gray-400 uppercase">
-              Vos Éléments
+              Éléments Constitutifs
             </h3>
 
             <div className="space-y-2">
               {elements.length > 0 ? (
                 elements.map((element) => (
-                  <div
+                  <Link
                     key={element._id}
-                    className="p-3 rounded-md bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:border-primary dark:hover:border-primary transition-colors"
+                    href={`/charge-horaire/${element._id}`}
+                    onClick={() => setIsOpen(false)}
+                    className={`block p-3 rounded-md transition-colors ${
+                      isActiveElement(element._id)
+                        ? "bg-primary text-white font-semibold"
+                        : "bg-white dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 hover:border-primary dark:hover:border-primary hover:shadow-md"
+                    }`}
                   >
-                    <div className="font-semibold text-gray-900 dark:text-white text-sm">
-                      {element.code}
-                    </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400 truncate mt-1">
+                    <div className="font-semibold text-sm">{element.code}</div>
+                    <div className="text-xs opacity-75 truncate mt-1">
                       {element.designation}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                    <div className="text-xs opacity-60 mt-2">
                       {element.credit} crédits
                     </div>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <p className="text-gray-500 text-sm">Aucun élément trouvé</p>

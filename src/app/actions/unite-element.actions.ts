@@ -1,7 +1,9 @@
 "use server";
 
 import { connectDB } from "@/lib/mongoose";
-import { Section, Element } from "@/lib/models/Section";
+import { Section, Element, Unite } from "@/lib/models/Section";
+import { User } from "@/lib/models/User";
+import { Annee } from "@/lib/models/Annee";
 import mongoose from "mongoose";
 
 export async function fetchUniteById(
@@ -140,9 +142,7 @@ export async function fetchElementById(
     await connectDB();
 
     const element = await Element.findById(elementId)
-      .populate("uniteId")
       .populate("anneeId")
-      .populate("titulaireId")
       .lean();
 
     if (!element) {
@@ -230,6 +230,16 @@ export async function updateElement(
     credit: number;
     objectifs: string[];
     place_ec: string;
+    planning?: {
+      chapitre: string;
+      sections: string[];
+    }[];
+    mode_evaluation?: string[];
+    mode_enseignement?: string[];
+    penalites?: {
+      faute: string;
+      sanction: string;
+    }[];
     titulaireId?: string;
   },
 ): Promise<{ success: boolean; data?: any; error?: string }> {
@@ -247,6 +257,22 @@ export async function updateElement(
       objectifs: elementData.objectifs,
       place_ec: elementData.place_ec,
     };
+
+    if (elementData.planning !== undefined) {
+      updateData.planning = elementData.planning;
+    }
+
+    if (elementData.mode_evaluation !== undefined) {
+      updateData.mode_evaluation = elementData.mode_evaluation;
+    }
+
+    if (elementData.mode_enseignement !== undefined) {
+      updateData.mode_enseignement = elementData.mode_enseignement;
+    }
+
+    if (elementData.penalites !== undefined) {
+      updateData.penalites = elementData.penalites;
+    }
 
     if (elementData.titulaireId) {
       updateData.titulaireId = new mongoose.Types.ObjectId(

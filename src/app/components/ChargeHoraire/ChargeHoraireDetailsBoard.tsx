@@ -1,6 +1,7 @@
 "use client";
 
 import { ElementType } from "@/app/(auth)/(titulaire)/layout";
+import { updateElement } from "@/app/actions/unite-element.actions";
 import { useState, useMemo } from "react";
 import { DetailElement } from "./DetailElement";
 
@@ -27,6 +28,11 @@ export const ChargeHoraireDetailsBoard = ({
   const [filterSort, setFilterSort] = useState<
     "code" | "credit" | "designation"
   >("code");
+  const [saveStatus, setSaveStatus] = useState<{
+    type: "success" | "error" | null;
+    message: string;
+  }>({ type: null, message: "" });
+  const [isSaving, setIsSaving] = useState(false);
 
   // Calculate metrics
   const metrics: MetricCard[] = useMemo(() => {
@@ -91,15 +97,68 @@ export const ChargeHoraireDetailsBoard = ({
     return filtered;
   }, [elements, searchTerm, filterSort]);
 
-  const handleSaveElement = (updatedElement: ElementType) => {
-    if (onElementUpdate) {
-      onElementUpdate(updatedElement);
+  const handleSaveElement = async (updatedElement: ElementType) => {
+    try {
+      setIsSaving(true);
+      setSaveStatus({ type: null, message: "" });
+
+      const result = await updateElement(updatedElement._id, {
+        code: updatedElement.code,
+        designation: updatedElement.designation,
+        credit: updatedElement.credit || 0,
+        objectifs: updatedElement.objectifs || [],
+        place_ec: updatedElement.place_ec || "",
+        planning: updatedElement.planning,
+        mode_evaluation: updatedElement.mode_evaluation,
+        mode_enseignement: updatedElement.mode_enseignement,
+        penalites: updatedElement.penalites,
+      });
+
+      if (result.success) {
+        setSaveStatus({
+          type: "success",
+          message: "Élément mis à jour avec succès!",
+        });
+        if (onElementUpdate) {
+          onElementUpdate(updatedElement);
+        }
+        setSelectedElement(null);
+        // Clear success message after 3 seconds
+        setTimeout(() => setSaveStatus({ type: null, message: "" }), 3000);
+      } else {
+        setSaveStatus({
+          type: "error",
+          message: result.error || "Erreur lors de la mise à jour",
+        });
+      }
+    } catch (error) {
+      setSaveStatus({
+        type: "error",
+        message: "Erreur lors de la mise à jour de l'élément",
+      });
+    } finally {
+      setIsSaving(false);
     }
-    setSelectedElement(null);
   };
 
   return (
     <>
+      {/* Status Messages */}
+      {saveStatus.type && (
+        <div
+          className={`p-4 rounded-lg flex items-center gap-3 ${
+            saveStatus.type === "success"
+              ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border border-green-300 dark:border-green-700"
+              : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border border-red-300 dark:border-red-700"
+          }`}
+        >
+          <span className="text-xl">
+            {saveStatus.type === "success" ? "✓" : "✕"}
+          </span>
+          <span>{saveStatus.message}</span>
+        </div>
+      )}
+
       <div className="w-full space-y-6">
         {/* Metrics Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -271,6 +330,7 @@ export const ChargeHoraireDetailsBoard = ({
           element={selectedElement}
           onClose={() => setSelectedElement(null)}
           onSave={handleSaveElement}
+          isSaving={isSaving}
         />
       )}
     </>

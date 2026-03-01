@@ -6,13 +6,15 @@ import { useState } from "react";
 interface DetailElementProps {
   element: ElementType;
   onClose: () => void;
-  onSave?: (updatedElement: ElementType) => void;
+  onSave?: (updatedElement: ElementType) => void | Promise<void>;
+  isSaving?: boolean;
 }
 
 export const DetailElement = ({
   element,
   onClose,
   onSave,
+  isSaving = false,
 }: DetailElementProps) => {
   const [editData, setEditData] = useState<ElementType>(element);
 
@@ -422,15 +424,24 @@ export const DetailElement = ({
         <div className="bg-gray-100 dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 p-6 flex justify-end gap-4">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-300 dark:bg-slate-700 text-gray-900 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-slate-600"
+            disabled={isSaving}
+            className="px-6 py-2 bg-gray-300 dark:bg-slate-700 text-gray-900 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Annuler
           </button>
           <button
             onClick={handleSave}
-            className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+            disabled={isSaving}
+            className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Enregistrer les modifications
+            {isSaving ? (
+              <>
+                <span className="animate-spin">⏳</span>
+                Enregistrement...
+              </>
+            ) : (
+              "Enregistrer les modifications"
+            )}
           </button>
         </div>
       </div>
