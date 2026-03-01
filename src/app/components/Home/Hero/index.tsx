@@ -485,7 +485,7 @@ const Hero = ({ section }: { section: SectionType }) => {
                                     : "Non valide"}
                                 </span>
                               </div>
-                              {subscription.createdAt && (
+                              <div className="mt-2">
                                 <p className="text-xs text-gray-500 mt-2">
                                   Année:{" "}
                                   {subscription?.annee?.debut
@@ -500,7 +500,7 @@ const Hero = ({ section }: { section: SectionType }) => {
                                       ).toLocaleDateString("fr-FR")
                                     : "N/A"}
                                 </p>
-                              )}
+                              </div>
                             </div>
                           ),
                         )}
