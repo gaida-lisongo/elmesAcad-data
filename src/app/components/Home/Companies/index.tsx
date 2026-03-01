@@ -12,7 +12,7 @@ import { updateSection } from "@/app/actions/section.actions";
 
 const Companies = ({ section }: { section: SectionType }) => {
   const router = useRouter();
-  const { isAuthenticated, hydrated } = useAuthStore();
+  const { isAuthenticated, hydrated, isSuperAdmin } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingFiliere, setEditingFiliere] = useState<any | null>(null);
@@ -204,7 +204,7 @@ const Companies = ({ section }: { section: SectionType }) => {
           <h6 className="text-midnight_text capitalize text-2xl font-semibold">
             Nos Filières
           </h6>
-          {mounted && hydrated && isAuthenticated() && (
+          {mounted && hydrated && isSuperAdmin && (
             <>
               {!section._id || section._id === "" ? (
                 <div className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg border border-red-200">
@@ -251,7 +251,7 @@ const Companies = ({ section }: { section: SectionType }) => {
 
                     {mounted &&
                       hydrated &&
-                      isAuthenticated() &&
+                      isSuperAdmin &&
                       section._id &&
                       section._id !== "" && (
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">

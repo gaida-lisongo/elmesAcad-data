@@ -16,7 +16,7 @@ import {
 import ModalEdit, { FormDataType } from "./ModalEdit";
 
 const Testimonial = ({ annee }: { annee: AnneeType }) => {
-  const { isAuthenticated, hydrated } = useAuthStore();
+  const { isAuthenticated, hydrated, isSuperAdmin } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -245,8 +245,6 @@ const Testimonial = ({ annee }: { annee: AnneeType }) => {
     );
   };
 
-  console.log("Annees data:", annee);
-
   return (
     <section id="testimonial">
       <div className="container">
@@ -255,7 +253,7 @@ const Testimonial = ({ annee }: { annee: AnneeType }) => {
             Année Académique {new Date(annee.debut).getFullYear()} -{" "}
             {new Date(annee.fin).getFullYear()}
           </h2>
-          {mounted && hydrated && isAuthenticated() && (
+          {mounted && hydrated && isSuperAdmin && (
             <button
               onClick={openCreateModal}
               className="flex items-center gap-2 bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-lg font-medium transition shadow-md"
@@ -284,7 +282,7 @@ const Testimonial = ({ annee }: { annee: AnneeType }) => {
                       className="inline-block rounded-full border border-black/10"
                     />
                   </div>
-                  {mounted && hydrated && isAuthenticated() && (
+                  {mounted && hydrated && isSuperAdmin && (
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition flex gap-2">
                       <button
                         onClick={() => openEditModal(items)}
