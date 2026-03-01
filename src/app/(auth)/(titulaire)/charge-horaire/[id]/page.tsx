@@ -4,31 +4,45 @@ import { useParams } from "next/navigation";
 import { ElementType } from "@/app/(auth)/(titulaire)/layout";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Icon } from "@iconify/react";
 import { fetchElementById } from "@/app/actions/unite-element.actions";
 import { fetchPromotionByUniteId } from "@/app/actions/unite.actions";
 import Loader from "@/app/components/Common/Loader";
 import { PromotionType } from "@/app/page";
+import {
+  fetchSubscriptionsByPromotion,
+  SubscriptionType,
+} from "@/app/actions/subscription.actions";
+import { FicheCotation } from "@/app/components/ChargeHoraire/FicheCotation";
+import { ActivitesManager } from "@/app/components/ChargeHoraire/ActivitesManager";
+import { RessourcesManager } from "@/app/components/ChargeHoraire/RessourcesManager";
+import { RecoursManager } from "@/app/components/ChargeHoraire/RecoursManager";
+import { SeancesManager } from "@/app/components/ChargeHoraire/SeancesManager";
+import { CreateActivityModal } from "@/app/components/ChargeHoraire/CreateActivityModal";
 
 const TabItem = ({
   label,
   value,
   activeTab,
   onClick,
+  icon,
 }: {
   label: string;
   value: string;
   activeTab: string;
   onClick: (value: string) => void;
+  icon: string;
 }) => (
   <button
     onClick={() => onClick(value)}
-    className={`px-6 py-3 font-medium transition-colors ${
+    className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors border-b-2 ${
       activeTab === value
-        ? "border-b-2 border-primary text-primary"
-        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+        ? "border-primary text-primary bg-primary/5"
+        : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300"
     }`}
   >
-    {label}
+    <Icon icon={icon} width={20} />
+    <span>{label}</span>
   </button>
 );
 
@@ -64,12 +78,18 @@ export default function ChargeHorairePage() {
     designation: string;
     description: string[];
   } | null>(null);
+
+  const [students, setStudents] = useState<SubscriptionType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [activityType, setActivityType] = useState<"qcm" | "questionnaire">("qcm");
+
   const tabs = [
-    { label: "Fiche cotation", value: "fiche-cotation" },
-    { label: "Activités", value: "activities" },
-    { label: "Ressources", value: "ressources" },
-    { label: "Recours", value: "recours" }, // Futur
+    { label: "Fiche cotation", value: "fiche-cotation", icon: "solar:document-text-bold-duotone" },
+    { label: "Activites", value: "activities", icon: "solar:checklist-minimalistic-bold-duotone" },
+    { label: "Ressources", value: "ressources", icon: "solar:folder-with-files-bold-duotone" },
+    { label: "Recours", value: "recours", icon: "solar:help-bold-duotone" },
+    { label: "Seances", value: "seances", icon: "solar:calendar-bold-duotone" },
   ];
 
   useEffect(() => {
@@ -79,12 +99,10 @@ export default function ChargeHorairePage() {
         if (res.success) {
           setCours(res.data);
         } else {
-          console.error("Erreur lors du chargement de l'élément:", res.error);
+          console.error("Erreur:", res.error);
         }
       })
-      .catch((error) => {
-        console.error("Erreur lors du chargement de l'élément:", error);
-      })
+      .catch((error) => console.error("Erreur:", error))
       .finally(() => setLoading(false));
   }, [elementId]);
 
@@ -94,142 +112,76 @@ export default function ChargeHorairePage() {
       fetchPromotionByUniteId(cours?.uniteId)
         .then((res) => {
           if (res.success) {
-            const {
-              unite: UniteData,
-              semestre: semestreData,
-              section: sectionData,
-              filiere: filiereData,
-              programme: programmeData,
-            } = res.data;
+            const { unite: UniteData, semestre: semestreData, section: sectionData, filiere: filiereData, programme: programmeData } = res.data;
             setUnite(UniteData);
             setSemestre(semestreData);
             setSection(sectionData);
             setFiliere(filiereData);
             setPromotion(programmeData);
-          } else {
-            console.error(
-              "Erreur lors du chargement de la promotion:",
-              res.error,
-            );
           }
         })
-        .catch((error) => {
-          console.error("Erreur lors du chargement de la promotion:", error);
-        })
+        .catch((error) => console.error("Erreur:", error))
         .finally(() => setLoading(false));
     }
   }, [cours]);
 
-  if (loading) {
-    return <Loader />;
-  }
+  useEffect(() => {
+    if (promotion && cours?.anneeId) {
+      fetchSubscriptionsByPromotion(promotion._id, cours.anneeId._id)
+        .then((res) => { if (res.success) setStudents(res.data); })
+        .catch((error) => console.error("Erreur:", error));
+    }
+  }, [promotion, cours?.anneeId]);
 
-  console.log("Cours:", cours);
-  console.log("Promotion:", promotion);
-  console.log("Unite:", unite);
-  console.log("Semestre:", semestre);
-  console.log("Section:", section);
-  console.log("Filiere:", filiere);
+  if (loading) return <Loader />;
+
+  if (!cours) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Icon icon="solar:sad-circle-bold-duotone" width={64} height={64} className="text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-700 dark:text-white mb-2">Element non trouve</h3>
+          <Link href="/charge-horaire" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg">
+            <Icon icon="solar:arrow-left-outline" width={20} /> Retour
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
-      {/* Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 p-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Charge Horaire
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Élément ID: {elementId}
-        </p>
-      </div>
-
-      {/* Tabs Navigation */}
-      <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700">
-        <div className="px-6 flex space-x-8 overflow-x-auto">
-          {tabs.map((tab) => (
-            <TabItem
-              key={tab.value}
-              label={tab.label}
-              value={tab.value}
-              activeTab={activeTab}
-              onClick={setActiveTab}
-            />
-          ))}
+        <div className="flex items-center gap-4">
+          <Link href="/charge-horaire" className="flex items-center gap-2 px-4 py-2 border border-stroke rounded-lg">
+            <Icon icon="solar:arrow-left-outline" width={20} /> Retour
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{cours.code} - {cours.designation}</h1>
+            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
+              <span className="flex items-center gap-1"><Icon icon="solar:medal-star-outline" width={16} /> {cours.credit} credits</span>
+              {cours.anneeId && <span className="flex items-center gap-1"><Icon icon="solar:calendar-outline" width={16} /> {new Date(cours.anneeId.debut).getFullYear()} - {new Date(cours.anneeId.fin).getFullYear()}</span>}
+              {promotion && <span className="flex items-center gap-1"><Icon icon="solar:users-group-rounded-outline" width={16} /> {promotion.sigle}</span>}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="p-6">
-        {activeTab === "fiche-cotation" && (
-          <div>
-            <h2 className="text-xl font-bold mb-4">Fiche Cotation</h2>
-            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-lg">
-              <p className="text-gray-600 dark:text-gray-400">
-                Contenu de la fiche cotation pour l'élément ID: {elementId}
-              </p>
-              <Link
-                href={`/fiche-cotation/${elementId}`}
-                className="text-primary hover:underline mt-4 inline-block"
-              >
-                Voir la page complète →
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "activities" && (
-          <div>
-            <h2 className="text-xl font-bold mb-4">Activités</h2>
-            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-lg">
-              <p className="text-gray-600 dark:text-gray-400">
-                Les activités pour l'élément ID: {elementId}
-              </p>
-              <Link
-                href={`/activities/${elementId}`}
-                className="text-primary hover:underline mt-4 inline-block"
-              >
-                Voir la page complète →
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "ressources" && (
-          <div>
-            <h2 className="text-xl font-bold mb-4">Ressources</h2>
-            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-lg">
-              <p className="text-gray-600 dark:text-gray-400">
-                Les ressources pour l'élément ID: {elementId}
-              </p>
-              <Link
-                href={`/ressources/${elementId}`}
-                className="text-primary hover:underline mt-4 inline-block"
-              >
-                Voir la page complète →
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* Future Recours tab
-        {activeTab === "recours" && (
-          <div>
-            <h2 className="text-xl font-bold mb-4">Recours</h2>
-            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-lg">
-              <p className="text-gray-600 dark:text-gray-400">
-                Les recours pour l'élément ID: {elementId}
-              </p>
-              <Link
-                href={`/recours/${elementId}`}
-                className="text-primary hover:underline mt-4 inline-block"
-              >
-                Voir la page complète →
-              </Link>
-            </div>
-          </div>
-        )}
-        */}
+      <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700">
+        <div className="px-6 flex space-x-1 overflow-x-auto">
+          {tabs.map((tab) => <TabItem key={tab.value} label={tab.label} value={tab.value} activeTab={activeTab} onClick={setActiveTab} icon={tab.icon} />)}
+        </div>
       </div>
+
+      <div className="p-6 bg-gray-2 dark:bg-boxdark-2 min-h-screen">
+        {activeTab === "fiche-cotation" && <FicheCotation elementId={elementId} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} titulaireId={cours.titulaireId || ""} />}
+        {activeTab === "activities" && <ActivitesManager elementId={elementId} titulaireId={cours.titulaireId || ""} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} onCreateActivity={(type) => { setActivityType(type); setShowActivityModal(true); }} />}
+        {activeTab === "ressources" && <RessourcesManager elementId={elementId} titulaireId={cours.titulaireId || ""} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} />}
+        {activeTab === "recours" && <RecoursManager elementId={elementId} />}
+        {activeTab === "seances" && <SeancesManager elementId={elementId} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} />}
+      </div>
+
+      {showActivityModal && <CreateActivityModal type={activityType} elementId={elementId} titulaireId={cours.titulaireId || ""} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} onClose={() => setShowActivityModal(false)} onSuccess={() => setShowActivityModal(false)} />}
     </div>
   );
 }
