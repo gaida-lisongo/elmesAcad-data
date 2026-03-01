@@ -209,7 +209,7 @@ const Header: React.FC = () => {
             <div className="mt-4 flex flex-col space-y-4 w-full">
               <Link
                 href="#"
-                className="bg-transparent border border-primary text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white"
+                className="bg-primary border border-primary text-white px-4 py-2 rounded-lg hover:bg-primary/15 hover:text-primary"
                 onClick={() => {
                   if (isAuthenticated()) {
                     logout();
