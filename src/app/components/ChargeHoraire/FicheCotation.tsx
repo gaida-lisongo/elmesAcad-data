@@ -33,20 +33,27 @@ export const FicheCotation = ({
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editNotes, setEditNotes] = useState({
-    cc: 0,
-    examen: 0,
-    rattrapage: 0,
-  });
   const [showImport, setShowImport] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [localNotes, setLocalNotes] = useState<
+    Record<string, { cc: number; examen: number; rattrapage: number }>
+  >({});
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const loadStudents = async () => {
     setLoading(true);
     const result = await fetchNotesByElement(elementId, promotionId, anneeId);
     if (result.success && result.data) {
       setStudents(result.data);
+      // Initialiser les notes locales
+      const notes: Record<
+        string,
+        { cc: number; examen: number; rattrapage: number }
+      > = {};
+      result.data.forEach((student: Student) => {
+        notes[student._id] = { ...student.note };
+      });
+      setLocalNotes(notes);
     }
     setLoading(false);
   };
@@ -55,9 +62,10 @@ export const FicheCotation = ({
     loadStudents();
   }, [elementId, promotionId, anneeId]);
 
-  const calculateTotal = (student: Student) => {
-    const semestre = student.note.cc + student.note.examen;
-    const rattrapage = student.note.rattrapage;
+  const calculateTotal = (studentId: string) => {
+    const notes = localNotes[studentId] || { cc: 0, examen: 0, rattrapage: 0 };
+    const semestre = notes.cc + notes.examen;
+    const rattrapage = notes.rattrapage;
 
     if (rattrapage >= semestre) {
       return { total: rattrapage, source: "rattrapage" };
@@ -73,24 +81,40 @@ export const FicheCotation = ({
     );
   }, [students, searchTerm]);
 
-  const handleEdit = (student: Student) => {
-    setEditingId(student._id);
-    setEditNotes(student.note);
+  const handleNoteChange = (
+    studentId: string,
+    field: "cc" | "examen" | "rattrapage",
+    value: number,
+  ) => {
+    setLocalNotes((prev) => ({
+      ...prev,
+      [studentId]: {
+        ...prev[studentId],
+        [field]: value,
+      },
+    }));
   };
 
-  const handleSave = async (studentId: string) => {
+  const handleSaveNote = async (studentId: string) => {
+    const notes = localNotes[studentId];
+    if (!notes) return;
+
+    setSavingId(studentId);
     const result = await updateNote({
       elementId,
       studentId,
       promotionId,
       anneeId,
-      ...editNotes,
+      ...notes,
     });
 
     if (result.success) {
-      await loadStudents();
-      setEditingId(null);
+      // Mettre à jour le state students avec les nouvelles notes
+      setStudents((prev) =>
+        prev.map((s) => (s._id === studentId ? { ...s, note: notes } : s)),
+      );
     }
+    setSavingId(null);
   };
 
   const handleImportCSV = async () => {
@@ -193,9 +217,14 @@ export const FicheCotation = ({
 
       {/* Students List */}
       <div className="space-y-3">
-        {filteredStudents.map((student) => {
-          const { total, source } = calculateTotal(student);
-          const isEditing = editingId === student._id;
+        {filteredStudents.map((student, index) => {
+          const { total, source } = calculateTotal(student._id);
+          const notes = localNotes[student._id] || {
+            cc: 0,
+            examen: 0,
+            rattrapage: 0,
+          };
+          const isSaving = savingId === student._id;
 
           return (
             <div
@@ -204,129 +233,98 @@ export const FicheCotation = ({
             >
               <div className="flex items-center justify-between">
                 {/* Student Info */}
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    {student.nomComplet}
-                  </h3>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                      {student.nomComplet}
+                    </h3>
+                  </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {student.matricule} • {student.email}
+                    {student.matricule}
                   </p>
                 </div>
 
-                {/* Notes */}
-                <div className="flex items-center gap-6">
-                  {isEditing ? (
-                    <>
-                      <div className="flex gap-3">
-                        <input
-                          type="number"
-                          min="0"
-                          max="10"
-                          step="0.5"
-                          value={editNotes.cc}
-                          onChange={(e) =>
-                            setEditNotes({
-                              ...editNotes,
-                              cc: parseFloat(e.target.value),
-                            })
-                          }
-                          className="w-20 px-2 py-1 border rounded"
-                          placeholder="CC"
-                        />
-                        <input
-                          type="number"
-                          min="0"
-                          max="10"
-                          step="0.5"
-                          value={editNotes.examen}
-                          onChange={(e) =>
-                            setEditNotes({
-                              ...editNotes,
-                              examen: parseFloat(e.target.value),
-                            })
-                          }
-                          className="w-20 px-2 py-1 border rounded"
-                          placeholder="Examen"
-                        />
-                        <input
-                          type="number"
-                          min="0"
-                          max="20"
-                          step="0.5"
-                          value={editNotes.rattrapage}
-                          onChange={(e) =>
-                            setEditNotes({
-                              ...editNotes,
-                              rattrapage: parseFloat(e.target.value),
-                            })
-                          }
-                          className="w-20 px-2 py-1 border rounded"
-                          placeholder="Rattrapage"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSave(student._id)}
-                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                        >
-                          ✓
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="px-3 py-1 bg-gray-300 dark:bg-slate-700 rounded hover:bg-gray-400"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          CC
-                        </p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">
-                          {student.note.cc}/10
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Examen
-                        </p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">
-                          {student.note.examen}/10
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Rattrapage
-                        </p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">
-                          {student.note.rattrapage}/20
-                        </p>
-                      </div>
-                      <div className="text-center border-l pl-6 border-gray-300 dark:border-slate-600">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Total
-                        </p>
-                        <p
-                          className={`text-2xl font-bold ${
-                            total >= 10
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400"
-                          }`}
-                        >
-                          {total}/20
-                        </p>
-                        <p className="text-xs text-gray-500">({source})</p>
-                      </div>
-                      <button
-                        onClick={() => handleEdit(student)}
-                        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-                      >
-                        ✎ Modifier
-                      </button>
-                    </>
+                {/* Notes - Toujours éditables */}
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
+                      CC
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.5"
+                      value={notes.cc}
+                      onChange={(e) =>
+                        handleNoteChange(
+                          student._id,
+                          "cc",
+                          parseFloat(e.target.value) || 0,
+                        )
+                      }
+                      onBlur={() => handleSaveNote(student._id)}
+                      className="w-16 px-2 py-1 text-center border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                      tabIndex={index * 3 + 1}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
+                      Examen
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.5"
+                      value={notes.examen}
+                      onChange={(e) =>
+                        handleNoteChange(
+                          student._id,
+                          "examen",
+                          parseFloat(e.target.value) || 0,
+                        )
+                      }
+                      onBlur={() => handleSaveNote(student._id)}
+                      className="w-16 px-2 py-1 text-center border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                      tabIndex={index * 3 + 2}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
+                      Rattrapage
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="20"
+                      step="0.5"
+                      value={notes.rattrapage}
+                      onChange={(e) =>
+                        handleNoteChange(
+                          student._id,
+                          "rattrapage",
+                          parseFloat(e.target.value) || 0,
+                        )
+                      }
+                      onBlur={() => handleSaveNote(student._id)}
+                      className="w-16 px-2 py-1 text-center border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                      tabIndex={index * 3 + 3}
+                    />
+                  </div>
+                  <div className="text-center border-l pl-4 border-gray-300 dark:border-slate-600 min-w-[80px]">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Total
+                    </p>
+                    <p
+                      className={`text-xl font-bold ${total >= 10 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                    >
+                      {total}/20
+                    </p>
+                    <p className="text-xs text-gray-500">({source})</p>
+                  </div>
+                  {isSaving && (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
                   )}
                 </div>
               </div>
