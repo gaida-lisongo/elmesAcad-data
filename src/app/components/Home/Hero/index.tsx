@@ -132,7 +132,8 @@ const Hero = ({ section }: { section: SectionType }) => {
       if (!studentResult.success || !studentResult.data) {
         setMatriculeResult({
           found: false,
-          error: studentResult.error || "Aucun compte trouvé pour ce matricule.",
+          error:
+            studentResult.error || "Aucun compte trouvé pour ce matricule.",
         });
         setShowMatriculeModal(true);
         return;
@@ -141,6 +142,11 @@ const Hero = ({ section }: { section: SectionType }) => {
       const subscriptionsResult = await fetchSubscriptionsByStudent(
         studentResult.data._id,
       );
+
+      console.log("Résultat de la vérification du matricule:", {
+        student: studentResult,
+        subscriptions: subscriptionsResult,
+      });
 
       setMatriculeResult({
         found: true,
@@ -399,7 +405,11 @@ const Hero = ({ section }: { section: SectionType }) => {
                 onClick={() => setShowMatriculeModal(false)}
                 className="text-gray-500 hover:text-primary transition-colors"
               >
-                <Icon icon="material-symbols:close-rounded" width={28} height={28} />
+                <Icon
+                  icon="material-symbols:close-rounded"
+                  width={28}
+                  height={28}
+                />
               </button>
             </div>
 
@@ -414,19 +424,25 @@ const Hero = ({ section }: { section: SectionType }) => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="rounded-xl border border-gray-200 p-4">
-                      <p className="text-xs uppercase text-gray-500 mb-1">Nom complet</p>
+                      <p className="text-xs uppercase text-gray-500 mb-1">
+                        Nom complet
+                      </p>
                       <p className="text-black font-medium">
                         {matriculeResult.student.nomComplet}
                       </p>
                     </div>
                     <div className="rounded-xl border border-gray-200 p-4">
-                      <p className="text-xs uppercase text-gray-500 mb-1">Email</p>
+                      <p className="text-xs uppercase text-gray-500 mb-1">
+                        Email
+                      </p>
                       <p className="text-black font-medium break-all">
                         {matriculeResult.student.email}
                       </p>
                     </div>
                     <div className="rounded-xl border border-gray-200 p-4 sm:col-span-2">
-                      <p className="text-xs uppercase text-gray-500 mb-1">Matricule</p>
+                      <p className="text-xs uppercase text-gray-500 mb-1">
+                        Matricule
+                      </p>
                       <p className="text-black font-medium">
                         {matriculeResult.student.matricule}
                       </p>
@@ -435,47 +451,72 @@ const Hero = ({ section }: { section: SectionType }) => {
 
                   <div>
                     <h4 className="text-lg font-semibold text-midnight_text mb-3">
-                      Inscriptions ({matriculeResult.subscriptions?.length || 0})
+                      Inscriptions ({matriculeResult.subscriptions?.length || 0}
+                      )
                     </h4>
 
                     {(matriculeResult.subscriptions || []).length > 0 ? (
                       <div className="space-y-3">
-                        {(matriculeResult.subscriptions || []).map((subscription) => (
-                          <div
-                            key={subscription._id}
-                            className="border border-gray-200 rounded-xl p-4"
-                          >
-                            <div className="flex items-center justify-between flex-wrap gap-2">
-                              <p className="text-sm text-black/70">
-                                Promotion ID: {subscription.promotion}
-                              </p>
-                              <span
-                                className={`text-xs px-2 py-1 rounded-full ${
-                                  subscription.isValid
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
-                                }`}
-                              >
-                                {subscription.isValid ? "Valide" : "Non valide"}
-                              </span>
+                        {(matriculeResult.subscriptions || []).map(
+                          (subscription) => (
+                            <div
+                              key={subscription._id}
+                              className="border border-gray-200 rounded-xl p-4"
+                            >
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <p className="text-sm text-black/70">
+                                  Promotion:{" "}
+                                  {subscription?.promotion?.designation ||
+                                    "N/A"}{" "}
+                                  - Année:{" "}
+                                  {subscription?.annee?.debut
+                                    ? new Date(
+                                        subscription.annee.debut,
+                                      ).toLocaleDateString("fr-FR")
+                                    : "N/A"}{" "}
+                                  -{" "}
+                                  {subscription?.annee?.fin
+                                    ? new Date(
+                                        subscription.annee.fin,
+                                      ).toLocaleDateString("fr-FR")
+                                    : "N/A"}
+                                </p>
+                                <span
+                                  className={`text-xs px-2 py-1 rounded-full ${
+                                    subscription.isValid
+                                      ? "bg-green-100 text-green-700"
+                                      : "bg-red-100 text-red-700"
+                                  }`}
+                                >
+                                  {subscription.isValid
+                                    ? "Valide"
+                                    : "Non valide"}
+                                </span>
+                              </div>
+                              {subscription.createdAt && (
+                                <p className="text-xs text-gray-500 mt-2">
+                                  Créée le{" "}
+                                  {new Date(
+                                    subscription.createdAt,
+                                  ).toLocaleDateString("fr-FR")}
+                                </p>
+                              )}
                             </div>
-                            {subscription.createdAt && (
-                              <p className="text-xs text-gray-500 mt-2">
-                                Créée le {new Date(subscription.createdAt).toLocaleDateString("fr-FR")}
-                              </p>
-                            )}
-                          </div>
-                        ))}
+                          ),
+                        )}
                       </div>
                     ) : (
-                      <p className="text-black/60">Aucune inscription trouvée.</p>
+                      <p className="text-black/60">
+                        Aucune inscription trouvée.
+                      </p>
                     )}
                   </div>
                 </div>
               ) : (
                 <div className="rounded-xl bg-red-50 border border-red-300 px-4 py-3">
                   <p className="text-red-700 font-medium">
-                    {matriculeResult.error || "Aucun compte trouvé pour ce matricule."}
+                    {matriculeResult.error ||
+                      "Aucun compte trouvé pour ce matricule."}
                   </p>
                 </div>
               )}

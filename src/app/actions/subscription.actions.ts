@@ -7,8 +7,25 @@ import mongoose from "mongoose";
 export interface SubscriptionType {
   _id: string;
   etudiant: string;
-  promotion: string;
-  annee: string;
+  promotion: {
+    _id: string;
+    niveau: string;
+    designation: string;
+    filiere?: {
+      sigle: string;
+      designation: string;
+    };
+    section?: {
+      mention: string;
+      designation: string;
+    };
+  };
+  annee: {
+    _id: string;
+    debut: Date;
+    fin: Date;
+    isActive: boolean;
+  };
   isValid: boolean;
   documents?: {
     title: string;
@@ -65,7 +82,10 @@ export async function fetchSubscriptionsByStudent(
 
     const subscriptions = await Subscription.find({
       etudiant: new mongoose.Types.ObjectId(studentId),
-    }).lean();
+    })
+      .populate("promotion")
+      .populate("annee")
+      .lean();
 
     const plainSubscriptions = JSON.parse(JSON.stringify(subscriptions));
     return { success: true, data: plainSubscriptions as SubscriptionType[] };
