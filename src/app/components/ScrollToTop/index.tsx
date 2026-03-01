@@ -210,7 +210,7 @@ export default function ScrollToTop() {
   ];
 
   console.log("User autorisations:", user?.autorisations);
-  console.log("Is Admin :", isSuperAdmin);
+  console.log("PACK :", currentPack);
   //Save menu user in useMemo to avoid re-rendering the menu on every render
   const filteredNavMenu = user?.autorisations
     ? navMenu.filter((menu) => user?.autorisations.includes(menu.category))
