@@ -12,6 +12,7 @@ import {
   SubscriptionType,
 } from "@/app/actions/subscription.actions";
 import { useClientService } from "@/services/client.service";
+import Link from "next/link";
 
 const Hero = ({ section }: { section: SectionType }) => {
   const { isAuthenticated, hydrated } = useAuthStore();
@@ -464,23 +465,14 @@ const Hero = ({ section }: { section: SectionType }) => {
                               className="border border-gray-200 rounded-xl p-4"
                             >
                               <div className="flex items-center justify-between flex-wrap gap-2">
-                                <p className="text-sm text-black/70">
+                                <Link
+                                  href={`/promotions/${subscription?.promotion?._id}`}
+                                  className="text-sm text-black/70"
+                                >
                                   Promotion:{" "}
                                   {subscription?.promotion?.designation ||
                                     "N/A"}{" "}
-                                  - Année:{" "}
-                                  {subscription?.annee?.debut
-                                    ? new Date(
-                                        subscription.annee.debut,
-                                      ).toLocaleDateString("fr-FR")
-                                    : "N/A"}{" "}
-                                  -{" "}
-                                  {subscription?.annee?.fin
-                                    ? new Date(
-                                        subscription.annee.fin,
-                                      ).toLocaleDateString("fr-FR")
-                                    : "N/A"}
-                                </p>
+                                </Link>
                                 <span
                                   className={`text-xs px-2 py-1 rounded-full ${
                                     subscription.isValid
@@ -495,10 +487,18 @@ const Hero = ({ section }: { section: SectionType }) => {
                               </div>
                               {subscription.createdAt && (
                                 <p className="text-xs text-gray-500 mt-2">
-                                  Créée le{" "}
-                                  {new Date(
-                                    subscription.createdAt,
-                                  ).toLocaleDateString("fr-FR")}
+                                  Année:{" "}
+                                  {subscription?.annee?.debut
+                                    ? new Date(
+                                        subscription.annee.debut,
+                                      ).toLocaleDateString("fr-FR")
+                                    : "N/A"}{" "}
+                                  -{" "}
+                                  {subscription?.annee?.fin
+                                    ? new Date(
+                                        subscription.annee.fin,
+                                      ).toLocaleDateString("fr-FR")
+                                    : "N/A"}
                                 </p>
                               )}
                             </div>
