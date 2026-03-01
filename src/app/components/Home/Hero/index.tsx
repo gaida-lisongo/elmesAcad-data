@@ -15,7 +15,7 @@ import { useClientService } from "@/services/client.service";
 import Link from "next/link";
 
 const Hero = ({ section }: { section: SectionType }) => {
-  const { isAuthenticated, hydrated } = useAuthStore();
+  const { isAuthenticated, hydrated, user } = useAuthStore();
   const { client } = useClientService();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,8 +49,10 @@ const Hero = ({ section }: { section: SectionType }) => {
       hydrated,
       "authenticated:",
       isAuthenticated(),
+      "user:",
+      user,
     );
-  }, [hydrated, isAuthenticated]);
+  }, [hydrated, isAuthenticated, user]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
