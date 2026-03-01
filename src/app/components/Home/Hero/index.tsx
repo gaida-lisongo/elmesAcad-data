@@ -29,6 +29,7 @@ const Hero = ({ section }: { section: SectionType }) => {
   const [matricule, setMatricule] = useState("");
   const [isCheckingMatricule, setIsCheckingMatricule] = useState(false);
   const [showMatriculeModal, setShowMatriculeModal] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [matriculeResult, setMatriculeResult] = useState<{
     found: boolean;
     student?: {
@@ -40,6 +41,13 @@ const Hero = ({ section }: { section: SectionType }) => {
     subscriptions?: SubscriptionType[];
     error?: string;
   }>({ found: false });
+
+  useEffect(() => {
+    if (user) {
+      const roles = user.autorisations || [];
+      setIsSuperAdmin(roles.includes("SUPER-ADMIN"));
+    }
+  }, [user]);
 
   useEffect(() => {
     setMounted(true);
@@ -54,6 +62,7 @@ const Hero = ({ section }: { section: SectionType }) => {
 
   console.log("User: ", user);
   console.log("Client: ", client);
+  console.log("Admin: ", isSuperAdmin);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -338,8 +347,8 @@ const Hero = ({ section }: { section: SectionType }) => {
           </div>
 
           <div className="col-span-6 flex justify-center relative">
-            {/* Edit Button - Only for authenticated users */}
-            {mounted && hydrated && isAuthenticated() && (
+            {/* Edit Button - Only for super admin users */}
+            {mounted && hydrated && isSuperAdmin && (
               <div className="absolute top-4 right-4 z-10">
                 {!isEditing ? (
                   <button
