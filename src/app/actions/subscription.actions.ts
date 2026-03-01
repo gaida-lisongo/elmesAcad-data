@@ -80,12 +80,16 @@ export async function fetchSubscriptionsByStudent(
   try {
     await connectDB();
 
+    console.log("Fetching subscriptions for student ID:", studentId);
+
     const subscriptions = await Subscription.find({
       etudiant: new mongoose.Types.ObjectId(studentId),
     })
       .populate("promotion")
       .populate("annee")
       .lean();
+
+    console.log("Fetched subscriptions for student:", subscriptions);
 
     const plainSubscriptions = JSON.parse(JSON.stringify(subscriptions));
     return { success: true, data: plainSubscriptions as SubscriptionType[] };
