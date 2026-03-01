@@ -15,7 +15,8 @@ import { useClientService } from "@/services/client.service";
 import Link from "next/link";
 
 const Hero = ({ section }: { section: SectionType }) => {
-  const { isAuthenticated, hydrated, user } = useAuthStore();
+  const { isAuthenticated, hydrated, isSuperAdmin, setSuperAdmin } =
+    useAuthStore();
   const { client } = useClientService();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +30,6 @@ const Hero = ({ section }: { section: SectionType }) => {
   const [matricule, setMatricule] = useState("");
   const [isCheckingMatricule, setIsCheckingMatricule] = useState(false);
   const [showMatriculeModal, setShowMatriculeModal] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [matriculeResult, setMatriculeResult] = useState<{
     found: boolean;
     student?: {
@@ -43,11 +43,10 @@ const Hero = ({ section }: { section: SectionType }) => {
   }>({ found: false });
 
   useEffect(() => {
-    if (user) {
-      const roles = user.autorisations || [];
-      setIsSuperAdmin(roles.includes("SUPER-ADMIN"));
+    if (isAuthenticated()) {
+      setSuperAdmin();
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -60,7 +59,6 @@ const Hero = ({ section }: { section: SectionType }) => {
     );
   }, [hydrated, isAuthenticated]);
 
-  console.log("User: ", user);
   console.log("Client: ", client);
   console.log("Admin: ", isSuperAdmin);
 
