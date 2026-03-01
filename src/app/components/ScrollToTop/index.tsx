@@ -27,6 +27,55 @@ export default function ScrollToTop() {
 
   const navMenu: NavMenu[] = [
     {
+      category: "TITULAIRE",
+      items: [
+        {
+          label: "Charge Horaire",
+          href: "/charge-horaire",
+          icon: (
+            <Icon icon="mdi-light:account" width={24} height={24} />
+            // <Icon
+            //   icon=" material-symbols:calendar-month-outline"
+            //   width={24}
+            //   height={24}
+            //   className="text-primary"
+            // />
+          ),
+          pack: "pro",
+        },
+        {
+          label: "Actiités",
+          href: "/activites",
+          icon: <Icon icon="mdi-light:account" width={24} height={24} />,
+          pack: "pro",
+        },
+        {
+          label: "Ressources",
+          href: "/ressources",
+          icon: <Icon icon="mdi-light:account" width={24} height={24} />,
+          pack: "pro",
+        },
+        {
+          label: "Recours",
+          href: "/recours",
+          icon: <Icon icon="mdi-light:account" width={24} height={24} />,
+          pack: "pro",
+        },
+        {
+          label: "Mails",
+          href: "/mails",
+          icon: <Icon icon="mdi-light:account" width={24} height={24} />,
+          pack: "pro",
+        },
+        {
+          label: "Retraits",
+          href: "/retraits",
+          icon: <Icon icon="mdi-light:account" width={24} height={24} />,
+          pack: "pro",
+        },
+      ],
+    },
+    {
       category: "SUPER-ADMIN",
       items: [
         {
@@ -213,7 +262,9 @@ export default function ScrollToTop() {
   console.log("PACK :", currentPack);
   //Save menu user in useMemo to avoid re-rendering the menu on every render
   const filteredNavMenu = user?.autorisations
-    ? navMenu.filter((menu) => user?.autorisations.includes(menu.category))
+    ? navMenu.filter((menu) =>
+        user?.autorisations.includes(menu.category?.toUpperCase()),
+      )
     : [];
 
   // Top: 0 takes us all the way back to the top of the page
