@@ -210,7 +210,7 @@ const StructureSection = ({
     <section className="bg-slate-gray py-20">
       <div className="container mx-auto px-4">
         {/* Header Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center text-center mb-16">
+        <div className="flex items-center justify-center text-center mb-16">
           {/* Title and Description in center of section */}
           <div className="space-y-6 text-center">
             <h2 className="text-4xl text-center font-bold text-midnight_text">
