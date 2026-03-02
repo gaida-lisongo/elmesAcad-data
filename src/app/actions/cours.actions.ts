@@ -24,6 +24,21 @@ export async function fetchNotesByElement(
   try {
     await connectDB();
 
+    // Valider les IDs avant de faire la requête
+    if (!promotionId || !anneeId || !elementId) {
+      return { success: true, data: [] };
+    }
+
+    // Vérifier que les IDs sont des ObjectId valides (24 caractères hex)
+    const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
+    if (
+      !isValidObjectId(promotionId) ||
+      !isValidObjectId(anneeId) ||
+      !isValidObjectId(elementId)
+    ) {
+      return { success: true, data: [] };
+    }
+
     // Récupérer les étudiants inscrits à cette promotion pour cette année
     const subscriptions = await Subscription.find({
       promotion: new mongoose.Types.ObjectId(promotionId),
@@ -119,34 +134,64 @@ export async function importNotesByCSV(data: {
   try {
     await connectDB();
 
-    let success = 0;
-    let errors: string[] = [];
+    // Filtrer uniquement les lignes avec des notes (au moins une valeur non nulle)
+    const rowsWithNotes = data.rows.filter(
+      (row) =>
+        (row.cc > 0 || row.examen > 0 || row.rattrapage > 0) && row.matricule,
+    );
 
-    for (const row of data.rows) {
-      const student = await Etudiant.findOne({ matricule: row.matricule });
+    if (rowsWithNotes.length === 0) {
+      return {
+        success: true,
+        data: { success: 0, errors: ["Aucune note à importer"] },
+      };
+    }
+
+    // Récupérer tous les étudiants en une seule requête
+    const matricules = rowsWithNotes.map((r) => r.matricule);
+    const students = await Etudiant.find({
+      matricule: { $in: matricules },
+    }).lean();
+
+    // Créer un map matricule -> student
+    const studentMap = new Map(students.map((s: any) => [s.matricule, s]));
+
+    // Préparer les opérations bulk
+    const bulkOps: any[] = [];
+    const errors: string[] = [];
+
+    for (const row of rowsWithNotes) {
+      const student = studentMap.get(row.matricule);
       if (!student) {
         errors.push(`Étudiant non trouvé: ${row.matricule}`);
         continue;
       }
 
-      await Note.findOneAndUpdate(
-        {
-          elementId: new mongoose.Types.ObjectId(data.elementId),
-          studentId: student._id,
-          promotionId: new mongoose.Types.ObjectId(data.promotionId),
-          anneeId: new mongoose.Types.ObjectId(data.anneeId),
-        },
-        {
-          $set: {
-            "value.cc": row.cc,
-            "value.examen": row.examen,
-            "value.rattrapage": row.rattrapage,
+      bulkOps.push({
+        updateOne: {
+          filter: {
+            elementId: new mongoose.Types.ObjectId(data.elementId),
+            studentId: student._id,
+            promotionId: new mongoose.Types.ObjectId(data.promotionId),
+            anneeId: new mongoose.Types.ObjectId(data.anneeId),
           },
+          update: {
+            $set: {
+              "value.cc": row.cc || 0,
+              "value.examen": row.examen || 0,
+              "value.rattrapage": row.rattrapage || 0,
+            },
+          },
+          upsert: true,
         },
-        { upsert: true },
-      );
+      });
+    }
 
-      success++;
+    // Exécuter toutes les opérations en une seule requête
+    let success = 0;
+    if (bulkOps.length > 0) {
+      const result = await Note.bulkWrite(bulkOps);
+      success = result.modifiedCount + result.upsertedCount;
     }
 
     return { success: true, data: { success, errors } };

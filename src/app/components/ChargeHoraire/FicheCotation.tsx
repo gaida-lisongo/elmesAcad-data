@@ -32,6 +32,7 @@ export const FicheCotation = ({
 }: FicheCotationProps) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showImport, setShowImport] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -39,6 +40,10 @@ export const FicheCotation = ({
     Record<string, { cc: number; examen: number; rattrapage: number }>
   >({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<{
+    success: number;
+    errors: string[];
+  } | null>(null);
 
   const loadStudents = async () => {
     setLoading(true);
@@ -120,33 +125,97 @@ export const FicheCotation = ({
   const handleImportCSV = async () => {
     if (!csvFile) return;
 
-    const text = await csvFile.text();
-    const lines = text.split("\n").slice(1); // Skip header
+    setImporting(true);
+    setImportResult(null);
 
-    const rows = lines
-      .filter((line) => line.trim())
-      .map((line) => {
-        const [matricule, cc, examen, rattrapage] = line.split(",");
-        return {
-          matricule: matricule.trim(),
-          cc: parseFloat(cc),
-          examen: parseFloat(examen),
-          rattrapage: parseFloat(rattrapage),
-        };
+    try {
+      const text = await csvFile.text();
+      const lines = text.split("\n").slice(1); // Skip header
+
+      const rows = lines
+        .filter((line) => line.trim())
+        .map((line) => {
+          const parts = line.split(",");
+          // Format: matricule, nom_complet, cc, examen, rattrapage
+          const matricule = parts[0]?.trim() || "";
+          const cc = parseFloat(parts[2]) || 0;
+          const examen = parseFloat(parts[3]) || 0;
+          const rattrapage = parseFloat(parts[4]) || 0;
+          return { matricule, cc, examen, rattrapage };
+        })
+        .filter(
+          (row) =>
+            row.matricule &&
+            (row.cc > 0 || row.examen > 0 || row.rattrapage > 0),
+        );
+
+      if (rows.length === 0) {
+        setImportResult({
+          success: 0,
+          errors: ["Aucune note trouvée dans le fichier"],
+        });
+        setImporting(false);
+        return;
+      }
+
+      const result = await importNotesByCSV({
+        elementId,
+        promotionId,
+        anneeId,
+        rows,
       });
 
-    const result = await importNotesByCSV({
-      elementId,
-      promotionId,
-      anneeId,
-      rows,
-    });
-
-    if (result.success) {
-      await loadStudents();
-      setShowImport(false);
-      setCsvFile(null);
+      if (result.success && result.data) {
+        setImportResult(result.data);
+        await loadStudents();
+        setCsvFile(null);
+      } else {
+        setImportResult({
+          success: 0,
+          errors: [result.error || "Erreur inconnue"],
+        });
+      }
+    } catch (error) {
+      setImportResult({
+        success: 0,
+        errors: ["Erreur lors de la lecture du fichier"],
+      });
     }
+
+    setImporting(false);
+  };
+
+  // Exporter le template CSV vide (pour que l'enseignant remplisse)
+  const handleExportTemplate = () => {
+    const header = "matricule,nom_complet,cc,examen,rattrapage";
+    const rows = students.map((s) => `${s.matricule},"${s.nomComplet}",,,`);
+    const csvContent = [header, ...rows].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "template_notes.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  // Exporter les notes actuelles
+  const handleExportNotes = () => {
+    const header = "matricule,nom_complet,cc,examen,rattrapage,total,decision";
+    const rows = students.map((s) => {
+      const notes = localNotes[s._id] || s.note;
+      const { total } = calculateTotal(s._id);
+      const decision = total >= 10 ? "Réussite" : "Échec";
+      return `${s.matricule},"${s.nomComplet}",${notes.cc},${notes.examen},${notes.rattrapage},${total},${decision}`;
+    });
+    const csvContent = [header, ...rows].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "fiche_cotation.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
   };
 
   if (loading) {
@@ -160,7 +229,7 @@ export const FicheCotation = ({
   return (
     <div className="space-y-6">
       {/* Header & Actions */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
             Fiche de Cotation
@@ -169,12 +238,28 @@ export const FicheCotation = ({
             {students.length} étudiant(s) inscrit(s)
           </p>
         </div>
-        <button
-          onClick={() => setShowImport(!showImport)}
-          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 flex items-center gap-2"
-        >
-          📤 Importer CSV
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={handleExportTemplate}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2"
+            title="Télécharger un fichier CSV vide à remplir"
+          >
+            📋 Template vide
+          </button>
+          <button
+            onClick={handleExportNotes}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+            title="Exporter les notes actuelles"
+          >
+            📥 Exporter notes
+          </button>
+          <button
+            onClick={() => setShowImport(!showImport)}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 flex items-center gap-2"
+          >
+            📤 Importer CSV
+          </button>
+        </div>
       </div>
 
       {/* Import CSV Panel */}
@@ -183,24 +268,93 @@ export const FicheCotation = ({
           <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
             Importer les notes par CSV
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Format attendu: matricule, cc, examen, rattrapage
-          </p>
-          <div className="flex gap-3">
+          <div className="bg-white dark:bg-slate-800 rounded p-3 mb-4">
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+              <strong>Format attendu:</strong> matricule, nom_complet, cc,
+              examen, rattrapage
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              💡 Astuce: Téléchargez d'abord le "Template vide", remplissez les
+              notes dans Excel, puis importez le fichier.
+            </p>
+          </div>
+          <div className="flex gap-3 flex-wrap">
             <input
               type="file"
               accept=".csv"
               onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
+              className="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
+              disabled={importing}
             />
             <button
               onClick={handleImportCSV}
-              disabled={!csvFile}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!csvFile || importing}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              Importer
+              {importing ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Importation...
+                </>
+              ) : (
+                "Importer"
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setShowImport(false);
+                setCsvFile(null);
+                setImportResult(null);
+              }}
+              disabled={importing}
+              className="px-4 py-2 bg-gray-300 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-400 dark:hover:bg-slate-600 disabled:opacity-50"
+            >
+              Annuler
             </button>
           </div>
+
+          {/* Import Result Feedback */}
+          {importResult && (
+            <div
+              className={`mt-4 p-3 rounded-lg ${importResult.errors.length > 0 ? "bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700" : "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700"}`}
+            >
+              <p className="font-medium text-gray-900 dark:text-white">
+                ✅ {importResult.success} note(s) importée(s) avec succès
+              </p>
+              {importResult.errors.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+                    ⚠️ Erreurs:
+                  </p>
+                  <ul className="text-xs text-red-500 dark:text-red-400 list-disc list-inside">
+                    {importResult.errors.slice(0, 5).map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                    {importResult.errors.length > 5 && (
+                      <li>
+                        ... et {importResult.errors.length - 5} autres erreurs
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
