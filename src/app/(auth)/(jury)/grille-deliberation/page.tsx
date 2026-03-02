@@ -1,20 +1,42 @@
-const DashboardGrilleDeliberationPage = () => {
-  return (
-    <div className="p-4">
-      <h1 className="text-3xl font-bold mb-6">Grille de Délibération</h1>
-      <p className="text-gray-700 mb-4">
-        Cette page affichera la grille de délibération pour les jurys. Vous
-        pourrez consulter les résultats des étudiants et prendre des décisions
-        basées sur ces résultats.
-      </p>
-      <p className="text-gray-700">Fonctionnalités à venir :</p>
-      <ul className="list-disc list-inside text-gray-700">
-        <li>Affichage des résultats par étudiant</li>
-        <li>Calcul automatique des moyennes et des mentions</li>
-        <li>Interface pour les jurys afin de valider les résultats</li>
-      </ul>
-    </div>
-  );
-};
+import { fetchAnneeActive } from "@/app/actions/annee.actions";
+import { fetchResultatsByAnnee } from "@/app/actions/jury.actions";
+import { fetchAllPromotionsForJury } from "@/app/actions/jury.actions";
+import ResultatManagerClient from "@/app/components/JuryComponents/ResultatManagerClient";
 
-export default DashboardGrilleDeliberationPage;
+export default async function DashboardGrilleDeliberationPage() {
+  const anneeRes = await fetchAnneeActive();
+
+  if (!anneeRes.success || !anneeRes.data) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+          Tableau de bord - Bureau du Jury
+        </h1>
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 text-center">
+          <p className="text-yellow-600 dark:text-yellow-400">
+            Aucune année académique active. Veuillez configurer une année
+            active.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const annee = anneeRes.data;
+
+  const [resultatsRes, promotionsRes] = await Promise.all([
+    fetchResultatsByAnnee(annee._id),
+    fetchAllPromotionsForJury(),
+  ]);
+
+  const resultats = resultatsRes.success ? resultatsRes.data || [] : [];
+  const promotions = promotionsRes.success ? promotionsRes.data || [] : [];
+
+  return (
+    <ResultatManagerClient
+      annee={annee}
+      initialResultats={resultats}
+      promotions={promotions}
+    />
+  );
+}
