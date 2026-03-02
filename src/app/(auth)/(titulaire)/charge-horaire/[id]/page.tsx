@@ -175,7 +175,7 @@ export default function ChargeHorairePage() {
 
       <div className="p-6 bg-gray-2 dark:bg-boxdark-2 min-h-screen">
         {activeTab === "fiche-cotation" && <FicheCotation elementId={elementId} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} titulaireId={cours.titulaireId || ""} />}
-        {activeTab === "activities" && <ActivitesManager elementId={elementId} titulaireId={cours.titulaireId || ""} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} onCreateActivity={(type) => { setActivityType(type); setShowActivityModal(true); }} />}
+        {activeTab === "activities" && <ActivitesManager elementId={elementId} titulaireId={cours.titulaireId || ""} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} onCreateNew={(type) => { setActivityType(type); setShowActivityModal(true); }} />}
         {activeTab === "ressources" && <RessourcesManager elementId={elementId} titulaireId={cours.titulaireId || ""} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} />}
         {activeTab === "recours" && <RecoursManager elementId={elementId} />}
         {activeTab === "seances" && <SeancesManager elementId={elementId} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} />}

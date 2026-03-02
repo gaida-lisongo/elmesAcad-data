@@ -15,12 +15,12 @@ export interface ElementType {
   credit: number;
   designation: string;
   planning?: {
-    chapitre: String;
-    sections: String[];
+    chapitre: string;
+    sections: string[];
   }[];
-  mode_evaluation?: String[];
-  mode_enseignement?: String[];
-  penalites?: { faute: String; sanction: String }[];
+  mode_evaluation?: string[];
+  mode_enseignement?: string[];
+  penalites?: { faute: string; sanction: string }[];
   place_ec: string;
   objectifs: string[];
   titulaireId: string;

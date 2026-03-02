@@ -64,7 +64,7 @@ export const CreateActivityModal = ({
       {
         question: currentQuestion,
         options: currentOptions.filter((o) => o.trim()),
-        correctIndex,
+        correctOptionIndex: correctIndex,
       },
     ]);
     setCurrentQuestion("");
@@ -105,6 +105,7 @@ export const CreateActivityModal = ({
       anneeId,
       designation,
       description: description.filter((d) => d.trim()),
+      type,
       currency,
       amount: amount ? parseFloat(amount) : undefined,
       maxPts: maxPts ? parseFloat(maxPts) : undefined,
