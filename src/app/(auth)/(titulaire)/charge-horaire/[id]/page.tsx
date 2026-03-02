@@ -1,5 +1,4 @@
 "use client";
-
 import { useParams } from "next/navigation";
 import { ElementType } from "@/app/(auth)/(titulaire)/layout";
 import { useEffect, useState } from "react";

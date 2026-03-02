@@ -309,7 +309,6 @@ const RetraitSchema = new Schema<IRetrait>(
 
 export interface ISeance extends Document {
   elementId: mongoose.Types.ObjectId;
-  studentId: mongoose.Types.ObjectId;
   promotionId: mongoose.Types.ObjectId;
   anneeId: mongoose.Types.ObjectId;
   designation: String;
@@ -330,7 +329,6 @@ const SeanceSchema = new Schema<ISeance>(
       ref: "Element",
       required: true,
     },
-    studentId: { type: mongoose.Types.ObjectId, ref: "User", required: true },
     promotionId: {
       type: mongoose.Types.ObjectId,
       ref: "Programme",

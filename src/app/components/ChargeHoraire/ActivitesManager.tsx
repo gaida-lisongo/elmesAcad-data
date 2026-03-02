@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import Link from "next/link";
 import {
   fetchQCMActivities,
@@ -28,20 +28,17 @@ interface ActivitesManagerProps {
   onCreateNew: (type: "qcm" | "questionnaire") => void;
 }
 
-export const ActivitesManager = ({
-  elementId,
-  titulaireId,
-  promotionId,
-  anneeId,
-  onCreateNew,
-}: ActivitesManagerProps) => {
+export interface ActivitesManagerRef {
+  refresh: () => Promise<void>;
+}
+
+export const ActivitesManager = forwardRef<
+  ActivitesManagerRef,
+  ActivitesManagerProps
+>(({ elementId, titulaireId, promotionId, anneeId, onCreateNew }, ref) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "qcm" | "questionnaire">("all");
-
-  useEffect(() => {
-    loadActivities();
-  }, [elementId]);
 
   const loadActivities = async () => {
     setLoading(true);
@@ -69,6 +66,15 @@ export const ActivitesManager = ({
     );
     setLoading(false);
   };
+
+  // Expose refresh method to parent via ref
+  useImperativeHandle(ref, () => ({
+    refresh: loadActivities,
+  }));
+
+  useEffect(() => {
+    loadActivities();
+  }, [elementId]);
 
   const handleDelete = async (id: string, type: "qcm" | "questionnaire") => {
     if (!confirm("Supprimer cette activité ?")) return;
@@ -203,4 +209,6 @@ export const ActivitesManager = ({
       )}
     </div>
   );
-};
+});
+
+ActivitesManager.displayName = "ActivitesManager";

@@ -43,7 +43,17 @@ export async function uploadFichier(file: File) {
     formData.append("apiSecret", aiSecret);
 
     console.log("Base URL for file upload:", baseUrl);
-
+    console.log(
+      "Uploading file:",
+      file.name,
+      "Size:",
+      file.size,
+      "Type:",
+      file.type,
+    );
+    console.log("FormData keys:", Array.from(formData.keys()));
+    console.log("API Key:", apiKey ? "Provided" : "Missing");
+    console.log("API Secret:", aiSecret ? "Provided" : "Missing");
     const req = await fetch(`${baseUrl}/upload`, {
       method: "POST",
       body: formData,
