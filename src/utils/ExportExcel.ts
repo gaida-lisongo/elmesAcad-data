@@ -223,7 +223,9 @@ export class ExportExcel {
   ): void {
     const data: any[][] = [];
 
-    data.push([`GRILLE DE NOTES - ${semestreDesignation.toUpperCase()}`]);
+    data.push([
+      `GRILLE DE DÉLIBÉRATION - ${semestreDesignation.toUpperCase()}`,
+    ]);
     data.push([]);
     data.push([
       `${promotion.niveau} - ${promotion.designation} | ${this.getAnneeLabel(annee)}`,
@@ -245,10 +247,28 @@ export class ExportExcel {
       return;
     }
 
-    const headers = ["N°", "Matricule", "Nom Complet"];
-    semestre.unites.forEach((u) => headers.push(u.code));
-    headers.push("Total", "Max", "%", "NCV", "NCNV", "Mention");
-    data.push(headers);
+    const row1: any[] = ["", "", ""];
+    const row2: any[] = ["", "", ""];
+    const row3: any[] = ["N°", "Matricule", "Nom Complet"];
+
+    semestre.unites.forEach((unite) => {
+      unite.elements.forEach((elem) => {
+        row1.push(unite.code, "", "", "", "");
+        row2.push(elem.designation, "", "", "", "");
+        row3.push("CC", "Exam", "Sess", "Ratt", "Final");
+      });
+      row1.push("");
+      row2.push("");
+      row3.push("Moy UE");
+    });
+
+    row1.push("", "", "", "", "", "");
+    row2.push("", "", "", "", "", "");
+    row3.push("Total", "Max", "%", "NCV", "NCNV", "Mention");
+
+    data.push(row1);
+    data.push(row2);
+    data.push(row3);
 
     resultats.forEach((resultat, index) => {
       const sem = resultat.semestres.find(
@@ -258,8 +278,17 @@ export class ExportExcel {
 
       const row: any[] = [index + 1, resultat.matricule, resultat.studentName];
 
-      sem.unites.forEach((u) => {
-        row.push(u.moyenne.toFixed(2));
+      sem.unites.forEach((unite) => {
+        unite.elements.forEach((elem) => {
+          row.push(
+            elem.cc.toFixed(1),
+            elem.examen.toFixed(1),
+            elem.noteSession.toFixed(1),
+            elem.rattrapage > 0 ? elem.rattrapage.toFixed(1) : "-",
+            elem.noteFinale.toFixed(1),
+          );
+        });
+        row.push(unite.moyenne.toFixed(2));
       });
 
       row.push(
@@ -276,15 +305,20 @@ export class ExportExcel {
 
     const worksheet = XLSX.utils.aoa_to_sheet(data);
 
-    const cols: XLSX.ColInfo[] = [{ wch: 5 }, { wch: 15 }, { wch: 30 }];
-    semestre.unites.forEach(() => cols.push({ wch: 10 }));
+    const cols: XLSX.ColInfo[] = [{ wch: 5 }, { wch: 12 }, { wch: 25 }];
+    semestre.unites.forEach((unite) => {
+      unite.elements.forEach(() => {
+        cols.push({ wch: 6 }, { wch: 6 }, { wch: 6 }, { wch: 6 }, { wch: 6 });
+      });
+      cols.push({ wch: 8 });
+    });
     cols.push(
-      { wch: 10 },
       { wch: 8 },
-      { wch: 10 },
+      { wch: 6 },
       { wch: 8 },
+      { wch: 6 },
+      { wch: 6 },
       { wch: 8 },
-      { wch: 10 },
     );
     worksheet["!cols"] = cols;
 

@@ -28,6 +28,17 @@ export interface NotesEtudiant {
   semestres: SemestreNote[];
 }
 
+export interface ElementResultat {
+  _id: string;
+  designation: string;
+  credit: number;
+  cc: number;
+  examen: number;
+  noteSession: number;
+  rattrapage: number;
+  noteFinale: number;
+}
+
 export interface UniteResultat {
   _id: string;
   code: string;
@@ -35,12 +46,7 @@ export interface UniteResultat {
   credit: number;
   moyenne: number;
   isValide: boolean;
-  elements: {
-    _id: string;
-    designation: string;
-    credit: number;
-    noteFinale: number;
-  }[];
+  elements: ElementResultat[];
 }
 
 export interface SemestreResultat {
@@ -87,21 +93,15 @@ export class NoteManager {
     const noteCC = element.cc ?? 0;
     const noteRattrapage = element.rattrapage ?? 0;
 
-    const noteExamenFinale =
-      noteRattrapage > 0 ? Math.max(noteExamen, noteRattrapage) : noteExamen;
-    const noteFinale = noteCC * 0.4 + noteExamenFinale * 0.6;
+    const noteSession = noteCC + noteExamen;
+    const noteFinale = Math.max(noteSession, noteRattrapage);
 
     return Math.round(noteFinale * 100) / 100;
   }
 
   private static calculerMoyenneUnite(unite: UniteNote): {
     moyenne: number;
-    elements: {
-      _id: string;
-      designation: string;
-      credit: number;
-      noteFinale: number;
-    }[];
+    elements: ElementResultat[];
   } {
     if (!unite.elements || unite.elements.length === 0) {
       return { moyenne: 0, elements: [] };
@@ -109,15 +109,14 @@ export class NoteManager {
 
     let totalPoints = 0;
     let totalCredits = 0;
-    const elementsResultat: {
-      _id: string;
-      designation: string;
-      credit: number;
-      noteFinale: number;
-    }[] = [];
+    const elementsResultat: ElementResultat[] = [];
 
     for (const element of unite.elements) {
-      const noteFinale = this.calculerNoteFinaleElement(element);
+      const cc = element.cc ?? 0;
+      const examen = element.examen ?? 0;
+      const rattrapage = element.rattrapage ?? 0;
+      const noteSession = cc + examen;
+      const noteFinale = Math.max(noteSession, rattrapage);
       const credit = element.credit || 1;
 
       totalPoints += noteFinale * credit;
@@ -127,10 +126,13 @@ export class NoteManager {
         _id: element._id,
         designation: element.designation,
         credit: credit,
-        noteFinale: noteFinale,
+        cc: Math.round(cc * 100) / 100,
+        examen: Math.round(examen * 100) / 100,
+        noteSession: Math.round(noteSession * 100) / 100,
+        rattrapage: Math.round(rattrapage * 100) / 100,
+        noteFinale: Math.round(noteFinale * 100) / 100,
       });
     }
-
     const moyenne = totalCredits > 0 ? totalPoints / totalCredits : 0;
     return {
       moyenne: Math.round(moyenne * 100) / 100,
@@ -149,6 +151,7 @@ export class NoteManager {
 
     for (const unite of semestre.unites) {
       const { moyenne, elements } = this.calculerMoyenneUnite(unite);
+
       const credit = unite.credit || 0;
       const isValide = moyenne >= 10;
 

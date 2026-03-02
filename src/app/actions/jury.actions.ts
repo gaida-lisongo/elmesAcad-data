@@ -2,7 +2,7 @@
 
 import { connectDB } from "@/lib/mongoose";
 import { Note, Resultat, SubscribeResultat } from "@/lib/models/Cours";
-import { Section } from "@/lib/models/Section";
+import { Section, Element } from "@/lib/models/Section";
 import { Subscription, Etudiant } from "@/lib/models/User";
 import mongoose from "mongoose";
 import type {
@@ -75,6 +75,29 @@ export async function fetchAllNotesForPromotion(
       notesMap.get(studentKey)!.set(elementKey, note);
     }
 
+    const allUniteIds: string[] = [];
+    for (const semestre of (programme.semestres || []) as any[]) {
+      for (const unite of (semestre.unites || []) as any[]) {
+        allUniteIds.push(String(unite._id));
+      }
+    }
+
+    const elementsFromDB = await Element.find({
+      uniteId: {
+        $in: allUniteIds.map((id) => new mongoose.Types.ObjectId(id)),
+      },
+      anneeId: new mongoose.Types.ObjectId(anneeId),
+    }).lean();
+
+    const elementsByUnite = new Map<string, any[]>();
+    for (const elem of elementsFromDB) {
+      const uniteKey = String(elem.uniteId);
+      if (!elementsByUnite.has(uniteKey)) {
+        elementsByUnite.set(uniteKey, []);
+      }
+      elementsByUnite.get(uniteKey)!.push(elem);
+    }
+
     const notesEtudiants: NotesEtudiant[] = [];
 
     for (const sub of subscriptions) {
@@ -89,15 +112,17 @@ export async function fetchAllNotesForPromotion(
 
         for (const unite of (semestre.unites || []) as any[]) {
           const elements: ElementNote[] = [];
+          const uniteIdStr = String(unite._id);
+          const uniteElements = elementsByUnite.get(uniteIdStr) || [];
 
-          for (const element of (unite.elements || []) as any[]) {
+          for (const element of uniteElements) {
             const elementId = String(element._id);
             const note = studentNotes.get(elementId);
 
             elements.push({
               _id: elementId,
-              designation: element.designation || "",
-              credit: element.credit || 1,
+              designation: String(element.designation || ""),
+              credit: Number(element.credit) || 1,
               cc: note?.value?.cc || 0,
               examen: note?.value?.examen || 0,
               rattrapage: note?.value?.rattrapage || 0,
@@ -105,17 +130,17 @@ export async function fetchAllNotesForPromotion(
           }
 
           unites.push({
-            _id: String(unite._id),
-            code: unite.code || "",
-            designation: unite.designation || "",
-            credit: unite.credit || 0,
+            _id: uniteIdStr,
+            code: String(unite.code || ""),
+            designation: String(unite.designation || ""),
+            credit: Number(unite.credit) || 0,
             elements,
           });
         }
 
         semestres.push({
           _id: String(semestre._id || semestre.designation),
-          designation: semestre.designation || "",
+          designation: String(semestre.designation || ""),
           unites,
         });
       }

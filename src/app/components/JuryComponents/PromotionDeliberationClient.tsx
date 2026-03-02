@@ -7,6 +7,7 @@ import type {
   ResultatEtudiant,
   SemestreResultat,
   UniteResultat,
+  ElementResultat,
 } from "@/utils/NoteManager";
 import { ExportExcel } from "@/utils/ExportExcel";
 import { updateNoteByJury } from "@/app/actions/jury.actions";
@@ -91,14 +92,14 @@ export default function PromotionDeliberationClient({
   const handleStartEditNote = (
     studentId: string,
     elementId: string,
-    element: any,
+    element: ElementResultat,
   ) => {
     setEditingNote({
       studentId,
       elementId,
-      cc: element.noteFinale * 0.4 || 0,
-      examen: element.noteFinale * 0.6 || 0,
-      rattrapage: 0,
+      cc: element.cc || 0,
+      examen: element.examen || 0,
+      rattrapage: element.rattrapage || 0,
     });
   };
 
@@ -250,249 +251,569 @@ export default function PromotionDeliberationClient({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={selectedStudent ? "lg:col-span-2" : "lg:col-span-3"}>
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
-            <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <Icon icon="mdi:account-group" width={24} height={24} />
-                Étudiants ({resultats.length})
-              </h2>
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <span className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  Admis
-                </span>
-                <span className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  Ajourné
-                </span>
-              </div>
-            </div>
-
-            {resultats.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                <Icon
-                  icon="mdi:account-off"
-                  width={48}
-                  height={48}
-                  className="mx-auto mb-3 opacity-50"
-                />
-                <p>Aucun étudiant inscrit ou aucune note enregistrée</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200 dark:divide-slate-700">
-                {resultats.map((resultat, index) => (
-                  <div
-                    key={resultat.studentId}
-                    className={`p-4 cursor-pointer transition hover:bg-gray-50 dark:hover:bg-slate-800 ${
-                      selectedStudent?.studentId === resultat.studentId
-                        ? "bg-primary/5 dark:bg-primary/10"
-                        : ""
-                    }`}
-                    onClick={() => setSelectedStudent(resultat)}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-bold text-sm">
-                        {getRang(index)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-medium text-gray-900 dark:text-white truncate">
-                            {resultat.studentName}
-                          </h3>
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {resultat.matricule}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
-                          <span>
-                            NCV:{" "}
-                            <strong className="text-green-600">
-                              {resultat.promotion.ncv}
-                            </strong>
-                          </span>
-                          <span>
-                            NCNV:{" "}
-                            <strong className="text-red-600">
-                              {resultat.promotion.ncnv}
-                            </strong>
-                          </span>
-                          <span>
-                            Total: {resultat.promotion.totalObtenu.toFixed(1)}/
-                            {resultat.promotion.totalMax}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {resultat.promotion.pourcentage.toFixed(1)}%
-                        </div>
-                        <span
-                          className={`inline-block px-2 py-0.5 text-xs font-bold rounded ${getMentionColor(
-                            resultat.promotion.mention,
-                          )}`}
-                        >
-                          {resultat.promotion.mention}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {selectedStudent && (
-          <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 sticky top-6">
-              <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Détails
-                </h2>
-                <button
-                  onClick={() => setSelectedStudent(null)}
-                  className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition"
-                >
-                  <Icon icon="mdi:close" width={20} height={20} />
-                </button>
-              </div>
-
-              <div className="p-4">
-                <div className="text-center mb-4">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                    <Icon
-                      icon="mdi:account"
-                      width={32}
-                      height={32}
-                      className="text-primary"
-                    />
-                  </div>
-                  <h3 className="font-bold text-gray-900 dark:text-white">
-                    {selectedStudent.studentName}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {selectedStudent.matricule}
-                  </p>
-                </div>
-
-                <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 mb-4">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-primary">
-                      {selectedStudent.promotion.pourcentage.toFixed(1)}%
-                    </div>
-                    <span
-                      className={`inline-block px-3 py-1 text-sm font-bold rounded mt-2 ${getMentionColor(
-                        selectedStudent.promotion.mention,
-                      )}`}
-                    >
-                      Mention {selectedStudent.promotion.mention}
+        {view === "palmares" ? (
+          <>
+            <div
+              className={selectedStudent ? "lg:col-span-2" : "lg:col-span-3"}
+            >
+              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
+                <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Icon icon="mdi:account-group" width={24} height={24} />
+                    Étudiants ({resultats.length})
+                  </h2>
+                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      Admis
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                      Ajourné
                     </span>
                   </div>
                 </div>
 
-                <div className="space-y-4 max-h-[400px] overflow-y-auto">
-                  {selectedStudent.semestres.map(
-                    (semestre: SemestreResultat) => (
+                {resultats.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                    <Icon
+                      icon="mdi:account-off"
+                      width={48}
+                      height={48}
+                      className="mx-auto mb-3 opacity-50"
+                    />
+                    <p>Aucun étudiant inscrit ou aucune note enregistrée</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200 dark:divide-slate-700">
+                    {resultats.map((resultat, index) => (
                       <div
-                        key={semestre._id}
-                        className="border border-gray-200 dark:border-slate-700 rounded-lg"
+                        key={resultat.studentId}
+                        className={`p-4 cursor-pointer transition hover:bg-gray-50 dark:hover:bg-slate-800 ${
+                          selectedStudent?.studentId === resultat.studentId
+                            ? "bg-primary/5 dark:bg-primary/10"
+                            : ""
+                        }`}
+                        onClick={() => setSelectedStudent(resultat)}
                       >
-                        <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-t-lg">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-gray-900 dark:text-white text-sm">
-                              {semestre.designation}
-                            </h4>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-bold text-sm">
+                            {getRang(index)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                                {resultat.studentName}
+                              </h3>
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                {resultat.matricule}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
+                              <span>
+                                NCV:{" "}
+                                <strong className="text-green-600">
+                                  {resultat.promotion.ncv}
+                                </strong>
+                              </span>
+                              <span>
+                                NCNV:{" "}
+                                <strong className="text-red-600">
+                                  {resultat.promotion.ncnv}
+                                </strong>
+                              </span>
+                              <span>
+                                Total:{" "}
+                                {resultat.promotion.totalObtenu.toFixed(1)}/
+                                {resultat.promotion.totalMax}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                              {resultat.promotion.pourcentage.toFixed(1)}%
+                            </div>
                             <span
-                              className={`px-2 py-0.5 text-xs font-bold rounded ${getMentionColor(
-                                semestre.mention,
+                              className={`inline-block px-2 py-0.5 text-xs font-bold rounded ${getMentionColor(
+                                resultat.promotion.mention,
                               )}`}
                             >
-                              {semestre.pourcentage.toFixed(1)}%
+                              {resultat.promotion.mention}
                             </span>
                           </div>
-                          <div className="flex gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            <span>NCV: {semestre.ncv}</span>
-                            <span>NCNV: {semestre.ncnv}</span>
-                          </div>
-                        </div>
-                        <div className="p-2">
-                          {semestre.unites.map((unite: UniteResultat) => (
-                            <div key={unite._id} className="mb-1">
-                              <button
-                                onClick={() =>
-                                  setExpandedUnite(
-                                    expandedUnite === unite._id
-                                      ? null
-                                      : unite._id,
-                                  )
-                                }
-                                className={`w-full flex items-center justify-between p-2 rounded text-sm transition ${
-                                  unite.isValide
-                                    ? "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
-                                    : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20"
-                                }`}
-                              >
-                                <span className="truncate flex-1 text-left flex items-center gap-2">
-                                  <Icon
-                                    icon={
-                                      expandedUnite === unite._id
-                                        ? "mdi:chevron-down"
-                                        : "mdi:chevron-right"
-                                    }
-                                    width={16}
-                                    height={16}
-                                  />
-                                  {unite.code}
-                                </span>
-                                <span className="font-medium ml-2">
-                                  {unite.moyenne.toFixed(1)}/20
-                                </span>
-                              </button>
-                              {expandedUnite === unite._id && (
-                                <div className="ml-6 mt-1 space-y-1 border-l-2 border-gray-200 dark:border-slate-700 pl-3">
-                                  {unite.elements.map((element) => (
-                                    <div
-                                      key={element._id}
-                                      className="flex items-center justify-between py-1 text-xs"
-                                    >
-                                      <span className="text-gray-600 dark:text-gray-400 truncate flex-1">
-                                        {element.designation}
-                                      </span>
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-medium text-gray-900 dark:text-white">
-                                          {element.noteFinale.toFixed(1)}/20
-                                        </span>
-                                        <button
-                                          onClick={() =>
-                                            handleStartEditNote(
-                                              selectedStudent.studentId,
-                                              element._id,
-                                              element,
-                                            )
-                                          }
-                                          className="p-1 rounded hover:bg-primary/10 text-primary"
-                                          title="Modifier la note"
-                                        >
-                                          <Icon
-                                            icon="mdi:pencil"
-                                            width={14}
-                                            height={14}
-                                          />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))}
                         </div>
                       </div>
-                    ),
-                  )}
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {selectedStudent && (
+              <div className="lg:col-span-1">
+                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 sticky top-6">
+                  <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Détails
+                    </h2>
+                    <button
+                      onClick={() => setSelectedStudent(null)}
+                      className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition"
+                    >
+                      <Icon icon="mdi:close" width={20} height={20} />
+                    </button>
+                  </div>
+
+                  <div className="p-4">
+                    <div className="text-center mb-4">
+                      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                        <Icon
+                          icon="mdi:account"
+                          width={32}
+                          height={32}
+                          className="text-primary"
+                        />
+                      </div>
+                      <h3 className="font-bold text-gray-900 dark:text-white">
+                        {selectedStudent.studentName}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {selectedStudent.matricule}
+                      </p>
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 mb-4">
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-primary">
+                          {selectedStudent.promotion.pourcentage.toFixed(1)}%
+                        </div>
+                        <span
+                          className={`inline-block px-3 py-1 text-sm font-bold rounded mt-2 ${getMentionColor(
+                            selectedStudent.promotion.mention,
+                          )}`}
+                        >
+                          Mention {selectedStudent.promotion.mention}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                      {selectedStudent.semestres.map(
+                        (semestre: SemestreResultat) => (
+                          <div
+                            key={semestre._id}
+                            className="border border-gray-200 dark:border-slate-700 rounded-lg"
+                          >
+                            <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-t-lg">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-medium text-gray-900 dark:text-white text-sm">
+                                  {semestre.designation}
+                                </h4>
+                                <span
+                                  className={`px-2 py-0.5 text-xs font-bold rounded ${getMentionColor(
+                                    semestre.mention,
+                                  )}`}
+                                >
+                                  {semestre.pourcentage.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="flex gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                <span>NCV: {semestre.ncv}</span>
+                                <span>NCNV: {semestre.ncnv}</span>
+                              </div>
+                            </div>
+                            <div className="p-2">
+                              {semestre.unites.map((unite: UniteResultat) => (
+                                <div key={unite._id} className="mb-1">
+                                  <button
+                                    onClick={() =>
+                                      setExpandedUnite(
+                                        expandedUnite === unite._id
+                                          ? null
+                                          : unite._id,
+                                      )
+                                    }
+                                    className={`w-full flex items-center justify-between p-2 rounded text-sm transition ${
+                                      unite.isValide
+                                        ? "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                                        : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20"
+                                    }`}
+                                  >
+                                    <span className="truncate flex-1 text-left flex items-center gap-2">
+                                      <Icon
+                                        icon={
+                                          expandedUnite === unite._id
+                                            ? "mdi:chevron-down"
+                                            : "mdi:chevron-right"
+                                        }
+                                        width={16}
+                                        height={16}
+                                      />
+                                      {unite.code}
+                                    </span>
+                                    <span className="font-medium ml-2">
+                                      {unite.moyenne.toFixed(1)}/20
+                                    </span>
+                                  </button>
+                                  {expandedUnite === unite._id && (
+                                    <div className="ml-6 mt-1 space-y-2 border-l-2 border-gray-200 dark:border-slate-700 pl-3">
+                                      {unite.elements.map(
+                                        (element: ElementResultat) => (
+                                          <div
+                                            key={element._id}
+                                            className="bg-gray-50 dark:bg-slate-800 rounded-lg p-2"
+                                          >
+                                            <div className="flex items-center justify-between mb-2">
+                                              <span className="text-gray-700 dark:text-gray-300 text-xs font-medium truncate flex-1">
+                                                {element.designation}
+                                              </span>
+                                              <button
+                                                onClick={() =>
+                                                  handleStartEditNote(
+                                                    selectedStudent.studentId,
+                                                    element._id,
+                                                    element,
+                                                  )
+                                                }
+                                                className="p-1 rounded hover:bg-primary/10 text-primary"
+                                                title="Modifier la note"
+                                              >
+                                                <Icon
+                                                  icon="mdi:pencil"
+                                                  width={14}
+                                                  height={14}
+                                                />
+                                              </button>
+                                            </div>
+                                            <div className="grid grid-cols-5 gap-1 text-[10px]">
+                                              <div className="text-center">
+                                                <div className="text-gray-400">
+                                                  CC
+                                                </div>
+                                                <div className="font-medium text-gray-700 dark:text-gray-300">
+                                                  {element.cc.toFixed(1)}
+                                                </div>
+                                              </div>
+                                              <div className="text-center">
+                                                <div className="text-gray-400">
+                                                  Exam
+                                                </div>
+                                                <div className="font-medium text-gray-700 dark:text-gray-300">
+                                                  {element.examen.toFixed(1)}
+                                                </div>
+                                              </div>
+                                              <div className="text-center bg-orange-100 dark:bg-orange-900/20 rounded">
+                                                <div className="text-orange-500">
+                                                  Sess
+                                                </div>
+                                                <div
+                                                  className={`font-semibold ${element.noteSession < 10 ? "text-red-500" : "text-orange-600 dark:text-orange-400"}`}
+                                                >
+                                                  {element.noteSession.toFixed(
+                                                    1,
+                                                  )}
+                                                </div>
+                                              </div>
+                                              <div className="text-center">
+                                                <div className="text-gray-400">
+                                                  Ratt
+                                                </div>
+                                                <div
+                                                  className={`font-medium ${element.rattrapage > element.noteSession ? "text-green-500" : "text-gray-400"}`}
+                                                >
+                                                  {element.rattrapage > 0
+                                                    ? element.rattrapage.toFixed(
+                                                        1,
+                                                      )
+                                                    : "-"}
+                                                </div>
+                                              </div>
+                                              <div className="text-center bg-primary/10 rounded">
+                                                <div className="text-primary">
+                                                  Final
+                                                </div>
+                                                <div
+                                                  className={`font-bold ${element.noteFinale < 10 ? "text-red-500" : "text-primary"}`}
+                                                >
+                                                  {element.noteFinale.toFixed(
+                                                    1,
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ),
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
+            )}
+          </>
+        ) : (
+          <div className="lg:col-span-3">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-4 border-b border-gray-200 dark:border-slate-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Icon icon="mdi:table-large" width={24} height={24} />
+                  Grille de Délibération
+                </h2>
+              </div>
+              {resultats.length === 0 ? (
+                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                  <Icon
+                    icon="mdi:table-off"
+                    width={48}
+                    height={48}
+                    className="mx-auto mb-3 opacity-50"
+                  />
+                  <p>Aucune donnée à afficher</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  {resultats[0]?.semestres.map((semestreRef, semIdx) => {
+                    const allUnites = semestreRef.unites || [];
+                    return (
+                      <div key={semIdx} className="mb-6 last:mb-0">
+                        <div className="bg-primary/10 px-4 py-2 border-b border-gray-200 dark:border-slate-700">
+                          <h3 className="font-semibold text-primary">
+                            {semestreRef.designation}
+                          </h3>
+                        </div>
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-gray-50 dark:bg-slate-800">
+                              <th
+                                className="px-2 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 border-b border-r border-gray-200 dark:border-slate-700 sticky left-0 bg-gray-50 dark:bg-slate-800 z-10"
+                                rowSpan={3}
+                              >
+                                #
+                              </th>
+                              <th
+                                className="px-2 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 border-b border-r border-gray-200 dark:border-slate-700 sticky left-8 bg-gray-50 dark:bg-slate-800 z-10 min-w-[120px]"
+                                rowSpan={3}
+                              >
+                                Étudiant
+                              </th>
+                              {allUnites.map((unite: UniteResultat) => (
+                                <th
+                                  key={unite._id}
+                                  className="px-2 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 border-b border-r border-gray-200 dark:border-slate-700 bg-blue-50 dark:bg-blue-900/20"
+                                  colSpan={unite.elements.length * 5 + 1}
+                                >
+                                  {unite.code} ({unite.credit} cr)
+                                </th>
+                              ))}
+                              <th
+                                className="px-2 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-slate-700 bg-green-50 dark:bg-green-900/20"
+                                rowSpan={3}
+                              >
+                                Total
+                              </th>
+                              <th
+                                className="px-2 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-slate-700 bg-green-50 dark:bg-green-900/20"
+                                rowSpan={3}
+                              >
+                                %
+                              </th>
+                            </tr>
+                            <tr className="bg-gray-50 dark:bg-slate-800">
+                              {allUnites.map((unite: UniteResultat) => (
+                                <>
+                                  {unite.elements.map(
+                                    (elem: ElementResultat) => (
+                                      <th
+                                        key={elem._id}
+                                        className="px-1 py-1 text-center text-xs font-medium text-gray-600 dark:text-gray-400 border-b border-r border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-700"
+                                        colSpan={5}
+                                        title={String(elem.designation)}
+                                      >
+                                        {String(elem.designation).length > 15
+                                          ? String(elem.designation).slice(
+                                              0,
+                                              15,
+                                            ) + "..."
+                                          : elem.designation}
+                                      </th>
+                                    ),
+                                  )}
+                                  <th
+                                    key={`moy-${unite._id}`}
+                                    className="px-1 py-1 text-center text-xs font-semibold text-blue-600 dark:text-blue-400 border-b border-r border-gray-200 dark:border-slate-700 bg-blue-50/50 dark:bg-blue-900/10"
+                                    rowSpan={2}
+                                  >
+                                    Moy UE
+                                  </th>
+                                </>
+                              ))}
+                            </tr>
+                            <tr className="bg-gray-100 dark:bg-slate-700">
+                              {allUnites.map((unite: UniteResultat) => (
+                                <>
+                                  {unite.elements.map(
+                                    (elem: ElementResultat) => (
+                                      <>
+                                        <th
+                                          key={`cc-${elem._id}`}
+                                          className="px-1 py-1 text-center text-[10px] font-normal text-gray-500 dark:text-gray-400 border-b border-r border-gray-200 dark:border-slate-600 min-w-[35px]"
+                                        >
+                                          CC
+                                        </th>
+                                        <th
+                                          key={`ex-${elem._id}`}
+                                          className="px-1 py-1 text-center text-[10px] font-normal text-gray-500 dark:text-gray-400 border-b border-r border-gray-200 dark:border-slate-600 min-w-[35px]"
+                                        >
+                                          Exam
+                                        </th>
+                                        <th
+                                          key={`sess-${elem._id}`}
+                                          className="px-1 py-1 text-center text-[10px] font-semibold text-orange-600 dark:text-orange-400 border-b border-r border-gray-200 dark:border-slate-600 min-w-[40px] bg-orange-50 dark:bg-orange-900/10"
+                                        >
+                                          Sess
+                                        </th>
+                                        <th
+                                          key={`rat-${elem._id}`}
+                                          className="px-1 py-1 text-center text-[10px] font-normal text-gray-500 dark:text-gray-400 border-b border-r border-gray-200 dark:border-slate-600 min-w-[35px]"
+                                        >
+                                          Ratt
+                                        </th>
+                                        <th
+                                          key={`fin-${elem._id}`}
+                                          className="px-1 py-1 text-center text-[10px] font-semibold text-primary border-b border-r border-gray-200 dark:border-slate-600 min-w-[40px] bg-primary/5"
+                                        >
+                                          Final
+                                        </th>
+                                      </>
+                                    ),
+                                  )}
+                                </>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {resultats.map((resultat, rIdx) => {
+                              const semestre = resultat.semestres[semIdx];
+                              if (!semestre) return null;
+                              return (
+                                <tr
+                                  key={resultat.studentId}
+                                  className={`${
+                                    rIdx % 2 === 0
+                                      ? "bg-white dark:bg-slate-900"
+                                      : "bg-gray-50/50 dark:bg-slate-800/50"
+                                  } hover:bg-primary/5 dark:hover:bg-primary/10 transition`}
+                                >
+                                  <td className="px-2 py-1 text-center font-medium text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-slate-700 sticky left-0 bg-inherit">
+                                    {rIdx + 1}
+                                  </td>
+                                  <td className="px-2 py-1 font-medium text-gray-900 dark:text-white border-r border-gray-200 dark:border-slate-700 sticky left-8 bg-inherit">
+                                    <div className="truncate max-w-[120px] text-xs">
+                                      {resultat.studentName}
+                                    </div>
+                                    <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                      {resultat.matricule}
+                                    </div>
+                                  </td>
+                                  {semestre.unites.map(
+                                    (unite: UniteResultat) => (
+                                      <>
+                                        {unite.elements.map(
+                                          (element: ElementResultat) => (
+                                            <>
+                                              <td
+                                                key={`cc-${element._id}`}
+                                                className="px-1 py-1 text-center border-r border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-400"
+                                              >
+                                                {element.cc.toFixed(1)}
+                                              </td>
+                                              <td
+                                                key={`ex-${element._id}`}
+                                                className="px-1 py-1 text-center border-r border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-400"
+                                              >
+                                                {element.examen.toFixed(1)}
+                                              </td>
+                                              <td
+                                                key={`sess-${element._id}`}
+                                                className={`px-1 py-1 text-center border-r border-gray-200 dark:border-slate-700 font-medium bg-orange-50/50 dark:bg-orange-900/5 ${
+                                                  element.noteSession < 10
+                                                    ? "text-red-600 dark:text-red-400"
+                                                    : "text-orange-600 dark:text-orange-400"
+                                                }`}
+                                              >
+                                                {element.noteSession.toFixed(1)}
+                                              </td>
+                                              <td
+                                                key={`rat-${element._id}`}
+                                                className={`px-1 py-1 text-center border-r border-gray-200 dark:border-slate-700 ${
+                                                  element.rattrapage > 0
+                                                    ? element.rattrapage >
+                                                      element.noteSession
+                                                      ? "text-green-600 dark:text-green-400 font-medium"
+                                                      : "text-gray-500 dark:text-gray-400"
+                                                    : "text-gray-300 dark:text-gray-600"
+                                                }`}
+                                              >
+                                                {element.rattrapage > 0
+                                                  ? element.rattrapage.toFixed(
+                                                      1,
+                                                    )
+                                                  : "-"}
+                                              </td>
+                                              <td
+                                                key={`fin-${element._id}`}
+                                                className={`px-1 py-1 text-center border-r border-gray-200 dark:border-slate-700 font-semibold bg-primary/5 ${
+                                                  element.noteFinale < 10
+                                                    ? "text-red-600 dark:text-red-400"
+                                                    : "text-primary"
+                                                }`}
+                                              >
+                                                {element.noteFinale.toFixed(1)}
+                                              </td>
+                                            </>
+                                          ),
+                                        )}
+                                        <td
+                                          key={`moy-${unite._id}`}
+                                          className={`px-1 py-1 text-center font-bold border-r border-gray-200 dark:border-slate-700 bg-blue-50/30 dark:bg-blue-900/5 ${
+                                            !unite.isValide
+                                              ? "text-red-600 dark:text-red-400"
+                                              : "text-blue-600 dark:text-blue-400"
+                                          }`}
+                                        >
+                                          {unite.moyenne.toFixed(1)}
+                                        </td>
+                                      </>
+                                    ),
+                                  )}
+                                  <td className="px-2 py-1 text-center font-semibold text-gray-900 dark:text-white bg-green-50/30 dark:bg-green-900/5">
+                                    {semestre.totalObtenu.toFixed(1)}/
+                                    {semestre.totalMax}
+                                  </td>
+                                  <td
+                                    className={`px-2 py-1 text-center font-bold bg-green-50/30 dark:bg-green-900/5 ${getMentionColor(
+                                      semestre.mention,
+                                    )}`}
+                                  >
+                                    {semestre.pourcentage.toFixed(1)}%
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -530,7 +851,7 @@ export default function PromotionDeliberationClient({
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    CC (40%)
+                    CC
                   </label>
                   <input
                     type="number"
@@ -549,7 +870,7 @@ export default function PromotionDeliberationClient({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Examen (60%)
+                    Examen
                   </label>
                   <input
                     type="number"
@@ -588,13 +909,17 @@ export default function PromotionDeliberationClient({
               </div>
               <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-3">
                 <div className="text-center">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Session: {(editingNote.cc + editingNote.examen).toFixed(1)}
+                    /20 | Rattrapage: {editingNote.rattrapage.toFixed(1)}/20
+                  </div>
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    Note finale calculée:
+                    Note finale (max des deux):
                   </span>
                   <div className="text-2xl font-bold text-primary mt-1">
-                    {(
-                      editingNote.cc * 0.4 +
-                      Math.max(editingNote.examen, editingNote.rattrapage) * 0.6
+                    {Math.max(
+                      editingNote.cc + editingNote.examen,
+                      editingNote.rattrapage,
                     ).toFixed(2)}
                     /20
                   </div>

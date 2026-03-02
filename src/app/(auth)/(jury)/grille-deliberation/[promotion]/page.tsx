@@ -46,11 +46,13 @@ export default async function PromotionGrilleDeliberationPage({
   const promotion = promotionRes.data;
 
   const notesRes = await fetchAllNotesForPromotion(promotionId, annee._id);
+
   const notesEtudiants = notesRes.success ? notesRes.data || [] : [];
 
   const resultats: ResultatEtudiant[] =
     NoteManager.calculerResultatsPromotion(notesEtudiants);
   const resultatsClasses = NoteManager.classerParPourcentage(resultats);
+  //   console.log("Résultats classés :", resultatsClasses);
 
   return (
     <PromotionDeliberationClient
