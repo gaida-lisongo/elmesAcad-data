@@ -62,11 +62,11 @@ export default function ScrollToTop() {
           pack: "pro",
         },
         {
-          label: "Retraits",
-          href: "/retraits",
+          label: "Grille de délibération",
+          href: "/grille-deliberation",
           icon: (
             <Icon
-              icon="mdi-light:currency-usd"
+              icon="material-symbols:grading-outline"
               width={24}
               height={24}
               className="text-primary"

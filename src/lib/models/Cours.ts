@@ -14,6 +14,78 @@ export interface INote extends Document {
   updatedAt: Date;
 }
 
+export interface IResultat extends Document {
+  promotionId: mongoose.Types.ObjectId;
+  anneeId: mongoose.Types.ObjectId;
+  status: "published" | "unpublished";
+  amount: Number;
+  category: "semestre" | "annee";
+  currency: String;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ResultatSchema = new Schema<IResultat>(
+  {
+    promotionId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Programme",
+      required: true,
+    },
+    anneeId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Annee",
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["published", "unpublished"],
+      default: "unpublished",
+    },
+    amount: {
+      type: Number,
+      required: true,
+    },
+    currency: {
+      type: String,
+      required: true,
+    },
+    category: {
+      type: String,
+      enum: ["semestre", "annee"],
+      required: true,
+    },
+  },
+  { timestamps: true },
+);
+
+export interface ISubscribeResultat extends Document {
+  resultatId: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  status: "pending" | "paid" | "failed" | "ok";
+  recours?: mongoose.Types.ObjectId[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const SubscribeResultatSchema = new Schema<ISubscribeResultat>(
+  {
+    resultatId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Resultat",
+      required: true,
+    },
+    studentId: { type: mongoose.Types.ObjectId, ref: "User", required: true },
+    status: {
+      type: String,
+      enum: ["pending", "paid", "failed", "ok"],
+      default: "pending",
+    },
+    recours: [{ type: mongoose.Types.ObjectId, ref: "Recours" }],
+  },
+  { timestamps: true },
+);
+
 const NoteSchema = new Schema<INote>(
   {
     elementId: {
@@ -444,3 +516,12 @@ export const SubscribeCharge =
 export const Presence =
   mongoose.models.Presence ||
   mongoose.model<IPresence>("Presence", PresenceSchema);
+export const Resultat =
+  mongoose.models.Resultat ||
+  mongoose.model<IResultat>("Resultat", ResultatSchema);
+export const SubscribeResultat =
+  mongoose.models.SubscribeResultat ||
+  mongoose.model<ISubscribeResultat>(
+    "SubscribeResultat",
+    SubscribeResultatSchema,
+  );
