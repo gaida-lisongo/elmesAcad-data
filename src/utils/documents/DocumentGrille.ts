@@ -1,6 +1,7 @@
 import DocumentJury, { JuryIdentity } from "./DocumentJury";
 import { ResultatEtudiant, SemestreResultat } from "@/utils/NoteManager";
 import ExcelJS from "exceljs";
+import { title } from "process";
 
 export default class DocumentGrille extends DocumentJury {
   public async generate(resultats: ResultatEtudiant[], identity: JuryIdentity) {
@@ -63,22 +64,173 @@ export default class DocumentGrille extends DocumentJury {
     sem: SemestreResultat,
     row: number,
   ) {
-    let col = 3;
-    sem.unites.forEach((u) => {
+    const mentionsLabel = [
+      "LEGENDE APPRECIATION",
+      "A (Excellent) ≥ 90%",
+      "B (Très bien) ≥ 80%",
+      "C (Bein) ≥ 70%",
+      "D (Assez Bien) ≥ 60%",
+      "E (Passable) ≥ 50%",
+      "F (Insuffisant) ≥ 40%",
+      "G (Insatisfaisant) ≥ 35%",
+      "NON : NCV ≤ 75%",
+    ];
+
+    this.applyStyle(sheet.getCell(row, 1), {
+      bold: true,
+    });
+
+    sheet.getCell(row, 1).value = mentionsLabel.join("\n");
+    sheet.getCell(row, 1).alignment = {
+      horizontal: "center",
+      vertical: "middle",
+      wrapText: true,
+    };
+
+    sheet.mergeCells(row, 1, row + 1, 2);
+    const contentsLabel = ["N°", "ETUDIANT"];
+    contentsLabel.forEach((label, idx) => {
+      const cell = sheet.getCell(row + 2, idx + 1);
+      cell.value = label;
+      cell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+      };
+    });
+
+    sheet.getColumn(2).width = this.getFontSize("SM") * 3.5;
+    sheet.getColumn(1).width = this.getFontSize("SM") / 2;
+
+    const { rowEnd, colEnd } = this.renderNotesHeader(
+      sheet,
+      3,
+      row,
+      sem.unites,
+    );
+
+    const creditTotal = sem.unites.reduce((sum, u) => sum + (u.credit || 0), 0);
+    this.renderSyntheseHeader(sheet, colEnd + 1, row, creditTotal);
+    // Appliquer style PRIMARY aux headers
+  }
+
+  private renderNotesHeader(
+    sheet: ExcelJS.Worksheet,
+    colStart: number,
+    row: number,
+    unites: SemestreResultat["unites"],
+  ): { rowEnd: number; colEnd: number } {
+    let col = colStart;
+
+    unites.forEach((u) => {
       const start = col;
       u.elements.forEach((e) => {
-        sheet.getCell(row + 1, col).value = e.designation;
-        sheet.getCell(row + 2, col).value = `Cr:${e.credit}`;
+        const cell = sheet.getCell(row + 1, col);
+        cell.value = e.designation;
+        cell.alignment = {
+          horizontal: "center",
+          vertical: "middle",
+          textRotation: 90,
+          wrapText: true, // Important pour le retour à la ligne si trop long
+        };
+
+        sheet.getColumn(col).width = this.getFontSize("SM") / 1.8; // Colonne étroite
+
+        sheet.getCell(row + 2, col).value = e.credit;
+        sheet.getCell(row + 2, col).alignment = {
+          horizontal: "center",
+          vertical: "middle",
+        };
         col++;
       });
-      sheet.mergeCells(row, start, row, col - 1);
-      sheet.getCell(row, start).value = u.code;
-      sheet.getCell(row + 1, col).value = "MOY";
-      sheet.getCell(row + 1, col + 1).value = "CAP";
-      sheet.mergeCells(row, col, row, col + 1);
+
+      // Style de l'Unité (Header principal)
+      const ueCell = sheet.getCell(row, start);
+      ueCell.value = u.code;
+      ueCell.font = { bold: true };
+      ueCell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: true,
+      };
+
+      // Colonne MOYENNE
+      const moyCell = sheet.getCell(row + 1, col);
+      moyCell.value = "MOY";
+      moyCell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        textRotation: 90,
+      };
+      sheet.getColumn(col).width = this.getFontSize("SM") / 1.8;
+
+      sheet.getCell(row + 2, col).value = u.credit;
+      sheet.getCell(row + 2, col).alignment = {
+        horizontal: "center",
+        vertical: "middle",
+      };
+
+      // Colonne DECISION
+      const decCell = sheet.getCell(row + 1, col + 1);
+      decCell.value = "DECISION";
+      decCell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        textRotation: 90,
+      };
+      sheet.getColumn(col + 1).width = this.getFontSize("SM") / 1.8;
+
+      sheet.mergeCells(row + 1, col + 1, row + 2, col + 1);
+      sheet.mergeCells(row, start, row, col + 1);
       col += 2;
     });
-    // Appliquer style PRIMARY aux headers
+
+    return { rowEnd: row + 2, colEnd: col - 1 };
+  }
+
+  private renderSyntheseHeader(
+    sheet: ExcelJS.Worksheet,
+    colStart: number,
+    row: number,
+    credit: number,
+  ): { rowEnd: number; colEnd: number } {
+    const headers = [
+      { title: "MAXIMUM", subtitle: credit * 20 },
+      { title: "POURCENTAGE", subtitle: 100 },
+      { title: "NCV", subtitle: null },
+      { title: "NCNV", subtitle: null },
+      { title: "MENTION", subtitle: null },
+      { title: "APPRECIATION", subtitle: null },
+      { title: "CAPITALISATION", subtitle: null },
+    ];
+
+    // On harmonise la hauteur avec la rangée des éléments de la méthode précédente
+    sheet.getRow(row + 1).height = this.getFontSize("XL") * 5.5;
+
+    headers.forEach((h, i) => {
+      const cell = sheet.getCell(row + 1, colStart + i);
+      cell.value = h.title;
+      cell.font = { bold: true };
+      cell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        textRotation: 90,
+      };
+      sheet.getColumn(colStart + i).width = this.getFontSize("SM") / 1.8;
+
+      if (h.subtitle !== null) {
+        // Pour MAX et %, on met le titre en haut et la valeur (ex: 200) en bas
+        sheet.getCell(row + 2, colStart + i).value = h.subtitle;
+        sheet.getCell(row + 2, colStart + i).alignment = {
+          horizontal: "center",
+          vertical: "middle",
+        };
+      } else {
+        // Pour les autres, on fusionne les deux lignes pour que le texte occupe tout l'espace vertical
+        sheet.mergeCells(row + 1, colStart + i, row + 2, colStart + i);
+      }
+    });
+
+    return { rowEnd: row + 2, colEnd: colStart + headers.length - 1 };
   }
 
   private renderGrilleGlobaleSheet(

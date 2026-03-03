@@ -108,7 +108,7 @@ export class NoteManager {
     }
 
     let totalPoints = 0;
-    let totalCredits = 0;
+    let totalCredits = unite.credit || 0;
     const elementsResultat: ElementResultat[] = [];
 
     for (const element of unite.elements) {
@@ -120,7 +120,6 @@ export class NoteManager {
       const credit = element.credit || 1;
 
       totalPoints += noteFinale * credit;
-      totalCredits += credit;
 
       elementsResultat.push({
         _id: element._id,
