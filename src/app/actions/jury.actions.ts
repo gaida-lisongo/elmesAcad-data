@@ -10,7 +10,11 @@ import type {
   SemestreNote,
   UniteNote,
   ElementNote,
+  ResultatEtudiant,
 } from "@/utils/NoteManager";
+import DocumentPV from "@/utils/documents/DocumentPV";
+import DocumentGrille from "@/utils/documents/DocumentGrille";
+import DocumentPalmares from "@/utils/documents/DocumentPalmares";
 
 export async function fetchAllNotesForPromotion(
   promotionId: string,
@@ -447,4 +451,37 @@ export async function fetchAllPromotionsForJury(): Promise<{
     console.error("Error fetching promotions for jury:", error);
     return { success: false, error: "Échec de récupération des promotions" };
   }
+}
+
+export async function exportJuryDocument(
+  type: "PV" | "GRILLE" | "PALMARES",
+  resultats: ResultatEtudiant[],
+  identity: any,
+) {
+  let doc;
+  let filename = "";
+
+  switch (type) {
+    case "PV":
+      doc = new DocumentPV();
+      filename = "PV_Deliberation";
+      break;
+    case "GRILLE":
+      doc = new DocumentGrille();
+      filename = "Grilles_Notes";
+      break;
+    case "PALMARES":
+      doc = new DocumentPalmares();
+      filename = "Palmares_Officiel";
+      break;
+  }
+
+  await doc.generate(resultats, identity);
+  const buffer = await doc.generateBuffer();
+
+  // On retourne le base64 pour que le client puisse le transformer en fichier
+  return {
+    base64: buffer.toString("base64"),
+    filename: `${filename}_${new Date().getTime()}`,
+  };
 }

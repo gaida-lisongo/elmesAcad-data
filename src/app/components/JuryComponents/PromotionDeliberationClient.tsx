@@ -10,7 +10,10 @@ import type {
   ElementResultat,
 } from "@/utils/NoteManager";
 import { ExportExcel } from "@/utils/ExportExcel";
-import { updateNoteByJury } from "@/app/actions/jury.actions";
+import {
+  exportJuryDocument,
+  updateNoteByJury,
+} from "@/app/actions/jury.actions";
 
 interface PromotionType {
   _id: string;
@@ -124,6 +127,24 @@ export default function PromotionDeliberationClient({
     setIsSaving(false);
   };
 
+  const handleExport = async (type: "PV" | "GRILLE" | "PALMARES") => {
+    const identity = {
+      universite: "UNIVERSITÉ DE KINSHASA",
+      faculte: promotion.section?.mention || "FACULTÉ",
+      departement: promotion.filiere?.designation || "DÉPARTEMENT",
+      session: "Première Session",
+      anneeAcademique: "2024-2025",
+    };
+
+    const res = await exportJuryDocument(type, resultats, identity);
+
+    // Téléchargement du fichier
+    const link = document.createElement("a");
+    link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${res.base64}`;
+    link.download = `${res.filename}.xlsx`;
+    link.click();
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
@@ -187,7 +208,7 @@ export default function PromotionDeliberationClient({
               {showExportMenu && (
                 <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 z-50">
                   <button
-                    onClick={handleExportAll}
+                    onClick={() => handleExport("PV")}
                     className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 rounded-t-lg"
                   >
                     <Icon
@@ -206,7 +227,7 @@ export default function PromotionDeliberationClient({
                     </div>
                   </button>
                   <button
-                    onClick={handleExportPalmares}
+                    onClick={() => handleExport("PALMARES")}
                     className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 border-t border-gray-100 dark:border-slate-700"
                   >
                     <Icon
@@ -225,7 +246,7 @@ export default function PromotionDeliberationClient({
                     </div>
                   </button>
                   <button
-                    onClick={handleExportGrille}
+                    onClick={() => handleExport("GRILLE")}
                     className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 border-t border-gray-100 dark:border-slate-700 rounded-b-lg"
                   >
                     <Icon
