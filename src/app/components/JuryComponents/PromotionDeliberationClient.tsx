@@ -560,10 +560,15 @@ export default function PromotionDeliberationClient({
           </>
         ) : (
           <div className="lg:col-span-3">
-            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
-              <div className="p-4 border-b border-gray-200 dark:border-slate-700">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-4 border-b border-gray-200 dark:border-slate-700 bg-gradient-to-r from-primary/5 to-transparent">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Icon icon="mdi:table-large" width={24} height={24} />
+                  <Icon
+                    icon="mdi:table-large"
+                    width={24}
+                    height={24}
+                    className="text-primary"
+                  />
                   Grille de Délibération
                 </h2>
               </div>
@@ -581,233 +586,379 @@ export default function PromotionDeliberationClient({
                 <div className="overflow-x-auto">
                   {resultats[0]?.semestres.map((semestreRef, semIdx) => {
                     const allUnites = semestreRef.unites || [];
+                    const totalCredits = allUnites.reduce(
+                      (sum, u) => sum + (u.credit || 0),
+                      0,
+                    );
+                    const maxPoints = totalCredits * 20;
+
                     return (
-                      <div key={semIdx} className="mb-6 last:mb-0">
-                        <div className="bg-primary/10 px-4 py-2 border-b border-gray-200 dark:border-slate-700">
-                          <h3 className="font-semibold text-primary">
+                      <div key={semIdx} className="mb-8 last:mb-0">
+                        <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-3">
+                          <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                            <Icon
+                              icon="mdi:calendar-check"
+                              width={20}
+                              height={20}
+                            />
                             {semestreRef.designation}
                           </h3>
                         </div>
-                        <table className="w-full text-xs">
+
+                        <table className="w-full text-xs border-collapse">
                           <thead>
-                            <tr className="bg-gray-50 dark:bg-slate-800">
+                            {/* Row 1: UE Headers + Summary Headers */}
+                            <tr className="bg-slate-800 text-white">
                               <th
-                                className="px-2 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 border-b border-r border-gray-200 dark:border-slate-700 sticky left-0 bg-gray-50 dark:bg-slate-800 z-10"
                                 rowSpan={3}
+                                className="px-2 py-3 text-center font-bold border border-slate-600 sticky left-0 bg-slate-800 z-20 w-10"
                               >
-                                #
+                                N°
                               </th>
                               <th
-                                className="px-2 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 border-b border-r border-gray-200 dark:border-slate-700 sticky left-8 bg-gray-50 dark:bg-slate-800 z-10 min-w-[120px]"
                                 rowSpan={3}
+                                className="px-3 py-3 text-left font-bold border border-slate-600 sticky left-10 bg-slate-800 z-20 min-w-[160px]"
                               >
                                 Étudiant
                               </th>
                               {allUnites.map((unite: UniteResultat) => (
                                 <th
                                   key={unite._id}
-                                  className="px-2 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 border-b border-r border-gray-200 dark:border-slate-700 bg-blue-50 dark:bg-blue-900/20"
-                                  colSpan={unite.elements.length * 5 + 1}
+                                  colSpan={unite.elements.length + 2}
+                                  className="px-2 py-3 text-center font-bold border border-slate-600 bg-indigo-700"
                                 >
-                                  {unite.code} ({unite.credit} cr)
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Icon
+                                      icon="mdi:book-education"
+                                      width={14}
+                                      height={14}
+                                    />
+                                    {unite.code}
+                                  </div>
                                 </th>
                               ))}
                               <th
-                                className="px-2 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-slate-700 bg-green-50 dark:bg-green-900/20"
                                 rowSpan={3}
+                                className="px-2 py-3 text-center font-bold border border-slate-600 bg-emerald-700 w-12"
+                              >
+                                NCV
+                              </th>
+                              <th
+                                rowSpan={3}
+                                className="px-2 py-3 text-center font-bold border border-slate-600 bg-rose-700 w-12"
+                              >
+                                NCNV
+                              </th>
+                              <th
+                                rowSpan={3}
+                                className="px-2 py-3 text-center font-bold border border-slate-600 bg-amber-600 w-16"
                               >
                                 Total
                               </th>
                               <th
-                                className="px-2 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-slate-700 bg-green-50 dark:bg-green-900/20"
                                 rowSpan={3}
+                                className="px-2 py-3 text-center font-bold border border-slate-600 bg-amber-600 w-12"
+                              >
+                                Max
+                              </th>
+                              <th
+                                rowSpan={3}
+                                className="px-2 py-3 text-center font-bold border border-slate-600 bg-purple-700 w-14"
                               >
                                 %
                               </th>
+                              <th
+                                rowSpan={3}
+                                className="px-2 py-3 text-center font-bold border border-slate-600 bg-cyan-700 w-16"
+                              >
+                                Mention
+                              </th>
+                              <th
+                                rowSpan={3}
+                                className="px-2 py-3 text-center font-bold border border-slate-600 bg-teal-700 w-20"
+                              >
+                                Décision
+                              </th>
                             </tr>
-                            <tr className="bg-gray-50 dark:bg-slate-800">
+
+                            {/* Row 2: Element Names + Moy + Cap */}
+                            <tr className="bg-slate-700 text-white">
                               {allUnites.map((unite: UniteResultat) => (
                                 <>
                                   {unite.elements.map(
                                     (elem: ElementResultat) => (
                                       <th
                                         key={elem._id}
-                                        className="px-1 py-1 text-center text-xs font-medium text-gray-600 dark:text-gray-400 border-b border-r border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-700"
-                                        colSpan={5}
+                                        className="px-1 py-2 text-center font-medium border border-slate-600 bg-slate-600 min-w-[50px]"
                                         title={String(elem.designation)}
                                       >
-                                        {String(elem.designation).length > 15
-                                          ? String(elem.designation).slice(
-                                              0,
-                                              15,
-                                            ) + "..."
-                                          : elem.designation}
+                                        <div className="truncate max-w-[60px]">
+                                          {String(elem.designation).length > 8
+                                            ? String(elem.designation).slice(
+                                                0,
+                                                8,
+                                              ) + "…"
+                                            : elem.designation}
+                                        </div>
                                       </th>
                                     ),
                                   )}
-                                  <th
-                                    key={`moy-${unite._id}`}
-                                    className="px-1 py-1 text-center text-xs font-semibold text-blue-600 dark:text-blue-400 border-b border-r border-gray-200 dark:border-slate-700 bg-blue-50/50 dark:bg-blue-900/10"
-                                    rowSpan={2}
-                                  >
-                                    Moy UE
+                                  <th className="px-1 py-2 text-center font-bold border border-slate-600 bg-blue-600 min-w-[45px]">
+                                    Moy
+                                  </th>
+                                  <th className="px-1 py-2 text-center font-bold border border-slate-600 bg-orange-600 min-w-[35px]">
+                                    Cap
                                   </th>
                                 </>
                               ))}
                             </tr>
-                            <tr className="bg-gray-100 dark:bg-slate-700">
+
+                            {/* Row 3: Credits */}
+                            <tr className="bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400">
                               {allUnites.map((unite: UniteResultat) => (
                                 <>
                                   {unite.elements.map(
                                     (elem: ElementResultat) => (
-                                      <>
-                                        <th
-                                          key={`cc-${elem._id}`}
-                                          className="px-1 py-1 text-center text-[10px] font-normal text-gray-500 dark:text-gray-400 border-b border-r border-gray-200 dark:border-slate-600 min-w-[35px]"
-                                        >
-                                          CC
-                                        </th>
-                                        <th
-                                          key={`ex-${elem._id}`}
-                                          className="px-1 py-1 text-center text-[10px] font-normal text-gray-500 dark:text-gray-400 border-b border-r border-gray-200 dark:border-slate-600 min-w-[35px]"
-                                        >
-                                          Exam
-                                        </th>
-                                        <th
-                                          key={`sess-${elem._id}`}
-                                          className="px-1 py-1 text-center text-[10px] font-semibold text-orange-600 dark:text-orange-400 border-b border-r border-gray-200 dark:border-slate-600 min-w-[40px] bg-orange-50 dark:bg-orange-900/10"
-                                        >
-                                          Sess
-                                        </th>
-                                        <th
-                                          key={`rat-${elem._id}`}
-                                          className="px-1 py-1 text-center text-[10px] font-normal text-gray-500 dark:text-gray-400 border-b border-r border-gray-200 dark:border-slate-600 min-w-[35px]"
-                                        >
-                                          Ratt
-                                        </th>
-                                        <th
-                                          key={`fin-${elem._id}`}
-                                          className="px-1 py-1 text-center text-[10px] font-semibold text-primary border-b border-r border-gray-200 dark:border-slate-600 min-w-[40px] bg-primary/5"
-                                        >
-                                          Final
-                                        </th>
-                                      </>
+                                      <th
+                                        key={`cr-${elem._id}`}
+                                        className="px-1 py-1 text-center text-[10px] font-normal border border-gray-300 dark:border-slate-600"
+                                      >
+                                        {elem.credit}
+                                      </th>
                                     ),
                                   )}
+                                  <th className="px-1 py-1 text-center text-[10px] font-semibold border border-gray-300 dark:border-slate-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                                    {unite.credit}
+                                  </th>
+                                  <th className="px-1 py-1 text-center text-[10px] border border-gray-300 dark:border-slate-600"></th>
                                 </>
                               ))}
                             </tr>
                           </thead>
+
                           <tbody>
                             {resultats.map((resultat, rIdx) => {
                               const semestre = resultat.semestres[semIdx];
                               if (!semestre) return null;
+                              const isAdmis = semestre.pourcentage >= 50;
+                              const isEven = rIdx % 2 === 0;
+
                               return (
                                 <tr
                                   key={resultat.studentId}
-                                  className={`${
-                                    rIdx % 2 === 0
-                                      ? "bg-white dark:bg-slate-900"
-                                      : "bg-gray-50/50 dark:bg-slate-800/50"
-                                  } hover:bg-primary/5 dark:hover:bg-primary/10 transition`}
+                                  className={`
+                                    ${isEven ? "bg-white dark:bg-slate-900" : "bg-gray-50 dark:bg-slate-800/70"}
+                                    hover:bg-yellow-50 dark:hover:bg-yellow-900/10 transition-colors
+                                    ${!isAdmis ? "bg-red-50/50 dark:bg-red-900/10" : ""}
+                                  `}
                                 >
-                                  <td className="px-2 py-1 text-center font-medium text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-slate-700 sticky left-0 bg-inherit">
+                                  {/* N° */}
+                                  <td className="px-2 py-2 text-center font-bold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 sticky left-0 bg-inherit z-10">
                                     {rIdx + 1}
                                   </td>
-                                  <td className="px-2 py-1 font-medium text-gray-900 dark:text-white border-r border-gray-200 dark:border-slate-700 sticky left-8 bg-inherit">
-                                    <div className="truncate max-w-[120px] text-xs">
+
+                                  {/* Étudiant */}
+                                  <td className="px-3 py-2 border border-gray-200 dark:border-slate-700 sticky left-10 bg-inherit z-10">
+                                    <div className="font-semibold text-gray-900 dark:text-white truncate max-w-[140px]">
                                       {resultat.studentName}
                                     </div>
-                                    <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                    <div className="text-[10px] text-gray-500 dark:text-gray-400 font-mono">
                                       {resultat.matricule}
                                     </div>
                                   </td>
+
+                                  {/* Notes par UE */}
                                   {semestre.unites.map(
                                     (unite: UniteResultat) => (
                                       <>
+                                        {/* Notes des éléments */}
                                         {unite.elements.map(
                                           (element: ElementResultat) => (
-                                            <>
-                                              <td
-                                                key={`cc-${element._id}`}
-                                                className="px-1 py-1 text-center border-r border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-400"
-                                              >
-                                                {element.cc.toFixed(1)}
-                                              </td>
-                                              <td
-                                                key={`ex-${element._id}`}
-                                                className="px-1 py-1 text-center border-r border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-400"
-                                              >
-                                                {element.examen.toFixed(1)}
-                                              </td>
-                                              <td
-                                                key={`sess-${element._id}`}
-                                                className={`px-1 py-1 text-center border-r border-gray-200 dark:border-slate-700 font-medium bg-orange-50/50 dark:bg-orange-900/5 ${
-                                                  element.noteSession < 10
-                                                    ? "text-red-600 dark:text-red-400"
-                                                    : "text-orange-600 dark:text-orange-400"
-                                                }`}
-                                              >
-                                                {element.noteSession.toFixed(1)}
-                                              </td>
-                                              <td
-                                                key={`rat-${element._id}`}
-                                                className={`px-1 py-1 text-center border-r border-gray-200 dark:border-slate-700 ${
-                                                  element.rattrapage > 0
-                                                    ? element.rattrapage >
-                                                      element.noteSession
-                                                      ? "text-green-600 dark:text-green-400 font-medium"
-                                                      : "text-gray-500 dark:text-gray-400"
-                                                    : "text-gray-300 dark:text-gray-600"
-                                                }`}
-                                              >
-                                                {element.rattrapage > 0
-                                                  ? element.rattrapage.toFixed(
-                                                      1,
-                                                    )
-                                                  : "-"}
-                                              </td>
-                                              <td
-                                                key={`fin-${element._id}`}
-                                                className={`px-1 py-1 text-center border-r border-gray-200 dark:border-slate-700 font-semibold bg-primary/5 ${
-                                                  element.noteFinale < 10
-                                                    ? "text-red-600 dark:text-red-400"
-                                                    : "text-primary"
-                                                }`}
-                                              >
-                                                {element.noteFinale.toFixed(1)}
-                                              </td>
-                                            </>
+                                            <td
+                                              key={element._id}
+                                              className={`px-1 py-2 text-center font-medium border border-gray-200 dark:border-slate-700 ${
+                                                element.noteFinale < 10
+                                                  ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                                                  : element.noteFinale >= 14
+                                                    ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                                    : "text-gray-700 dark:text-gray-300"
+                                              }`}
+                                            >
+                                              {element.noteFinale.toFixed(1)}
+                                            </td>
                                           ),
                                         )}
+
+                                        {/* Moyenne UE */}
                                         <td
-                                          key={`moy-${unite._id}`}
-                                          className={`px-1 py-1 text-center font-bold border-r border-gray-200 dark:border-slate-700 bg-blue-50/30 dark:bg-blue-900/5 ${
-                                            !unite.isValide
-                                              ? "text-red-600 dark:text-red-400"
-                                              : "text-blue-600 dark:text-blue-400"
+                                          className={`px-1 py-2 text-center font-bold border-2 border-gray-300 dark:border-slate-600 ${
+                                            unite.isValide
+                                              ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400"
+                                              : "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400"
                                           }`}
                                         >
                                           {unite.moyenne.toFixed(1)}
                                         </td>
+
+                                        {/* Capitalisé V/NV */}
+                                        <td
+                                          className={`px-1 py-2 text-center font-black text-[11px] border border-gray-200 dark:border-slate-700 ${
+                                            unite.isValide
+                                              ? "bg-emerald-500 text-white"
+                                              : "bg-rose-500 text-white"
+                                          }`}
+                                        >
+                                          {unite.isValide ? "V" : "NV"}
+                                        </td>
                                       </>
                                     ),
                                   )}
-                                  <td className="px-2 py-1 text-center font-semibold text-gray-900 dark:text-white bg-green-50/30 dark:bg-green-900/5">
-                                    {semestre.totalObtenu.toFixed(1)}/
+
+                                  {/* NCV */}
+                                  <td className="px-2 py-2 text-center font-bold text-emerald-700 dark:text-emerald-400 border border-gray-200 dark:border-slate-700 bg-emerald-50 dark:bg-emerald-900/20">
+                                    {semestre.ncv}
+                                  </td>
+
+                                  {/* NCNV */}
+                                  <td className="px-2 py-2 text-center font-bold text-rose-700 dark:text-rose-400 border border-gray-200 dark:border-slate-700 bg-rose-50 dark:bg-rose-900/20">
+                                    {semestre.ncnv}
+                                  </td>
+
+                                  {/* Total */}
+                                  <td className="px-2 py-2 text-center font-bold text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 bg-amber-50 dark:bg-amber-900/20">
+                                    {semestre.totalObtenu.toFixed(1)}
+                                  </td>
+
+                                  {/* Max */}
+                                  <td className="px-2 py-2 text-center font-medium text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-800">
                                     {semestre.totalMax}
                                   </td>
+
+                                  {/* % */}
                                   <td
-                                    className={`px-2 py-1 text-center font-bold bg-green-50/30 dark:bg-green-900/5 ${getMentionColor(
-                                      semestre.mention,
-                                    )}`}
+                                    className={`px-2 py-2 text-center font-black border-2 border-gray-300 dark:border-slate-600 ${
+                                      semestre.pourcentage >= 70
+                                        ? "bg-emerald-500 text-white"
+                                        : semestre.pourcentage >= 50
+                                          ? "bg-blue-500 text-white"
+                                          : "bg-red-500 text-white"
+                                    }`}
                                   >
-                                    {semestre.pourcentage.toFixed(1)}%
+                                    {semestre.pourcentage.toFixed(1)}
+                                  </td>
+
+                                  {/* Mention */}
+                                  <td
+                                    className={`px-2 py-2 text-center font-black border border-gray-200 dark:border-slate-700 ${getMentionColor(semestre.mention)}`}
+                                  >
+                                    {semestre.mention}
+                                  </td>
+
+                                  {/* Décision */}
+                                  <td
+                                    className={`px-2 py-2 text-center font-bold text-[11px] border-2 ${
+                                      isAdmis
+                                        ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white border-emerald-600"
+                                        : "bg-gradient-to-r from-rose-500 to-red-500 text-white border-rose-600"
+                                    }`}
+                                  >
+                                    {isAdmis ? "ADMIS" : "AJOURNÉ"}
                                   </td>
                                 </tr>
                               );
                             })}
                           </tbody>
+
+                          {/* Footer avec statistiques */}
+                          <tfoot>
+                            <tr className="bg-slate-800 text-white font-bold">
+                              <td
+                                colSpan={2}
+                                className="px-3 py-3 border border-slate-600 sticky left-0 bg-slate-800 z-10"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Icon
+                                    icon="mdi:chart-bar"
+                                    width={16}
+                                    height={16}
+                                  />
+                                  STATISTIQUES
+                                </div>
+                              </td>
+                              {allUnites.map((unite: UniteResultat) => (
+                                <td
+                                  key={`stat-${unite._id}`}
+                                  colSpan={unite.elements.length + 2}
+                                  className="px-2 py-3 text-center border border-slate-600 bg-slate-700"
+                                >
+                                  {(() => {
+                                    const validCount = resultats.filter((r) => {
+                                      const sem = r.semestres[semIdx];
+                                      const u = sem?.unites.find(
+                                        (x) => x._id === unite._id,
+                                      );
+                                      return u?.isValide;
+                                    }).length;
+                                    const percent = (
+                                      (validCount / resultats.length) *
+                                      100
+                                    ).toFixed(0);
+                                    return (
+                                      <span
+                                        className={
+                                          validCount >= resultats.length / 2
+                                            ? "text-emerald-400"
+                                            : "text-rose-400"
+                                        }
+                                      >
+                                        {validCount}/{resultats.length} (
+                                        {percent}%)
+                                      </span>
+                                    );
+                                  })()}
+                                </td>
+                              ))}
+                              <td
+                                colSpan={2}
+                                className="px-2 py-3 text-center border border-slate-600 bg-emerald-700"
+                              >
+                                {
+                                  resultats.filter(
+                                    (r) =>
+                                      r.semestres[semIdx]?.pourcentage >= 50,
+                                  ).length
+                                }{" "}
+                                Admis
+                              </td>
+                              <td
+                                colSpan={2}
+                                className="px-2 py-3 text-center border border-slate-600 bg-amber-600"
+                              >
+                                Moy:{" "}
+                                {(
+                                  resultats.reduce(
+                                    (s, r) =>
+                                      s +
+                                      (r.semestres[semIdx]?.pourcentage || 0),
+                                    0,
+                                  ) / resultats.length
+                                ).toFixed(1)}
+                                %
+                              </td>
+                              <td
+                                colSpan={3}
+                                className="px-2 py-3 text-center border border-slate-600 bg-rose-700"
+                              >
+                                {
+                                  resultats.filter(
+                                    (r) =>
+                                      r.semestres[semIdx]?.pourcentage < 50,
+                                  ).length
+                                }{" "}
+                                Ajournés
+                              </td>
+                            </tr>
+                          </tfoot>
                         </table>
                       </div>
                     );
