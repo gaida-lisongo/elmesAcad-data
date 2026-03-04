@@ -408,7 +408,6 @@ export default class DocumentGrille extends DocumentJury {
 
     return { rowEnd: row + 2, colEnd: colStart };
   }
-
   private renderGrilleGlobaleSheet(
     resultats: ResultatEtudiant[],
     identity: JuryIdentity,
@@ -416,127 +415,271 @@ export default class DocumentGrille extends DocumentJury {
     const sheet = this.addSheet("Grille Annuelle", "landscape");
     let curr = this.drawAcademicHeader(sheet, identity);
 
-    const allUnitColumns = resultats[0].semestres.flatMap((sem, semIdx) =>
+    // 1. Consolidation des unités (Toutes les UE de l'année dans un seul tableau)
+    // On préfixe le code/designation par S1 ou S2 pour la clarté
+    const allUnitesConsolidees = resultats[0].semestres.flatMap((sem, sIdx) =>
       sem.unites.map((u) => ({
-        semIdx,
-        unitId: u._id,
-        label: `S${semIdx + 1}-${u.code}`,
+        ...u,
+        designation: `(S${sIdx + 1}) ${u.designation}`, // Identification du semestre
+        code: `S${sIdx + 1}-${u.code}`,
       })),
     );
 
-    // En-tête
-    this.renderGlobalHeader(
+    // 2. Création d'un objet "Semestre Virtuel" pour la synthèse annuelle
+    const promotionStats = resultats[0].promotion;
+    const semVirtuelGlobal: any = {
+      unites: allUnitesConsolidees,
+      totalObtenu: promotionStats.totalObtenu,
+      totalMax: promotionStats.totalMax,
+      pourcentage: promotionStats.pourcentage,
+      ncv: promotionStats.ncv,
+      ncnv: promotionStats.ncnv,
+    };
+
+    // 3. Rendu de l'en-tête complexe (Réutilisation de la logique semestrielle)
+    const rowIdx = curr - 1;
+    // On appelle renderNotesHeader avec TOUTES les unités de l'année
+    const { colEnd } = this.renderNotesHeader(
       sheet,
-      curr,
-      allUnitColumns.map((item) => item.label),
+      3,
+      rowIdx,
+      allUnitesConsolidees,
     );
+    this.renderSyntheseHeader(sheet, colEnd + 1, rowIdx, semVirtuelGlobal);
+
+    // Ajout des labels N° et Étudiant (pour l'alignement)
+    const contentsLabel = ["N°", "ÉTUDIANT"];
+    contentsLabel.forEach((label, idx) => {
+      const cell = sheet.getCell(rowIdx + 3, idx + 1);
+      cell.value = label;
+      this.applyStyle(cell, { bold: true, align: { horizontal: "center" } });
+      this.applyBorder(cell);
+    });
+    sheet.getColumn(1).width = this.getFontSize("SM") / 2;
+    sheet.getColumn(2).width = this.getFontSize("SM") * 3.5;
+
     curr += 3;
 
-    // Données globales avec toutes les unités
+    // 4. Rendu des données (Boucle sur les étudiants)
     resultats.forEach((etud, idx) => {
       const r = sheet.getRow(curr + idx);
 
-      const numCell = r.getCell(1);
-      numCell.value = idx + 1;
-      this.applyBorder(numCell);
-      this.applyStyle(numCell, { align: { horizontal: "center" } });
+      // N° et Nom
+      r.getCell(1).value = idx + 1;
+      r.getCell(2).value = etud.studentName;
+      [1, 2].forEach((c) => {
+        this.applyBorder(r.getCell(c));
+        this.applyStyle(r.getCell(c), {
+          align: { horizontal: c === 1 ? "center" : "left" },
+        });
+      });
 
-      const nameCell = r.getCell(2);
-      nameCell.value = etud.studentName;
-      this.applyBorder(nameCell);
-
-      // Moyennes par unité (tous semestres)
       let c = 3;
-      allUnitColumns.forEach((colDef) => {
-        const sem = etud.semestres[colDef.semIdx];
-        const unite = sem?.unites.find((u) => u._id === colDef.unitId);
-        const cell = r.getCell(c++);
-        cell.value = unite ? unite.moyenne : "-";
-        if (typeof cell.value === "number") {
-          cell.numFmt = "0.00";
-        }
+      // Parcours de toutes les unités de tous les semestres
+      etud.semestres.forEach((sem) => {
+        sem.unites.forEach((u) => {
+          // Notes des EC
+          u.elements.forEach((e) => {
+            const cell = r.getCell(c++);
+            cell.value = e.noteFinale;
+            cell.numFmt = "0.00";
+            this.applyBorder(cell);
+            this.applyStyle(cell, {
+              color: e.noteFinale < 10 ? "DANGER" : "BLACK",
+              align: { horizontal: "center" },
+            });
+          });
+
+          // Moyenne UE
+          const moyCell = r.getCell(c++);
+          moyCell.value = u.moyenne;
+          moyCell.numFmt = "0.00";
+          this.applyBorder(moyCell);
+          this.applyStyle(moyCell, {
+            align: { horizontal: "center" },
+            bold: true,
+          });
+
+          // Validation UE
+          const vCell = r.getCell(c++);
+          vCell.value = u.isValide ? "V" : "NV";
+          this.applyBorder(vCell);
+          this.applyStyle(vCell, {
+            color: u.isValide ? "SUCCESS" : "DANGER",
+            bold: true,
+            align: { horizontal: "center" },
+          });
+        });
+      });
+
+      // 5. Synthèse Annuelle (Données Promotion)
+      const p = etud.promotion;
+      const synthData = [
+        p.pourcentage / 100,
+        p.ncv,
+        p.ncnv,
+        this.getMentionCode(p.pourcentage),
+        p.ncv >= (p.ncv + p.ncnv) * 0.75 ? "SAT" : "AJ", // Appreciation
+        p.ncv >= (p.ncv + p.ncnv) * 0.75 ? "P" : "D", // Decision
+      ];
+
+      synthData.forEach((val, sIdx) => {
+        const cell = r.getCell(c + sIdx);
+        cell.value = val;
+        if (sIdx === 0) cell.numFmt = "0.00%";
         this.applyBorder(cell);
-        this.applyStyle(cell, { align: { horizontal: "center" } });
-      });
-
-      // Synthèse globale
-      const promo = etud.promotion;
-      const obtCell = r.getCell(c++);
-      obtCell.value = Number(promo.totalObtenu).toFixed(2);
-      this.applyBorder(obtCell);
-      this.applyStyle(obtCell, {
-        bold: true,
-        align: { horizontal: "center" },
-      });
-
-      const maxCell = r.getCell(c++);
-      maxCell.value = Number(promo.totalMax).toFixed(2);
-      this.applyBorder(maxCell);
-      this.applyStyle(maxCell, {
-        bold: true,
-        align: { horizontal: "center" },
-      });
-
-      const pourcCell = r.getCell(c++);
-      pourcCell.value = promo.pourcentage / 100;
-      pourcCell.numFmt = "0.00%";
-      this.applyBorder(pourcCell);
-      this.applyStyle(pourcCell, {
-        bold: true,
-        align: { horizontal: "center" },
-      });
-
-      const mentionCell = r.getCell(c++);
-      mentionCell.value = this.getMentionCode(promo.pourcentage);
-      this.applyBorder(mentionCell);
-      this.applyStyle(mentionCell, {
-        bold: true,
-        align: { horizontal: "center" },
-      });
-
-      const ncvCell = r.getCell(c++);
-      ncvCell.value = promo.ncv;
-      this.applyBorder(ncvCell);
-      this.applyStyle(ncvCell, { align: { horizontal: "center" } });
-
-      const ncnvCell = r.getCell(c++);
-      ncnvCell.value = promo.ncnv;
-      this.applyBorder(ncnvCell);
-      this.applyStyle(ncnvCell, { align: { horizontal: "center" } });
-
-      // Décision globale
-      const totalCredits = Number(ncvCell.value) + Number(ncnvCell.value);
-      const isAdjourne =
-        totalCredits > 0
-          ? (Number(ncvCell.value) / totalCredits) * 100 < 75
-          : false;
-
-      const apprCell = r.getCell(c++);
-      apprCell.value = isAdjourne ? "A" : "S";
-      this.applyBorder(apprCell);
-      this.applyStyle(apprCell, {
-        align: { horizontal: "center" },
-        bold: true,
-      });
-
-      const decisionCell = r.getCell(c++);
-      decisionCell.value = isAdjourne ? "AJOURNÉ" : "VALIDÉ";
-      this.applyBorder(decisionCell);
-      this.applyStyle(decisionCell, {
-        align: { horizontal: "center" },
-        bold: true,
-        color: isAdjourne ? "DANGER" : "SUCCESS",
+        this.applyStyle(cell, {
+          align: { horizontal: "center" },
+          bold: sIdx >= 3,
+          color:
+            sIdx === 5 && val === "D"
+              ? "DANGER"
+              : sIdx === 5 && val === "P"
+                ? "SUCCESS"
+                : "BLACK",
+        });
       });
     });
 
-    // Pied de page avec signatures
     this.drawSignatureBlock(sheet, curr + resultats.length + 2);
   }
+  //   private renderGrilleGlobaleSheet(
+  //     resultats: ResultatEtudiant[],
+  //     identity: JuryIdentity,
+  //   ) {
+  //     const sheet = this.addSheet("Grille Annuelle", "landscape");
+  //     let curr = this.drawAcademicHeader(sheet, identity);
+
+  //     const semesterGroups = resultats[0].semestres.map((sem, semIdx) => ({
+  //       semIdx,
+  //       label: sem.designation || `SEMESTRE ${semIdx + 1}`,
+  //       units: sem.unites.map((u) => ({
+  //         unitId: u._id,
+  //         label: u.code || u.designation,
+  //       })),
+  //     }));
+
+  //     const allUnitColumns = semesterGroups.flatMap((group) =>
+  //       group.units.map((unit) => ({
+  //         semIdx: group.semIdx,
+  //         unitId: unit.unitId,
+  //         label: unit.label,
+  //       })),
+  //     );
+
+  //     // En-tête
+  //     this.renderGlobalHeader(sheet, curr, semesterGroups);
+  //     curr += 3;
+
+  //     // Données globales avec toutes les unités
+  //     resultats.forEach((etud, idx) => {
+  //       const r = sheet.getRow(curr + idx);
+
+  //       const numCell = r.getCell(1);
+  //       numCell.value = idx + 1;
+  //       this.applyBorder(numCell);
+  //       this.applyStyle(numCell, { align: { horizontal: "center" } });
+
+  //       const nameCell = r.getCell(2);
+  //       nameCell.value = etud.studentName;
+  //       this.applyBorder(nameCell);
+
+  //       // Moyennes par unité (tous semestres)
+  //       let c = 3;
+  //       allUnitColumns.forEach((colDef) => {
+  //         const sem = etud.semestres[colDef.semIdx];
+  //         const unite = sem?.unites.find((u) => u._id === colDef.unitId);
+  //         const cell = r.getCell(c++);
+  //         cell.value = unite ? unite.moyenne : "-";
+  //         if (typeof cell.value === "number") {
+  //           cell.numFmt = "0.00";
+  //         }
+  //         this.applyBorder(cell);
+  //         this.applyStyle(cell, { align: { horizontal: "center" } });
+  //       });
+
+  //       // Synthèse globale
+  //       const promo = etud.promotion;
+  //       const obtCell = r.getCell(c++);
+  //       obtCell.value = Number(promo.totalObtenu).toFixed(2);
+  //       this.applyBorder(obtCell);
+  //       this.applyStyle(obtCell, {
+  //         bold: true,
+  //         align: { horizontal: "center" },
+  //       });
+
+  //       const maxCell = r.getCell(c++);
+  //       maxCell.value = Number(promo.totalMax).toFixed(2);
+  //       this.applyBorder(maxCell);
+  //       this.applyStyle(maxCell, {
+  //         bold: true,
+  //         align: { horizontal: "center" },
+  //       });
+
+  //       const pourcCell = r.getCell(c++);
+  //       pourcCell.value = promo.pourcentage / 100;
+  //       pourcCell.numFmt = "0.00%";
+  //       this.applyBorder(pourcCell);
+  //       this.applyStyle(pourcCell, {
+  //         bold: true,
+  //         align: { horizontal: "center" },
+  //       });
+
+  //       const mentionCell = r.getCell(c++);
+  //       mentionCell.value = this.getMentionCode(promo.pourcentage);
+  //       this.applyBorder(mentionCell);
+  //       this.applyStyle(mentionCell, {
+  //         bold: true,
+  //         align: { horizontal: "center" },
+  //       });
+
+  //       const ncvCell = r.getCell(c++);
+  //       ncvCell.value = promo.ncv;
+  //       this.applyBorder(ncvCell);
+  //       this.applyStyle(ncvCell, { align: { horizontal: "center" } });
+
+  //       const ncnvCell = r.getCell(c++);
+  //       ncnvCell.value = promo.ncnv;
+  //       this.applyBorder(ncnvCell);
+  //       this.applyStyle(ncnvCell, { align: { horizontal: "center" } });
+
+  //       // Décision globale
+  //       const totalCredits = Number(ncvCell.value) + Number(ncnvCell.value);
+  //       const isAdjourne =
+  //         totalCredits > 0
+  //           ? (Number(ncvCell.value) / totalCredits) * 100 < 75
+  //           : false;
+
+  //       const apprCell = r.getCell(c++);
+  //       apprCell.value = isAdjourne ? "A" : "S";
+  //       this.applyBorder(apprCell);
+  //       this.applyStyle(apprCell, {
+  //         align: { horizontal: "center" },
+  //         bold: true,
+  //       });
+
+  //       const decisionCell = r.getCell(c++);
+  //       decisionCell.value = isAdjourne ? "AJOURNÉ" : "VALIDÉ";
+  //       this.applyBorder(decisionCell);
+  //       this.applyStyle(decisionCell, {
+  //         align: { horizontal: "center" },
+  //         bold: true,
+  //         color: isAdjourne ? "DANGER" : "SUCCESS",
+  //       });
+  //     });
+
+  //     // Pied de page avec signatures
+  //     this.drawSignatureBlock(sheet, curr + resultats.length + 2);
+  //   }
 
   private renderGlobalHeader(
     sheet: ExcelJS.Worksheet,
     row: number,
-    unitLabels: string[],
+    semesterGroups: Array<{
+      semIdx: number;
+      label: string;
+      units: Array<{ unitId: string; label: string }>;
+    }>,
   ) {
     // Légende
     sheet.mergeCells(row, 1, row + 1, 2);
@@ -563,28 +706,50 @@ export default class DocumentGrille extends DocumentJury {
       this.applyBorder(cell);
     });
 
-    // Headers unités globales
+    // Headers unités globales (addition des grilles semestrielles)
     let c = 3;
-    unitLabels.forEach((label) => {
-      const cell = sheet.getCell(row + 1, c);
-      cell.value = label;
-      cell.alignment = {
+    semesterGroups.forEach((group, groupIdx) => {
+      if (group.units.length === 0) {
+        return;
+      }
+
+      const groupStart = c;
+      const groupEnd = c + group.units.length - 1;
+      const semCell = sheet.getCell(row, groupStart);
+      semCell.value = `S${groupIdx + 1} - ${group.label}`;
+      semCell.alignment = {
         horizontal: "center",
         vertical: "middle",
-        textRotation: 90,
         wrapText: true,
       };
-      sheet.getColumn(c).width = this.getFontSize("SM") / 1.8;
-      this.applyStyle(cell, { bold: true, size: "SM" });
-      this.applyBorder(cell);
+      this.applyStyle(semCell, { bold: true });
+      sheet.mergeCells(row, groupStart, row, groupEnd);
 
-      const subCell = sheet.getCell(row + 2, c);
-      subCell.value = "MOY";
-      subCell.alignment = { horizontal: "center", vertical: "middle" };
-      this.applyStyle(subCell, {});
-      this.applyBorder(subCell);
+      group.units.forEach((unit) => {
+        const cell = sheet.getCell(row + 1, c);
+        cell.value = unit.label;
+        cell.alignment = {
+          horizontal: "center",
+          vertical: "middle",
+          textRotation: 90,
+          wrapText: true,
+        };
+        sheet.getColumn(c).width = this.getFontSize("SM") / 1.8;
+        this.applyStyle(cell, { bold: true, size: "SM" });
+        this.applyBorder(cell);
 
-      c++;
+        const subCell = sheet.getCell(row + 2, c);
+        subCell.value = "MOY";
+        subCell.alignment = { horizontal: "center", vertical: "middle" };
+        this.applyStyle(subCell, {});
+        this.applyBorder(subCell);
+
+        c++;
+      });
+
+      for (let borderCol = groupStart; borderCol <= groupEnd; borderCol++) {
+        this.applyBorder(sheet.getCell(row, borderCol));
+      }
     });
 
     // Headers synthèse globale
