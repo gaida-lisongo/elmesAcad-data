@@ -48,25 +48,25 @@ export default function ScrollToTop() {
           ),
           pack: "pro",
         },
-        {
-          label: "Mails",
-          href: "/mails",
-          icon: (
-            <Icon
-              icon="mdi-light:email"
-              width={24}
-              height={24}
-              className="text-primary"
-            />
-          ),
-          pack: "pro",
-        },
+        // {
+        //   label: "Mails",
+        //   href: "/mails",
+        //   icon: (
+        //     <Icon
+        //       icon="mdi-light:email"
+        //       width={24}
+        //       height={24}
+        //       className="text-primary"
+        //     />
+        //   ),
+        //   pack: "pro",
+        // },
         {
           label: "Grille de délibération",
           href: "/grille-deliberation",
           icon: (
             <Icon
-              icon="material-symbols:grading-outline"
+              icon="ic:baseline-assignment-turned-in"
               width={24}
               height={24}
               className="text-primary"
@@ -263,8 +263,16 @@ export default function ScrollToTop() {
   console.log("PACK :", currentPack);
   //Save menu user in useMemo to avoid re-rendering the menu on every render
   const filteredNavMenu = user?.autorisations
-    ? navMenu.filter((menu) =>
-        user?.autorisations.includes(menu.category?.toUpperCase()),
+    ? navMenu.filter(
+        (menu) =>
+          user?.autorisations.includes(menu.category?.toUpperCase()) &&
+          menu.items.some((item) => {
+            return (
+              item.pack === "basic" ||
+              item.pack === currentPack.toLocaleLowerCase() ||
+              item.pack === "elite"
+            );
+          }),
       )
     : [];
 
