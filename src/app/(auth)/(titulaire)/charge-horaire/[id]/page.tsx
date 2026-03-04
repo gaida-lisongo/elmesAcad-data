@@ -81,12 +81,26 @@ export default function ChargeHorairePage() {
   const [students, setStudents] = useState<SubscriptionType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showActivityModal, setShowActivityModal] = useState(false);
-  const [activityType, setActivityType] = useState<"qcm" | "questionnaire">("qcm");
+  const [activityType, setActivityType] = useState<"qcm" | "questionnaire">(
+    "qcm",
+  );
 
   const tabs = [
-    { label: "Fiche cotation", value: "fiche-cotation", icon: "solar:document-text-bold-duotone" },
-    { label: "Activites", value: "activities", icon: "solar:checklist-minimalistic-bold-duotone" },
-    { label: "Ressources", value: "ressources", icon: "solar:folder-with-files-bold-duotone" },
+    {
+      label: "Fiche cotation",
+      value: "fiche-cotation",
+      icon: "solar:document-text-bold-duotone",
+    },
+    {
+      label: "Activites",
+      value: "activities",
+      icon: "solar:checklist-minimalistic-bold-duotone",
+    },
+    {
+      label: "Ressources",
+      value: "ressources",
+      icon: "solar:folder-with-files-bold-duotone",
+    },
     { label: "Recours", value: "recours", icon: "solar:help-bold-duotone" },
     { label: "Seances", value: "seances", icon: "solar:calendar-bold-duotone" },
   ];
@@ -111,7 +125,13 @@ export default function ChargeHorairePage() {
       fetchPromotionByUniteId(cours?.uniteId)
         .then((res) => {
           if (res.success) {
-            const { unite: UniteData, semestre: semestreData, section: sectionData, filiere: filiereData, programme: programmeData } = res.data;
+            const {
+              unite: UniteData,
+              semestre: semestreData,
+              section: sectionData,
+              filiere: filiereData,
+              programme: programmeData,
+            } = res.data;
             setUnite(UniteData);
             setSemestre(semestreData);
             setSection(sectionData);
@@ -127,7 +147,9 @@ export default function ChargeHorairePage() {
   useEffect(() => {
     if (promotion && cours?.anneeId) {
       fetchSubscriptionsByPromotion(promotion._id, cours.anneeId._id)
-        .then((res) => { if (res.success) setStudents(res.data); })
+        .then((res) => {
+          if (res.success) setStudents(res.data || []);
+        })
         .catch((error) => console.error("Erreur:", error));
     }
   }, [promotion, cours?.anneeId]);
@@ -138,9 +160,19 @@ export default function ChargeHorairePage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Icon icon="solar:sad-circle-bold-duotone" width={64} height={64} className="text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 dark:text-white mb-2">Element non trouve</h3>
-          <Link href="/charge-horaire" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg">
+          <Icon
+            icon="solar:sad-circle-bold-duotone"
+            width={64}
+            height={64}
+            className="text-gray-300 mx-auto mb-4"
+          />
+          <h3 className="text-xl font-semibold text-gray-700 dark:text-white mb-2">
+            Element non trouve
+          </h3>
+          <Link
+            href="/charge-horaire"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg"
+          >
             <Icon icon="solar:arrow-left-outline" width={20} /> Retour
           </Link>
         </div>
@@ -152,15 +184,34 @@ export default function ChargeHorairePage() {
     <div className="w-full">
       <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 p-6">
         <div className="flex items-center gap-4">
-          <Link href="/charge-horaire" className="flex items-center gap-2 px-4 py-2 border border-stroke rounded-lg">
+          <Link
+            href="/charge-horaire"
+            className="flex items-center gap-2 px-4 py-2 border border-stroke rounded-lg"
+          >
             <Icon icon="solar:arrow-left-outline" width={20} /> Retour
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{cours.code} - {cours.designation}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {cours.code} - {cours.designation}
+            </h1>
             <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
-              <span className="flex items-center gap-1"><Icon icon="solar:medal-star-outline" width={16} /> {cours.credit} credits</span>
-              {cours.anneeId && <span className="flex items-center gap-1"><Icon icon="solar:calendar-outline" width={16} /> {new Date(cours.anneeId.debut).getFullYear()} - {new Date(cours.anneeId.fin).getFullYear()}</span>}
-              {promotion && <span className="flex items-center gap-1"><Icon icon="solar:users-group-rounded-outline" width={16} /> {promotion.sigle}</span>}
+              <span className="flex items-center gap-1">
+                <Icon icon="solar:medal-star-outline" width={16} />{" "}
+                {cours.credit} credits
+              </span>
+              {cours.anneeId && (
+                <span className="flex items-center gap-1">
+                  <Icon icon="solar:calendar-outline" width={16} />{" "}
+                  {new Date(cours.anneeId.debut).getFullYear()} -{" "}
+                  {new Date(cours.anneeId.fin).getFullYear()}
+                </span>
+              )}
+              {promotion && (
+                <span className="flex items-center gap-1">
+                  <Icon icon="solar:users-group-rounded-outline" width={16} />{" "}
+                  {promotion.sigle}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -168,19 +219,69 @@ export default function ChargeHorairePage() {
 
       <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700">
         <div className="px-6 flex space-x-1 overflow-x-auto">
-          {tabs.map((tab) => <TabItem key={tab.value} label={tab.label} value={tab.value} activeTab={activeTab} onClick={setActiveTab} icon={tab.icon} />)}
+          {tabs.map((tab) => (
+            <TabItem
+              key={tab.value}
+              label={tab.label}
+              value={tab.value}
+              activeTab={activeTab}
+              onClick={setActiveTab}
+              icon={tab.icon}
+            />
+          ))}
         </div>
       </div>
 
       <div className="p-6 bg-gray-2 dark:bg-boxdark-2 min-h-screen">
-        {activeTab === "fiche-cotation" && <FicheCotation elementId={elementId} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} titulaireId={cours.titulaireId || ""} />}
-        {activeTab === "activities" && <ActivitesManager elementId={elementId} titulaireId={cours.titulaireId || ""} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} onCreateNew={(type) => { setActivityType(type); setShowActivityModal(true); }} />}
-        {activeTab === "ressources" && <RessourcesManager elementId={elementId} titulaireId={cours.titulaireId || ""} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} />}
+        {activeTab === "fiche-cotation" && (
+          <FicheCotation
+            elementId={elementId}
+            promotionId={promotion?._id || ""}
+            anneeId={cours.anneeId?._id || ""}
+            titulaireId={cours.titulaireId || ""}
+          />
+        )}
+        {activeTab === "activities" && (
+          <ActivitesManager
+            elementId={elementId}
+            titulaireId={cours.titulaireId || ""}
+            promotionId={promotion?._id || ""}
+            anneeId={cours.anneeId?._id || ""}
+            onCreateNew={(type) => {
+              setActivityType(type);
+              setShowActivityModal(true);
+            }}
+          />
+        )}
+        {activeTab === "ressources" && (
+          <RessourcesManager
+            elementId={elementId}
+            titulaireId={cours.titulaireId || ""}
+            promotionId={promotion?._id || ""}
+            anneeId={cours.anneeId?._id || ""}
+          />
+        )}
         {activeTab === "recours" && <RecoursManager elementId={elementId} />}
-        {activeTab === "seances" && <SeancesManager elementId={elementId} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} />}
+        {activeTab === "seances" && (
+          <SeancesManager
+            elementId={elementId}
+            promotionId={promotion?._id || ""}
+            anneeId={cours.anneeId?._id || ""}
+          />
+        )}
       </div>
 
-      {showActivityModal && <CreateActivityModal type={activityType} elementId={elementId} titulaireId={cours.titulaireId || ""} promotionId={promotion?._id || ""} anneeId={cours.anneeId?._id || ""} onClose={() => setShowActivityModal(false)} onSuccess={() => setShowActivityModal(false)} />}
+      {showActivityModal && (
+        <CreateActivityModal
+          type={activityType}
+          elementId={elementId}
+          titulaireId={cours.titulaireId || ""}
+          promotionId={promotion?._id || ""}
+          anneeId={cours.anneeId?._id || ""}
+          onClose={() => setShowActivityModal(false)}
+          onSuccess={() => setShowActivityModal(false)}
+        />
+      )}
     </div>
   );
 }

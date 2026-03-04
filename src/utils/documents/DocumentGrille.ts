@@ -437,26 +437,8 @@ export default class DocumentGrille extends DocumentJury {
     };
 
     // 3. Rendu de l'en-tête complexe (Réutilisation de la logique semestrielle)
+    this.renderHeaderComplex(sheet, semVirtuelGlobal, curr);
     const rowIdx = curr - 1;
-    // On appelle renderNotesHeader avec TOUTES les unités de l'année
-    const { colEnd } = this.renderNotesHeader(
-      sheet,
-      3,
-      rowIdx,
-      allUnitesConsolidees,
-    );
-    this.renderSyntheseHeader(sheet, colEnd + 1, rowIdx, semVirtuelGlobal);
-
-    // Ajout des labels N° et Étudiant (pour l'alignement)
-    const contentsLabel = ["N°", "ÉTUDIANT"];
-    contentsLabel.forEach((label, idx) => {
-      const cell = sheet.getCell(rowIdx + 3, idx + 1);
-      cell.value = label;
-      this.applyStyle(cell, { bold: true, align: { horizontal: "center" } });
-      this.applyBorder(cell);
-    });
-    sheet.getColumn(1).width = this.getFontSize("SM") / 2;
-    sheet.getColumn(2).width = this.getFontSize("SM") * 3.5;
 
     curr += 3;
 
