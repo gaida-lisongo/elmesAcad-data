@@ -209,7 +209,8 @@ export default function ChargeHorairePage() {
               {promotion && (
                 <span className="flex items-center gap-1">
                   <Icon icon="solar:users-group-rounded-outline" width={16} />{" "}
-                  {promotion.sigle}
+                  {promotion?.semestres ? promotion?.semestres.length : 0}{" "}
+                  semestres, {students.length} etudiants
                 </span>
               )}
             </div>

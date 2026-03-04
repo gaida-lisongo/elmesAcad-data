@@ -23,12 +23,14 @@ interface FicheCotationProps {
   elementId: string;
   promotionId: string;
   anneeId: string;
+  titulaireId?: string;
 }
 
 export const FicheCotation = ({
   elementId,
   promotionId,
   anneeId,
+  titulaireId,
 }: FicheCotationProps) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
