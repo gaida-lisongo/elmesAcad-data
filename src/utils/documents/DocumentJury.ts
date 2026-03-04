@@ -5,7 +5,7 @@ export interface JuryIdentity {
   universite: string;
   faculte: string;
   departement: string;
-  session: string;
+  promotion: string;
   anneeAcademique: string;
 }
 
@@ -17,46 +17,44 @@ export default class DocumentJury extends Document {
   /**
    * Méthode protégée pour dessiner le bloc d'en-tête académique
    */
-  protected drawAcademicHeader(sheet: ExcelJS.Worksheet, identity: JuryIdentity): number {
+  protected drawAcademicHeader(
+    sheet: ExcelJS.Worksheet,
+    identity: JuryIdentity,
+  ): number {
+    const defaultStyle: StyleOptions = {
+      bold: true,
+      size: "SM",
+      color: "BLACK",
+      align: { vertical: "middle", horizontal: "center", wrapText: true },
+    };
     // 1. En-tête Gauche (Titres)
     const titles = [
-        identity.universite,
-        identity.faculte,
-        identity.departement,
-        "---------------------------",
-        "JURY DE DÉLIBÉRATION"
+      `${identity.universite}`,
+      `Section: ${identity.faculte}`,
+      `${identity.departement}`,
+      `Promotion: ${identity.promotion}`,
+      `Année Académique: ${identity.anneeAcademique}`,
     ];
 
-    titles.forEach((text, index) => {
-        const row = index + 1;
-        const cell = sheet.getCell(`A${row}`);
-        cell.value = text;
-        this.applyStyle(cell, { 
-            bold: index === 0 || index === 4, // Gras pour Univ et Jury
-            size: index === 0 ? "LG" : "MD",
-            color: index === 4 ? "PRIMARY" : "BLACK"
-        });
-    });
+    let rowIdx = 1;
 
-    // 2. En-tête Droite (Année / Session)
-    sheet.mergeCells("F1:H1");
-    const sessionCell = sheet.getCell("F1");
-    sessionCell.value = `Année : ${identity.anneeAcademique}`;
-    this.applyStyle(sessionCell, { align: { horizontal: "right" } });
+    sheet.getCell(`A${rowIdx}`).value = titles.join("\r\n");
+    this.applyStyle(sheet.getCell(`A${rowIdx}`), defaultStyle);
+    sheet.mergeCells(`A${rowIdx}:B${rowIdx}`);
+    this.applyFullBorders(sheet.getCell(`A${rowIdx}`), "HAIR");
 
-    sheet.mergeCells("F2:H2");
-    sheet.getCell("F2").value = `Session : ${identity.session}`;
-    sheet.getCell("F2").alignment = { horizontal: "right" };
-
-    return 7; // On retourne la ligne où le contenu peut commencer
+    return rowIdx + 1; // On retourne la ligne où le contenu peut commencer
   }
 
   /**
    * Pied de page pour les signatures
    */
-  protected drawSignatureBlock(sheet: ExcelJS.Worksheet, startRow: number): void {
+  protected drawSignatureBlock(
+    sheet: ExcelJS.Worksheet,
+    startRow: number,
+  ): void {
     const row = sheet.getRow(startRow);
-    
+
     // Signature Président
     sheet.mergeCells(`A${startRow}:C${startRow}`);
     const pres = sheet.getCell(`A${startRow}`);

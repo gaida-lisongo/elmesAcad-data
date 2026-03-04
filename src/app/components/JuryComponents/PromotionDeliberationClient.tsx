@@ -127,16 +127,16 @@ export default function PromotionDeliberationClient({
     setIsSaving(false);
   };
 
-  const handleExport = async (type: "PV" | "GRILLE" | "PALMARES") => {
+  const handleExportDocumentGrille = async () => {
     const identity = {
-      universite: "UNIVERSITÉ DE KINSHASA",
+      universite: process.env.NEXT_PUBLIC_UNIV || "I.N.B.T.P",
       faculte: promotion.section?.mention || "FACULTÉ",
       departement: promotion.filiere?.designation || "DÉPARTEMENT",
-      session: "Première Session",
+      promotion: `${promotion.designation}`,
       anneeAcademique: "2024-2025",
     };
 
-    const res = await exportJuryDocument(type, resultats, identity);
+    const res = await exportJuryDocument("GRILLE", resultats, identity);
 
     // Téléchargement du fichier
     const link = document.createElement("a");
@@ -208,7 +208,7 @@ export default function PromotionDeliberationClient({
               {showExportMenu && (
                 <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 z-50">
                   <button
-                    onClick={() => handleExport("PV")}
+                    onClick={() => handleExportAll()}
                     className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 rounded-t-lg"
                   >
                     <Icon
@@ -227,7 +227,7 @@ export default function PromotionDeliberationClient({
                     </div>
                   </button>
                   <button
-                    onClick={() => handleExport("PALMARES")}
+                    onClick={() => handleExportPalmares()}
                     className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 border-t border-gray-100 dark:border-slate-700"
                   >
                     <Icon
@@ -246,7 +246,7 @@ export default function PromotionDeliberationClient({
                     </div>
                   </button>
                   <button
-                    onClick={() => handleExport("GRILLE")}
+                    onClick={() => handleExportDocumentGrille()}
                     className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 border-t border-gray-100 dark:border-slate-700 rounded-b-lg"
                   >
                     <Icon
