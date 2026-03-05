@@ -39,6 +39,15 @@ export interface IStage extends IProduit {
   date_fin: Date;
 }
 
+export interface IDocumment extends IProduit {
+  category: String;
+  signatures: {
+    userId: mongoose.Types.ObjectId;
+    fonction: String;
+  }[];
+  slug: String;
+}
+
 export interface ICommande extends Document {
   etudiantId: mongoose.Types.ObjectId;
   phoneNumber: String;
@@ -197,6 +206,43 @@ const StageCommandeSchema = new Schema<IStageCommande>(
     },
     lettre_sexe: {
       type: String,
+    },
+  },
+  { timestamps: true },
+);
+
+export interface IDocumentCommande extends ICommande {
+  docummentId: mongoose.Types.ObjectId;
+}
+
+const DocumentCommandeSchema = new Schema<IDocumentCommande>(
+  {
+    etudiantId: {
+      type: Schema.Types.ObjectId,
+      ref: "Etudiant",
+      required: true,
+    },
+    phoneNumber: {
+      type: String,
+      required: true,
+    },
+    orderNumber: {
+      type: String,
+      required: true,
+    },
+    reference: {
+      type: String,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "paid", "failed", "ok"],
+      default: "pending",
+    },
+    docummentId: {
+      type: Schema.Types.ObjectId,
+      ref: "Documment",
+      required: true,
     },
   },
   { timestamps: true },
@@ -362,6 +408,59 @@ const StageSchema = new Schema<IStage>(
   { timestamps: true },
 );
 
+const DocummentSchema = new Schema<IDocumment>(
+  {
+    designation: {
+      type: String,
+      required: true,
+    },
+    anneeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Annee",
+      required: true,
+    },
+    promotionId: {
+      type: Schema.Types.ObjectId,
+      ref: "Promotion",
+      required: true,
+    },
+    description: {
+      type: [String],
+      required: true,
+    },
+    prix: {
+      type: Number,
+      required: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    category: {
+      type: String,
+      required: true,
+    },
+    signatures: [
+      {
+        userId: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        fonction: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
+    slug: {
+      type: String,
+      required: true,
+    },
+  },
+  { timestamps: true },
+);
+
 const Enrollement: Model<IEnrollement> =
   mongoose.models.Enrollement ||
   mongoose.model<IEnrollement>("Enrollement", EnrollementSchema);
@@ -381,6 +480,12 @@ const SujetCommande: Model<ISujetCommande> =
 const StageCommande: Model<IStageCommande> =
   mongoose.models.StageCommande ||
   mongoose.model<IStageCommande>("StageCommande", StageCommandeSchema);
+const Documment: Model<IDocumment> =
+  mongoose.models.Documment ||
+  mongoose.model<IDocumment>("Documment", DocummentSchema);
+const DocumentCommande: Model<IDocumentCommande> =
+  mongoose.models.DocumentCommande ||
+  mongoose.model<IDocumentCommande>("DocumentCommande", DocumentCommandeSchema);
 
 export default {
   Enrollement,
@@ -389,4 +494,18 @@ export default {
   EnrollementCommande,
   SujetCommande,
   StageCommande,
+  Documment,
+  DocumentCommande,
+};
+
+// Named exports for compatibility
+export {
+  Enrollement,
+  Sujet,
+  Stage,
+  EnrollementCommande,
+  SujetCommande,
+  StageCommande,
+  Documment,
+  DocumentCommande,
 };

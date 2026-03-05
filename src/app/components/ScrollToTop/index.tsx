@@ -180,6 +180,19 @@ export default function ScrollToTop() {
           ),
           pack: "basic",
         },
+        {
+          label: "Documents Enseignement",
+          href: "/documents/enseignement",
+          icon: (
+            <Icon
+              icon="material-symbols:description-outline"
+              width={24}
+              height={24}
+              className="text-primary"
+            />
+          ),
+          pack: "basic",
+        },
       ],
     },
     {
@@ -380,7 +393,7 @@ export default function ScrollToTop() {
           </button>
         </div>
 
-        <nav className="flex flex-col p-6">
+        <nav className="flex flex-col p-6 overflow-y-auto h-[calc(100vh-88px)]">
           <div className="space-y-4">
             <div className="pb-4 border-b">
               <p className="text-sm text-gray-500 mb-2">Utilisateur connecté</p>
