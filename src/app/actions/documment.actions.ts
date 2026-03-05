@@ -6,6 +6,35 @@ import mongoose from "mongoose";
 
 const { Documment, DocumentCommande } = RecetteModels;
 
+// Helper function to serialize MongoDB documents for client components
+function serializeData(data: any): any {
+  if (Array.isArray(data)) {
+    return data.map((item) => serializeData(item));
+  }
+
+  if (data === null || data === undefined) {
+    return data;
+  }
+
+  if (data instanceof mongoose.Types.ObjectId) {
+    return data.toString();
+  }
+
+  if (data instanceof Date) {
+    return data.toISOString();
+  }
+
+  if (typeof data === "object") {
+    const serialized: any = {};
+    for (const key in data) {
+      serialized[key] = serializeData(data[key]);
+    }
+    return serialized;
+  }
+
+  return data;
+}
+
 export interface CreateDocumentInput {
   designation: string;
   category: string;
@@ -46,7 +75,7 @@ export async function createDocument(data: CreateDocumentInput) {
 
     return {
       success: true,
-      data: document.toObject(),
+      data: serializeData(document.toObject()),
       message: "Document créé avec succès",
     };
   } catch (error: any) {
@@ -83,7 +112,7 @@ export async function getDocumentsByCategory(
 
     return {
       success: true,
-      data: documents,
+      data: serializeData(documents),
     };
   } catch (error: any) {
     return {
@@ -113,7 +142,7 @@ export async function updateDocument(data: UpdateDocumentInput) {
 
     return {
       success: true,
-      data: document.toObject(),
+      data: serializeData(document.toObject()),
       message: "Document modifié avec succès",
     };
   } catch (error: any) {
@@ -166,7 +195,7 @@ export async function getCommandesByDocument(documentId: string) {
 
     return {
       success: true,
-      data: commandes,
+      data: serializeData(commandes),
     };
   } catch (error: any) {
     return {
@@ -212,7 +241,7 @@ export async function createOrUpdateCommande(data: {
 
       return {
         success: true,
-        data: updated.toObject(),
+        data: serializeData(updated.toObject()),
         message: "Commande modifiée avec succès",
       };
     }
@@ -228,7 +257,7 @@ export async function createOrUpdateCommande(data: {
 
     return {
       success: true,
-      data: commande.toObject(),
+      data: serializeData(commande.toObject()),
       message: "Commande créée avec succès",
     };
   } catch (error: any) {
@@ -321,7 +350,7 @@ export async function importCommandesFromCSV(
 
     return {
       success: true,
-      data: result,
+      data: serializeData(result),
       message: `${commandes.length} commandes importées avec succès`,
     };
   } catch (error: any) {
@@ -377,7 +406,7 @@ export async function getDocumentsWithComandesCount(
 
     return {
       success: true,
-      data: documents,
+      data: serializeData(documents),
     };
   } catch (error: any) {
     return {

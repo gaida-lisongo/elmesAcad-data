@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import {
   createDocument,
@@ -17,8 +17,12 @@ interface Document {
   prix: number;
   isActive: boolean;
   commandesCount?: number;
-  createdAt: Date;
-  updatedAt: Date;
+  signatures?: {
+    userId: string;
+    fonction: string;
+  }[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface DocumentManagerProps {
@@ -34,7 +38,7 @@ interface DocumentManagerProps {
 export default function DocumentManager({
   documents: initialDocuments,
   category,
-  categoryOptions,
+  categoryOptions: _categoryOptions,
   promotionId,
   anneeId,
   onDocumentClick,
@@ -52,7 +56,12 @@ export default function DocumentManager({
     description: "",
     prix: 0,
     category: category,
+    signatures: [{ userId: "", fonction: "" }],
   });
+
+  useEffect(() => {
+    setDocuments(initialDocuments);
+  }, [initialDocuments]);
 
   const resetForm = () => {
     setFormData({
@@ -60,6 +69,7 @@ export default function DocumentManager({
       description: "",
       prix: 0,
       category: category,
+      signatures: [{ userId: "", fonction: "" }],
     });
     setEditingId(null);
     setShowForm(false);
@@ -68,12 +78,54 @@ export default function DocumentManager({
   const handleEdit = (doc: Document) => {
     setFormData({
       designation: doc.designation,
-      description: doc.description.join(", "),
+      description: doc.description.join("\n"),
       prix: doc.prix,
       category: doc.category,
+      signatures:
+        doc.signatures && doc.signatures.length > 0
+          ? doc.signatures
+          : [{ userId: "", fonction: "" }],
     });
     setEditingId(doc._id);
     setShowForm(true);
+  };
+
+  const handleAddSignature = () => {
+    setFormData((prev) => ({
+      ...prev,
+      signatures: [...prev.signatures, { userId: "", fonction: "" }],
+    }));
+  };
+
+  const handleRemoveSignature = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      signatures: prev.signatures.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleSignatureChange = (
+    index: number,
+    field: "userId" | "fonction",
+    value: string,
+  ) => {
+    setFormData((prev) => {
+      const newSignatures = [...prev.signatures];
+      newSignatures[index] = { ...newSignatures[index], [field]: value };
+      return { ...prev, signatures: newSignatures };
+    });
+  };
+
+  const refreshDocuments = async () => {
+    const refreshResult = await getDocumentsByCategory(
+      category,
+      promotionId,
+      anneeId,
+    );
+    if (refreshResult.success) {
+      setDocuments(refreshResult.data);
+      onRefresh?.();
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,9 +136,13 @@ export default function DocumentManager({
 
     try {
       const description = formData.description
-        .split(",")
+        .split("\n")
         .map((d) => d.trim())
         .filter((d) => d);
+
+      const validSignatures = formData.signatures.filter(
+        (sig) => sig.userId.trim() && sig.fonction.trim(),
+      );
 
       if (editingId) {
         const result = await updateDocument({
@@ -95,21 +151,17 @@ export default function DocumentManager({
           description: description,
           prix: formData.prix,
           category: formData.category,
+          signatures: validSignatures,
         });
 
         if (result.success) {
-          setSuccessMessage(result.message);
-          const refreshResult = await getDocumentsByCategory(
-            category,
-            promotionId,
-            anneeId,
+          setSuccessMessage(
+            `${result.message ?? "Document modifié avec succès"}`,
           );
-          if (refreshResult.success) {
-            setDocuments(refreshResult.data);
-          }
+          await refreshDocuments();
           resetForm();
         } else {
-          setErrorMessage(result.message);
+          setErrorMessage(result.message || "Erreur lors de la modification");
         }
       } else {
         const result = await createDocument({
@@ -119,23 +171,16 @@ export default function DocumentManager({
           category: formData.category,
           anneeId: anneeId,
           promotionId: promotionId,
-          signatures: [],
+          signatures: validSignatures,
           slug: formData.designation.toLowerCase().replace(/\s+/g, "-"),
         });
 
         if (result.success) {
           setSuccessMessage(result.message);
-          const refreshResult = await getDocumentsByCategory(
-            category,
-            promotionId,
-            anneeId,
-          );
-          if (refreshResult.success) {
-            setDocuments(refreshResult.data);
-          }
+          await refreshDocuments();
           resetForm();
         } else {
-          setErrorMessage(result.message);
+          setErrorMessage(result.message || "Erreur lors de la création");
         }
       }
     } catch (error: any) {
@@ -152,10 +197,12 @@ export default function DocumentManager({
     try {
       const result = await deleteDocument(id);
       if (result.success) {
-        setSuccessMessage(result.message);
+        setSuccessMessage(
+          `${result.message ?? "Document supprimé avec succès"}`,
+        );
         setDocuments(documents.filter((d) => d._id !== id));
       } else {
-        setErrorMessage(result.message);
+        setErrorMessage(`${result.message ?? "Erreur lors de la suppression"}`);
       }
     } catch (error: any) {
       setErrorMessage(error.message);
@@ -216,7 +263,7 @@ export default function DocumentManager({
         >
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Désignation
+              Désignation *
             </label>
             <input
               type="text"
@@ -231,21 +278,25 @@ export default function DocumentManager({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description (séparée par des virgules)
+              Description (une ligne par élément)
             </label>
             <textarea
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary font-mono text-sm"
+              rows={4}
+              placeholder={"Ligne 1\nLigne 2\nLigne 3..."}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Appuyez sur Entrée pour ajouter une nouvelle ligne
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Prix
+              Prix *
             </label>
             <input
               type="number"
@@ -254,8 +305,71 @@ export default function DocumentManager({
                 setFormData({ ...formData, prix: parseFloat(e.target.value) })
               }
               step="0.01"
+              required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
             />
+          </div>
+
+          <div className="space-y-3 p-3 bg-white rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">
+                Signatures (optionnel)
+              </label>
+              <button
+                type="button"
+                onClick={handleAddSignature}
+                className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded hover:bg-primary/20 transition"
+              >
+                <Icon icon="material-symbols:add" width={16} height={16} />
+                Ajouter
+              </button>
+            </div>
+
+            {formData.signatures.map((sig, index) => (
+              <div key={index} className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-600 mb-1">
+                    ID Utilisateur
+                  </label>
+                  <input
+                    type="text"
+                    value={sig.userId}
+                    onChange={(e) =>
+                      handleSignatureChange(index, "userId", e.target.value)
+                    }
+                    placeholder="ObjectId de l'utilisateur"
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Fonction
+                  </label>
+                  <input
+                    type="text"
+                    value={sig.fonction}
+                    onChange={(e) =>
+                      handleSignatureChange(index, "fonction", e.target.value)
+                    }
+                    placeholder="Ex: Directeur"
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-primary"
+                  />
+                </div>
+                {formData.signatures.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSignature(index)}
+                    className="p-1.5 text-red-600 hover:bg-red-50 rounded transition"
+                  >
+                    <Icon
+                      icon="material-symbols:delete"
+                      width={18}
+                      height={18}
+                    />
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
 
           <div className="flex gap-3">
@@ -300,10 +414,17 @@ export default function DocumentManager({
                   <p className="text-sm text-gray-600 mt-1">
                     Prix: {doc.prix} FC
                   </p>
-                  {doc.description && (
-                    <p className="text-sm text-gray-500 mt-2">
-                      {doc.description.join(", ")}
-                    </p>
+                  {doc.description && doc.description.length > 0 && (
+                    <div className="text-sm text-gray-500 mt-2 whitespace-pre-wrap">
+                      {doc.description.join("\n")}
+                    </div>
+                  )}
+                  {doc.signatures && doc.signatures.length > 0 && (
+                    <div className="text-xs text-gray-600 mt-2">
+                      <p className="font-medium">
+                        Signatures: {doc.signatures.length}
+                      </p>
+                    </div>
                   )}
                   {doc.commandesCount !== undefined && (
                     <p className="text-sm text-primary font-medium mt-2">
