@@ -7,10 +7,10 @@ import {
   createOrUpdateCommande,
   deleteCommande,
 } from "@/app/actions/documment.actions";
+import { resolveMatriculeToUser } from "@/lib/utils/resolveUser";
 
 interface Commande {
   _id: string;
-  etudiantId: string;
   docummentId: string;
   phoneNumber: string;
   orderNumber: string;
@@ -18,12 +18,14 @@ interface Commande {
   status: "pending" | "paid" | "failed" | "ok";
   createdAt: Date;
   updatedAt: Date;
-  etudiantId?: {
-    _id: string;
-    nomComplet: string;
-    email: string;
-    matricule: string;
-  };
+  etudiantId?:
+    | {
+        _id: string;
+        nomComplet: string;
+        email: string;
+        matricule: string;
+      }
+    | string;
 }
 
 interface Document {
@@ -81,8 +83,15 @@ export default function CommandesViewer({
     setSuccessMessage("");
 
     try {
+      const studentInfo = await resolveMatriculeToUser(formData.etudiantId);
+      if (!studentInfo) {
+        setErrorMessage("Matricule invalide ou utilisateur non trouvé");
+        setLoading(false);
+        return;
+      }
+
       const result = await createOrUpdateCommande({
-        etudiantId: formData.etudiantId,
+        etudiantId: studentInfo.userId,
         docummentId: docummentId,
         phoneNumber: formData.phoneNumber,
         status: formData.status,
@@ -158,8 +167,16 @@ export default function CommandesViewer({
         });
 
         if (obj.etudiantid && obj.phonenumber) {
+          const studentInfo = await resolveMatriculeToUser(obj.etudiantid);
+          if (!studentInfo) {
+            console.warn(
+              `Matricule invalide ou utilisateur non trouvé: ${obj.etudiantid}`,
+            );
+            continue;
+          }
+
           await createOrUpdateCommande({
-            etudiantId: obj.etudiantid,
+            etudiantId: studentInfo.userId,
             docummentId: docummentId,
             phoneNumber: obj.phonenumber,
             status: obj.status || "pending",
@@ -226,7 +243,7 @@ export default function CommandesViewer({
           <h2 className="text-2xl font-bold text-gray-800">
             Commandes - {document.designation}
           </h2>
-          <p className="text-sm text-gray-600 mt-1">Prix: {document.prix} FC</p>
+          <p className="text-sm text-gray-600 mt-1">Prix: {document.prix} $</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
