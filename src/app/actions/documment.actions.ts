@@ -2,6 +2,7 @@
 
 import { connectDB } from "@/lib/mongoose";
 import RecetteModels from "@/lib/models/Recette";
+import { User, Etudiant } from "@/lib/models/User";
 import mongoose from "mongoose";
 
 const { Documment, DocumentCommande } = RecetteModels;
@@ -33,6 +34,61 @@ function serializeData(data: any): any {
   }
 
   return data;
+}
+
+// Helper function to enrich signatures with user details
+async function enrichSignatures(signatures: any[]) {
+  if (!signatures || signatures.length === 0) {
+    return [];
+  }
+
+  const enriched = await Promise.all(
+    signatures.map(async (sig) => {
+      const userId = sig.userId;
+
+      // Search in User collection (teachers)
+      let user = await User.findById(userId)
+        .lean()
+        .catch(() => null);
+      if (user) {
+        return {
+          userId: userId.toString(),
+          fonction: sig.fonction,
+          nomComplet: user.nomComplet,
+          email: user.email,
+          matricule: user.matricule,
+          userType: "teacher",
+        };
+      }
+
+      // Search in Etudiant collection
+      let etudiant = await Etudiant.findById(userId)
+        .lean()
+        .catch(() => null);
+      if (etudiant) {
+        return {
+          userId: userId.toString(),
+          fonction: sig.fonction,
+          nomComplet: etudiant.nomComplet,
+          email: etudiant.email,
+          matricule: etudiant.matricule,
+          userType: "student",
+        };
+      }
+
+      // Fallback if user not found
+      return {
+        userId: userId.toString(),
+        fonction: sig.fonction,
+        nomComplet: "Unknown",
+        email: "N/A",
+        matricule: "N/A",
+        userType: "unknown",
+      };
+    }),
+  );
+
+  return enriched;
 }
 
 export interface CreateDocumentInput {
@@ -110,9 +166,17 @@ export async function getDocumentsByCategory(
       .sort({ createdAt: -1 })
       .lean();
 
+    // Enrich signatures with user details
+    const enrichedDocs = await Promise.all(
+      documents.map(async (doc) => ({
+        ...doc,
+        signatures: await enrichSignatures(doc.signatures),
+      })),
+    );
+
     return {
       success: true,
-      data: serializeData(documents),
+      data: serializeData(enrichedDocs),
     };
   } catch (error: any) {
     return {
@@ -238,6 +302,14 @@ export async function createOrUpdateCommande(data: {
         },
         { new: true },
       );
+
+      if (!updated) {
+        return {
+          success: false,
+          error: "Commande non trouvée lors de la mise à jour",
+          message: "Erreur lors de la modification",
+        };
+      }
 
       return {
         success: true,
@@ -404,9 +476,17 @@ export async function getDocumentsWithComandesCount(
       { $sort: { createdAt: -1 } },
     ]);
 
+    // Enrich signatures with user details
+    const enrichedDocs = await Promise.all(
+      documents.map(async (doc) => ({
+        ...doc,
+        signatures: await enrichSignatures(doc.signatures),
+      })),
+    );
+
     return {
       success: true,
-      data: serializeData(documents),
+      data: serializeData(enrichedDocs),
     };
   } catch (error: any) {
     return {

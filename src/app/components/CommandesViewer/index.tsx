@@ -53,7 +53,7 @@ export default function CommandesViewer({
   const [formData, setFormData] = useState({
     etudiantId: "",
     phoneNumber: "",
-    status: "pending" as const,
+    status: "pending" as "pending" | "paid" | "failed" | "ok",
   });
 
   useEffect(() => {
@@ -123,10 +123,10 @@ export default function CommandesViewer({
     try {
       const result = await deleteCommande(id);
       if (result.success) {
-        setSuccessMessage(result.message);
+        setSuccessMessage(result.message ?? "Commande supprimée avec succès");
         loadCommandes();
       } else {
-        setErrorMessage(result.message);
+        setErrorMessage(result.message ?? "Erreur lors de la suppression");
       }
     } catch (error: any) {
       setErrorMessage(error.message);

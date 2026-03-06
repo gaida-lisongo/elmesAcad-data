@@ -8,8 +8,9 @@ import {
   deleteDocument,
   getDocumentsByCategory,
 } from "@/app/actions/documment.actions";
+import { resolveMatriculeToUser } from "@/lib/utils/resolveUser";
 
-interface Document {
+interface DocumentItem {
   _id: string;
   designation: string;
   category: string;
@@ -20,18 +21,22 @@ interface Document {
   signatures?: {
     userId: string;
     fonction: string;
+    nomComplet?: string;
+    email?: string;
+    matricule?: string;
+    userType?: "teacher" | "student" | "unknown";
   }[];
   createdAt: string;
   updatedAt: string;
 }
 
 interface DocumentManagerProps {
-  documents: Document[];
+  documents: DocumentItem[];
   category: string;
   categoryOptions: string[];
   promotionId: string;
   anneeId: string;
-  onDocumentClick?: (document: Document) => void;
+  onDocumentClick?: (document: DocumentItem) => void;
   onRefresh?: () => void;
 }
 
@@ -44,7 +49,7 @@ export default function DocumentManager({
   onDocumentClick,
   onRefresh,
 }: DocumentManagerProps) {
-  const [documents, setDocuments] = useState<Document[]>(initialDocuments);
+  const [documents, setDocuments] = useState<DocumentItem[]>(initialDocuments);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -75,7 +80,7 @@ export default function DocumentManager({
     setShowForm(false);
   };
 
-  const handleEdit = (doc: Document) => {
+  const handleEdit = (doc: DocumentItem) => {
     setFormData({
       designation: doc.designation,
       description: doc.description.join("\n"),
@@ -83,7 +88,10 @@ export default function DocumentManager({
       category: doc.category,
       signatures:
         doc.signatures && doc.signatures.length > 0
-          ? doc.signatures
+          ? doc.signatures.map((sig) => ({
+              userId: sig.matricule || sig.userId,
+              fonction: sig.fonction,
+            }))
           : [{ userId: "", fonction: "" }],
     });
     setEditingId(doc._id);
@@ -140,8 +148,39 @@ export default function DocumentManager({
         .map((d) => d.trim())
         .filter((d) => d);
 
-      const validSignatures = formData.signatures.filter(
-        (sig) => sig.userId.trim() && sig.fonction.trim(),
+      const parseSignatures = [];
+      const failedMatricules: string[] = [];
+
+      console.log("Form Data:", formData);
+
+      for (const s of formData.signatures) {
+        if (!s.userId || !s.fonction) continue; // Skip empty signatures
+
+        console.log("Processing signature:", s);
+        try {
+          const userInfo = await resolveMatriculeToUser(s.userId);
+          if (userInfo?.userId)
+            parseSignatures.push({
+              userId: userInfo.userId,
+              fonction: s.fonction,
+            });
+        } catch (error: any) {
+          failedMatricules.push(s.userId);
+        }
+      }
+
+      if (failedMatricules.length > 0) {
+        setErrorMessage(
+          `❌ Matricules non trouvés: ${failedMatricules.join(", ")}. Vérifiez les matricules entrés.`,
+        );
+        setLoading(false);
+        return;
+      }
+
+      console.log("Parsed Signatures:", parseSignatures);
+
+      const validSignatures = parseSignatures.filter(
+        (sig) => sig.userId && sig.fonction.trim(),
       );
 
       if (editingId) {
@@ -155,9 +194,7 @@ export default function DocumentManager({
         });
 
         if (result.success) {
-          setSuccessMessage(
-            `${result.message ?? "Document modifié avec succès"}`,
-          );
+          setSuccessMessage(`✅ Document modifié avec succès`);
           await refreshDocuments();
           resetForm();
         } else {
@@ -176,7 +213,7 @@ export default function DocumentManager({
         });
 
         if (result.success) {
-          setSuccessMessage(result.message);
+          setSuccessMessage(`✅ Document créé avec succès`);
           await refreshDocuments();
           resetForm();
         } else {
@@ -184,7 +221,7 @@ export default function DocumentManager({
         }
       }
     } catch (error: any) {
-      setErrorMessage(error.message);
+      setErrorMessage(`❌ ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -312,9 +349,15 @@ export default function DocumentManager({
 
           <div className="space-y-3 p-3 bg-white rounded-lg border border-gray-200">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700">
-                Signatures (optionnel)
-              </label>
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  👥 Signataires (optionnel)
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  Entrez le matricule (Ex: PROF001, E2024001) - le système
+                  convertira automatiquement
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={handleAddSignature}
@@ -329,7 +372,7 @@ export default function DocumentManager({
               <div key={index} className="flex gap-2 items-end">
                 <div className="flex-1">
                   <label className="block text-xs text-gray-600 mb-1">
-                    ID Utilisateur
+                    Matricule de l'utilisateur *
                   </label>
                   <input
                     type="text"
@@ -337,13 +380,16 @@ export default function DocumentManager({
                     onChange={(e) =>
                       handleSignatureChange(index, "userId", e.target.value)
                     }
-                    placeholder="ObjectId de l'utilisateur"
+                    placeholder="Ex: PROF001, E2024001"
                     className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-primary"
                   />
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Le système convertira automatiquement la matricule
+                  </p>
                 </div>
                 <div className="flex-1">
                   <label className="block text-xs text-gray-600 mb-1">
-                    Fonction
+                    Fonction *
                   </label>
                   <input
                     type="text"
@@ -421,9 +467,32 @@ export default function DocumentManager({
                   )}
                   {doc.signatures && doc.signatures.length > 0 && (
                     <div className="text-xs text-gray-600 mt-2">
-                      <p className="font-medium">
-                        Signatures: {doc.signatures.length}
+                      <p className="font-medium mb-2">
+                        Signataires ({doc.signatures.length}):
                       </p>
+                      <ul className="space-y-1 ml-2">
+                        {doc.signatures.map((sig, idx) => (
+                          <li
+                            key={idx}
+                            className="text-xs bg-blue-50 p-1.5 rounded border border-blue-200"
+                          >
+                            <div className="font-medium text-gray-800">
+                              {sig.nomComplet || "Unknown"}
+                            </div>
+                            <div className="text-gray-600">{sig.fonction}</div>
+                            <div className="flex gap-2 text-gray-500 text-xs">
+                              <span>
+                                {sig.userType === "teacher"
+                                  ? "👨‍🏫 Enseignant"
+                                  : sig.userType === "student"
+                                    ? "👨‍🎓 Étudiant"
+                                    : "❓ Type inconnu"}
+                              </span>
+                              {sig.matricule && <span>• {sig.matricule}</span>}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                   {doc.commandesCount !== undefined && (

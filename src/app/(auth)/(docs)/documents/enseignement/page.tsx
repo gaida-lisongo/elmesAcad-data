@@ -21,8 +21,16 @@ interface Document {
   prix: number;
   isActive: boolean;
   commandesCount?: number;
-  createdAt: Date;
-  updatedAt: Date;
+  signatures?: {
+    userId: string;
+    fonction: string;
+    nomComplet?: string;
+    email?: string;
+    matricule?: string;
+    userType?: "teacher" | "student" | "unknown";
+  }[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function EnseignementDocsPage() {
@@ -49,7 +57,7 @@ export default function EnseignementDocsPage() {
     try {
       const result = await getDocumentsWithComandesCount(
         selectedCategory,
-        selectedPromotion.id || selectedPromotion._id,
+        selectedPromotion.id,
         selectedAnnee._id,
       );
 
@@ -117,7 +125,7 @@ export default function EnseignementDocsPage() {
           documents={documents}
           category={selectedCategory}
           categoryOptions={ENSEIGNEMENT_CATEGORIES}
-          promotionId={selectedPromotion.id || selectedPromotion._id}
+          promotionId={selectedPromotion.id}
           anneeId={selectedAnnee._id}
           onDocumentClick={setSelectedDocument}
           onRefresh={loadDocuments}
