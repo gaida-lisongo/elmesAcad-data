@@ -4,7 +4,7 @@ import { connectDB } from "@/lib/mongoose";
 import RecetteModels from "@/lib/models/Recette";
 import { User, Etudiant } from "@/lib/models/User";
 import { Note } from "@/lib/models/Cours";
-import { Section, Element } from "@/lib/models/Section";
+import { Element, Programme } from "@/lib/models/Section";
 import mongoose from "mongoose";
 import {
   NoteManager,
@@ -541,7 +541,10 @@ export async function getDocumentsWithComandesCount(
   }
 }
 
-export async function generateDocumentReleve(commandeId: string) {
+export async function generateDocumentReleve(
+  commandeId: string,
+  promotion: any,
+) {
   try {
     console.log(
       "[generateDocumentReleve] Démarrage génération relevé:",
@@ -554,9 +557,14 @@ export async function generateDocumentReleve(commandeId: string) {
       .populate("etudiantId")
       .populate({
         path: "docummentId",
-        populate: {
-          path: "signatures.userId",
-        },
+        populate: [
+          {
+            path: "signatures.userId",
+          },
+          {
+            path: "anneeId",
+          },
+        ],
       })
       .lean();
 
@@ -568,48 +576,44 @@ export async function generateDocumentReleve(commandeId: string) {
       throw new Error("Commande non trouvée");
     }
 
-    console.log("[generateDocumentReleve] Commande trouvée:", commande._id);
+    console.log("[generateDocumentReleve] Commande trouvée");
 
-    const etudiant = (commande as any).etudiantId;
-    const document = (commande as any).docummentId;
-
-    if (!etudiant || !document) {
-      throw new Error("Étudiant ou document non trouvé");
-    }
-
-    const section = await Section.findOne({
-      "filieres.programmes._id": new mongoose.Types.ObjectId(
-        document.promotionId,
-      ),
-    }).lean();
-
-    if (!section) {
-      console.error("[generateDocumentReleve] Section non trouvée");
-      throw new Error("Section non trouvée");
-    }
-
-    let programme: any = null;
-    for (const filiere of (section.filieres || []) as any[]) {
-      for (const prog of (filiere.programmes || []) as any[]) {
-        if (String(prog._id) === String(document.promotionId)) {
-          programme = prog;
-          break;
-        }
-      }
-      if (programme) break;
-    }
+    const programme = promotion;
 
     if (!programme) {
-      console.error("[generateDocumentReleve] Programme non trouvé");
+      console.error(
+        "[generateDocumentReleve] Programme non trouvé:",
+        promotion,
+      );
       throw new Error("Programme non trouvé");
     }
 
-    console.log("[generateDocumentReleve] Programme récupéré");
+    const etudiant = (commande as any).etudiantId;
+    const document = (commande as any).docummentId;
+    const annee = document?.anneeId;
+
+    if (!etudiant || !document || !annee) {
+      throw new Error("Étudiant, document ou année non trouvé");
+    }
+
+    // Assertions pour TypeScript après validation
+    const programmeVerifie = programme as any;
+    const anneeVerifiee = annee as any;
+
+    console.log("[generateDocumentReleve] Étudiant :", etudiant.nomComplet);
+    console.log("[generateDocumentReleve] Document :", document.designation);
+    console.log("[generateDocumentReleve] Programme : ", programmeVerifie);
+    console.log(
+      "[generateDocumentReleve] Année : ",
+      anneeVerifiee.debut && anneeVerifiee.fin
+        ? `${new Date(anneeVerifiee.debut).getFullYear()}-${new Date(anneeVerifiee.fin).getFullYear()}`
+        : anneeVerifiee._id,
+    );
 
     const notes = await Note.find({
       studentId: new mongoose.Types.ObjectId(etudiant._id),
-      promotionId: new mongoose.Types.ObjectId(document.promotionId),
-      anneeId: new mongoose.Types.ObjectId(document.anneeId),
+      promotionId: new mongoose.Types.ObjectId(programmeVerifie._id),
+      anneeId: new mongoose.Types.ObjectId(anneeVerifiee._id),
     }).lean();
 
     console.log("[generateDocumentReleve] Notes trouvées:", notes.length);
@@ -621,7 +625,7 @@ export async function generateDocumentReleve(commandeId: string) {
     }
 
     const allUniteIds: string[] = [];
-    for (const semestre of (programme.semestres || []) as any[]) {
+    for (const semestre of (programmeVerifie.semestres || []) as any[]) {
       for (const unite of (semestre.unites || []) as any[]) {
         allUniteIds.push(String(unite._id));
       }
@@ -631,7 +635,7 @@ export async function generateDocumentReleve(commandeId: string) {
       uniteId: {
         $in: allUniteIds.map((id) => new mongoose.Types.ObjectId(id)),
       },
-      anneeId: new mongoose.Types.ObjectId(document.anneeId),
+      anneeId: new mongoose.Types.ObjectId(anneeVerifiee._id),
     }).lean();
 
     console.log(
@@ -650,7 +654,7 @@ export async function generateDocumentReleve(commandeId: string) {
 
     const semestres: SemestreNote[] = [];
 
-    for (const semestre of (programme.semestres || []) as any[]) {
+    for (const semestre of (programmeVerifie.semestres || []) as any[]) {
       const unites: UniteNote[] = [];
 
       for (const unite of (semestre.unites || []) as any[]) {
@@ -718,11 +722,16 @@ export async function generateDocumentReleve(commandeId: string) {
     };
 
     const headerInfo: DocumentSectionHeader = {
-      sectionTitle: document.category || "DOCUMENT",
-      anneeAcademique: new Date(document.anneeId).getFullYear().toString(),
-      promotion: document.promotionId.toString(),
+      sectionTitle: String(`SECTION : ${process.env.NEXT_PUBLIC_SECTION}` || "BTP"),
+      anneeAcademique:
+        anneeVerifiee.debut && anneeVerifiee.fin
+          ? `${new Date(anneeVerifiee.debut).getFullYear()}-${new Date(anneeVerifiee.fin).getFullYear()}`
+          : new Date().getFullYear().toString(),
+      promotion: String(
+        programmeVerifie.designation || programmeVerifie.niveau || "N/A",
+      ),
       nref: `${(commande as any).reference}`,
-      documentType: document.designation,
+      documentType: String(document.designation),
     };
 
     console.log("[generateDocumentReleve] Création DocumentReleve");

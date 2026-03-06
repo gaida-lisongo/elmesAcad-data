@@ -441,7 +441,6 @@ const DocummentSchema = new Schema<IDocumment>(
     },
     promotionId: {
       type: Schema.Types.ObjectId,
-      ref: "Promotion",
       required: true,
     },
     description: {

@@ -43,11 +43,13 @@ interface Document {
 interface CommandesViewerProps {
   document: Document;
   docummentId: string;
+  promotion: any;
 }
 
 export default function CommandesViewer({
   document,
   docummentId,
+  promotion,
 }: CommandesViewerProps) {
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export default function CommandesViewer({
   const [errorMessage, setErrorMessage] = useState("");
   const [csvFile, setCsvFile] = useState<File | null>(null);
 
-  console.log("Document : ", document);
+  console.log("Promotion Info : ", promotion);
 
   const [formData, setFormData] = useState({
     etudiantId: "",
@@ -170,7 +172,7 @@ export default function CommandesViewer({
     setSuccessMessage("");
 
     try {
-      const result = await generateDocumentReleve(commandeId);
+      const result = await generateDocumentReleve(commandeId, promotion);
 
       if (!result.success) {
         console.error("[handleGenerateReleve] Erreur retournée:", result.error);

@@ -96,6 +96,7 @@ export default function JuryDocsPage() {
           <CommandesViewer
             document={selectedDocument}
             docummentId={selectedDocument._id}
+            promotion={selectedPromotion}
           />
         </div>
       ) : (

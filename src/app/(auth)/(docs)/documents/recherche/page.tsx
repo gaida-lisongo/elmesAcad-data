@@ -117,6 +117,7 @@ export default function RechercheDocsPage() {
           <CommandesViewer
             document={selectedDocument}
             docummentId={selectedDocument._id}
+            promotion={selectedPromotion}
           />
         </div>
       ) : (

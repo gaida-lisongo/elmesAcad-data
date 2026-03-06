@@ -47,107 +47,118 @@ export default class DocumentSection extends Document {
       "KINSHASA/NGALIEMA",
     ];
 
-    sheet.mergeCells("A1:F1");
+    sheet.mergeCells("A1:G1");
     const headerCell = sheet.getCell("A1");
     headerCell.value = headerItemsCell.join("\r\n");
+    headerCell.alignment = { vertical: "middle", horizontal: "center" };
+    headerCell.font = {
+      name: "Arial",
+      size: this.getFontSize("SM"),
+      bold: true,
+    };
+    headerCell.alignment = {
+      vertical: "middle",
+      horizontal: "center",
+      wrapText: true,
+    };
+    sheet.getRow(1).height =
+      this.getFontSize("SM") * headerItemsCell.length * 1.5;
     this.applyFullBorders(headerCell, "THIN");
 
     //2. Document Information
-    const infoItemsCell = [
-      {
-        key: "documentType",
-        label: "Type de Document",
-        value: documentType,
-      },
-      {
-        key: "anneeAcademique",
-        label: "Année Académique",
-        value: anneeAcademique,
-      },
-      {
-        key: "sectionTitle",
-        label: "Section",
-        value: sectionTitle,
-      },
-      {
-        key: "promotion",
-        label: "Promotion",
-        value: promotion,
-      },
-      {
-        key: "nref",
-        label: "N° Ref",
-        value: nref,
-      },
-    ];
-
     let rowIdx = 2;
-    infoItemsCell.forEach((item, index) => {
-      const row = sheet.getRow(rowIdx);
 
-      if (index % 2 === 0 && index > 1) {
-        row.getCell(1).value = item.value;
-        sheet.mergeCells(`A${rowIdx}:C${rowIdx}`);
-        this.applyFullBorders(row.getCell(1), "THIN");
-      } else if (index % 2 !== 0 && index > 1) {
-        row.getCell(4).value = item.value;
-        sheet.mergeCells(`D${rowIdx}:F${rowIdx}`);
-        this.applyFullBorders(row.getCell(4), "THIN");
-      } else {
-        row.getCell(1).value = item.value;
-        sheet.mergeCells(`A${rowIdx}:F${rowIdx}`);
-        this.applyFullBorders(row.getCell(1), "THIN");
-      }
+    const setCellStyle = (
+      cell: ExcelJS.Cell,
+      horizontal: ExcelJS.Alignment["horizontal"] = "left",
+    ) => {
+      this.applyFullBorders(cell, "THIN");
+      this.applyStyle(cell, {
+        bold: true,
+        color: "PRIMARY",
+        size: "SM",
+        align: { horizontal },
+      });
+    };
 
-      rowIdx += 1;
-    });
+    // Type de document (pleine largeur)
+    sheet.mergeCells(`A${rowIdx}:B${rowIdx}`);
+    const typeCell = sheet.getCell(`A${rowIdx}`);
+    typeCell.value = `${documentType || "-"}`;
+    setCellStyle(typeCell, "center");
 
-    // 3. Student Information
-    const studentInfoItemsCell = [
-      {
-        key: "nomComplet",
-        label: "Nom Complet",
-        value: student.nomComplet,
-      },
-      {
-        key: "dateNaissance",
-        label: "Date de Naissance",
-        value: student.dateNaissance,
-      },
-      {
-        key: "matricule",
-        label: "Matricule",
-        value: student.matricule,
-      },
-      {
-        key: "lieuNaissance",
-        label: "Lieu de Naissance",
-        value: student.lieuNaissance,
-      },
-      {
-        key: "sexe",
-        label: "Sexe",
-        value: student.sexe,
-      },
-      {
-        key: "nationalite",
-        label: "Nationalité",
-        value: student.nationalite,
-      },
+    // Référence (pleine largeur comme Type de Document)
+    sheet.mergeCells(`C${rowIdx}:G${rowIdx}`);
+    const refCell = sheet.getCell(`C${rowIdx}`);
+    refCell.value = `N°/${nref || "-"}`;
+    setCellStyle(refCell, "right");
+    rowIdx += 1;
+
+    // Année académique (pleine largeur)
+    sheet.mergeCells(`A${rowIdx}:G${rowIdx}`);
+    const anneeCell = sheet.getCell(`A${rowIdx}`);
+    anneeCell.value = `Année Académique : ${anneeAcademique || "-"}`;
+    setCellStyle(anneeCell, "center");
+    rowIdx += 1;
+
+    // Section et Promotion (côte à côte)
+    sheet.mergeCells(`A${rowIdx}:B${rowIdx}`);
+    const sectionCell = sheet.getCell(`A${rowIdx}`);
+    sectionCell.value = `Section : ${sectionTitle || "-"}`;
+    setCellStyle(sectionCell, "left");
+
+    sheet.mergeCells(`C${rowIdx}:G${rowIdx}`);
+    const promotionCell = sheet.getCell(`C${rowIdx}`);
+    promotionCell.value = `Promotion : ${promotion || "-"}`;
+    setCellStyle(promotionCell, "left");
+    rowIdx += 1;
+
+    rowIdx += 1;
+
+    // 3. Student Information (côte à côte)
+    const studentRows = [
+      [
+        { label: "Nom:", value: student.nomComplet },
+        { label: "Matricule", value: student.matricule },
+      ],
+      [
+        {
+          label: "Date Naiss",
+          value: new Date(student.dateNaissance).toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
+        },
+        { label: "NE(E) A :", value: student.lieuNaissance },
+      ],
+      [
+        { label: "Sexe", value: student.sexe },
+        { label: "Nationalité", value: student.nationalite },
+      ],
     ];
 
-    studentInfoItemsCell.forEach((item, index) => {
-      const row = sheet.getRow(rowIdx);
+    studentRows.forEach(([leftItem, rightItem]) => {
+      sheet.mergeCells(`A${rowIdx}:B${rowIdx}`);
+      const leftCell = sheet.getCell(`A${rowIdx}`);
+      leftCell.value = `${leftItem.label} : ${leftItem.value || "-"}`;
+      this.applyFullBorders(leftCell, "THIN");
+      this.applyStyle(leftCell, {
+        size: "SM",
+        align: { horizontal: "left", wrapText: true },
+      });
 
-      if (index % 2 === 0) {
-        row.getCell(1).value = item.value;
-        sheet.mergeCells(`A${rowIdx}:C${rowIdx}`);
-        this.applyFullBorders(row.getCell(1), "THIN");
-      } else {
-        row.getCell(4).value = item.value;
-        sheet.mergeCells(`D${rowIdx}:F${rowIdx}`);
-        this.applyFullBorders(row.getCell(4), "THIN");
-      }
+      sheet.mergeCells(`C${rowIdx}:G${rowIdx}`);
+      const rightCell = sheet.getCell(`C${rowIdx}`);
+      rightCell.value = `${rightItem.label} : ${rightItem.value || "-"}`;
+      this.applyFullBorders(rightCell, "THIN");
+      this.applyStyle(rightCell, {
+        size: "SM",
+        align: { horizontal: "right", wrapText: true },
+      });
+
+      sheet.getRow(rowIdx).height = this.getFontSize("SM") * 2.5;
+
       rowIdx += 1;
     });
 
@@ -190,7 +201,7 @@ export default class DocumentSection extends Document {
       {
         key: "signature",
         label: "Signature",
-        value: `${signature.nomComplet}\n${signature.fonction}\n${signature.grade ? `${signature.grade}` : ""}`,
+        value: `${signature.fonction}\n\n\n${signature.nomComplet}\n${signature.grade ? `${signature.grade}` : ""}`,
       },
     ];
 
@@ -199,13 +210,48 @@ export default class DocumentSection extends Document {
 
       if (item.key === "certification") {
         row.getCell(1).value = item.value;
-        sheet.mergeCells(`A${startRow}:C${startRow}`);
+        this.applyStyle(row.getCell(1), {
+          align: { horizontal: "center" },
+        });
+        row.getCell(1).alignment = { vertical: "middle" };
+        row.getCell(1).font = {
+          name: "Arial",
+          size: this.getFontSize("SM"),
+          bold: true,
+        };
+        sheet.mergeCells(`A${startRow}:G${startRow}`);
+        startRow += 1;
       } else if (item.key === "date_signature") {
         row.getCell(4).value = `${item.label} ${item.value}`;
-        sheet.mergeCells(`D${startRow}:F${startRow}`);
+        this.applyStyle(row.getCell(1), {
+          align: { horizontal: "center" },
+        });
+        row.getCell(1).alignment = { vertical: "middle", horizontal: "center" };
+        row.getCell(1).font = {
+          name: "Arial",
+          size: this.getFontSize("SM"),
+          bold: true,
+        };
+        sheet.mergeCells(`D${startRow}:G${startRow}`);
+        row.getCell(4).alignment = { vertical: "middle", horizontal: "right" };
+        startRow += 1;
       } else if (item.key === "signature") {
         row.getCell(4).value = item.value;
-        sheet.mergeCells(`D${startRow}:F${startRow}`);
+        row.height = this.getFontSize("SM") * 7;
+        this.applyStyle(row.getCell(4), {
+          align: { horizontal: "center", wrapText: true },
+        });
+        row.getCell(4).alignment = {
+          vertical: "middle",
+          horizontal: "center",
+          wrapText: true,
+        };
+        row.getCell(4).font = {
+          name: "Arial",
+          size: this.getFontSize("SM"),
+          bold: true,
+        };
+        sheet.mergeCells(`D${startRow}:G${startRow}`);
       }
 
       startRow += 1;
@@ -218,17 +264,24 @@ export default class DocumentSection extends Document {
       `Email: ${signature.email || "contact@inbtp.ac.cd"} | Tel: ${signature.telephone || "+243 85 38 53 999"}`,
     ];
 
-    footerItemsCell.forEach((item) => {
-      const row = sheet.getRow(startRow);
-      row.getCell(1).value = item;
-      sheet.mergeCells(`A${startRow}:F${startRow}`);
-      this.applyStyle(row.getCell(1), {
-        size: "SM",
-        color: "GRAY",
-        align: { horizontal: "center" },
-      });
-      startRow += 1;
+    startRow += 2;
+    const row = sheet.getRow(startRow);
+    row.getCell(1).value = footerItemsCell.join("\r\n");
+    sheet.mergeCells(`A${startRow}:G${startRow}`);
+    this.applyStyle(row.getCell(1), {
+      size: "SM",
+      align: { horizontal: "center" },
     });
+    row.getCell(1).alignment = {
+      vertical: "middle",
+      wrapText: true,
+      horizontal: "center",
+    };
+    row.getCell(1).font = {
+      name: "Arial",
+      size: this.getFontSize("SM"),
+    };
+    row.height = this.getFontSize("SM") * 3.5;
   }
 
   calculateSynthesis(sem: SemestreResultat) {

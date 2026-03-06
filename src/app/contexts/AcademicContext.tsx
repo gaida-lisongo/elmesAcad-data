@@ -93,6 +93,7 @@ export function AcademicProvider({ children }: { children: React.ReactNode }) {
               if (firstProgramme._id) {
                 setSelectedPromotionState({
                   id: firstProgramme._id,
+                  ...firstProgramme,
                   name: `${firstProgramme.niveau} - ${firstProgramme.designation}`,
                   sectionId: firstSection._id,
                   filiereId: firstFiliere._id || "",

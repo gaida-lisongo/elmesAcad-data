@@ -118,6 +118,7 @@ export default function EnseignementDocsPage() {
           <CommandesViewer
             document={selectedDocument}
             docummentId={selectedDocument._id}
+            promotion={selectedPromotion}
           />
         </div>
       ) : (
