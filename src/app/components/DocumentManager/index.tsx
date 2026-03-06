@@ -151,12 +151,9 @@ export default function DocumentManager({
       const parseSignatures = [];
       const failedMatricules: string[] = [];
 
-      console.log("Form Data:", formData);
-
       for (const s of formData.signatures) {
         if (!s.userId || !s.fonction) continue; // Skip empty signatures
 
-        console.log("Processing signature:", s);
         try {
           const userInfo = await resolveMatriculeToUser(s.userId);
           if (userInfo?.userId)
@@ -176,8 +173,6 @@ export default function DocumentManager({
         setLoading(false);
         return;
       }
-
-      console.log("Parsed Signatures:", parseSignatures);
 
       const validSignatures = parseSignatures.filter(
         (sig) => sig.userId && sig.fonction.trim(),
@@ -458,7 +453,7 @@ export default function DocumentManager({
                     {doc.designation}
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    Prix: {doc.prix} FC
+                    Prix: {doc.prix} USD
                   </p>
                   {doc.description && doc.description.length > 0 && (
                     <div className="text-sm text-gray-500 mt-2 whitespace-pre-wrap">

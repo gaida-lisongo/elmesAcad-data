@@ -50,6 +50,8 @@ export default function CommandesViewer({
   const [errorMessage, setErrorMessage] = useState("");
   const [csvFile, setCsvFile] = useState<File | null>(null);
 
+  console.log("Document : ", document);
+
   const [formData, setFormData] = useState({
     etudiantId: "",
     phoneNumber: "",
