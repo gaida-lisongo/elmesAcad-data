@@ -731,12 +731,15 @@ export async function generateDocumentReleve(commandeId: string) {
     await documentGenerator.generate([commandeResult]);
     console.log("[generateDocumentReleve] Document généré");
 
-    const buffer = await (documentGenerator as any).save();
+    const buffer = await documentGenerator.generateBuffer();
     console.log("[generateDocumentReleve] Buffer créé, taille:", buffer.length);
+
+    const base64 = buffer.toString("base64");
+    console.log("[generateDocumentReleve] Encoded en base64");
 
     return {
       success: true,
-      data: buffer,
+      data: base64,
       fileName: `Releve_${etudiant.nomComplet.replace(/\s+/g, "_")}_${new Date().getTime()}.xlsx`,
     };
   } catch (error: any) {

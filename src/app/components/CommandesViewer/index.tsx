@@ -181,11 +181,16 @@ export default function CommandesViewer({
         return;
       }
 
-      console.log("[handleGenerateReleve] Document généré, buffer reçu");
+      console.log("[handleGenerateReleve] Document généré, base64 reçu");
 
-      const buffer = result.data;
+      const base64String = (result.data as unknown as string) || "";
+      const binaryString = atob(base64String);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
       const fileName = (result.fileName as string) || "document.xlsx";
-      const blob = new Blob([buffer], {
+      const blob = new Blob([bytes] as BlobPart[], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       const url = URL.createObjectURL(blob);
@@ -196,6 +201,7 @@ export default function CommandesViewer({
       link.click();
       globalThis.document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      console.log("[handleGenerateReleve] Fichier téléchargé:", fileName);
 
       setSuccessMessage("Relevé généré et téléchargé avec succès");
     } catch (error: any) {
