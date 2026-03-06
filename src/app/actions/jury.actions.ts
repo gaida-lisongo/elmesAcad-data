@@ -12,9 +12,9 @@ import type {
   ElementNote,
   ResultatEtudiant,
 } from "@/utils/NoteManager";
-import DocumentPV from "@/utils/documents/DocumentPV";
-import DocumentGrille from "@/utils/documents/DocumentGrille";
-import DocumentPalmares from "@/utils/documents/DocumentPalmares";
+import DocumentPV from "@/utils/documents/jury/DocumentPV";
+import DocumentGrille from "@/utils/documents/jury/DocumentGrille";
+import DocumentPalmares from "@/utils/documents/jury/DocumentPalmares";
 
 export async function fetchAllNotesForPromotion(
   promotionId: string,

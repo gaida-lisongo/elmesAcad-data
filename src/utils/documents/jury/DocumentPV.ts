@@ -1,4 +1,4 @@
-import DocumentJury, { JuryIdentity } from "./DocumentJury";
+import DocumentJury, { JuryIdentity } from "../DocumentJury";
 import { ResultatEtudiant } from "@/utils/NoteManager";
 import DocumentPalmares from "./DocumentPalmares";
 import DocumentGrille from "./DocumentGrille";

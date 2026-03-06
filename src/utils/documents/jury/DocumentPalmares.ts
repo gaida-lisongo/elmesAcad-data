@@ -1,4 +1,4 @@
-import DocumentJury, { JuryIdentity } from "./DocumentJury";
+import DocumentJury, { JuryIdentity } from "../DocumentJury";
 import { ResultatEtudiant } from "@/utils/NoteManager";
 
 export default class DocumentPalmares extends DocumentJury {

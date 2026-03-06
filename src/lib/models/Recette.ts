@@ -213,6 +213,11 @@ const StageCommandeSchema = new Schema<IStageCommande>(
 
 export interface IDocumentCommande extends ICommande {
   docummentId: mongoose.Types.ObjectId;
+  lieu_naissance?: String;
+  date_naissance?: Date;
+  nationalite?: String;
+  sexe?: String;
+  adresse?: String;
 }
 
 const DocumentCommandeSchema = new Schema<IDocumentCommande>(
@@ -243,6 +248,21 @@ const DocumentCommandeSchema = new Schema<IDocumentCommande>(
       type: Schema.Types.ObjectId,
       ref: "Documment",
       required: true,
+    },
+    lieu_naissance: {
+      type: String,
+    },
+    date_naissance: {
+      type: Date,
+    },
+    nationalite: {
+      type: String,
+    },
+    sexe: {
+      type: String,
+    },
+    adresse: {
+      type: String,
     },
   },
   { timestamps: true },

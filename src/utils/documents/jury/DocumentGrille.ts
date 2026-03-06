@@ -1,7 +1,7 @@
-import DocumentJury, { JuryIdentity } from "./DocumentJury";
+import DocumentJury, { JuryIdentity } from "../DocumentJury";
 import { ResultatEtudiant, SemestreResultat } from "@/utils/NoteManager";
 import ExcelJS from "exceljs";
-import { StyleOptions } from "./Document";
+import { StyleOptions } from "../Document";
 
 export default class DocumentGrille extends DocumentJury {
   public async generate(resultats: ResultatEtudiant[], identity: JuryIdentity) {

@@ -6,6 +6,7 @@ import {
   getCommandesByDocument,
   createOrUpdateCommande,
   deleteCommande,
+  generateDocumentReleve,
 } from "@/app/actions/documment.actions";
 import { resolveMatriculeToUser } from "@/lib/utils/resolveUser";
 
@@ -18,6 +19,11 @@ interface Commande {
   status: "pending" | "paid" | "failed" | "ok";
   createdAt: Date;
   updatedAt: Date;
+  lieu_naissance?: string;
+  date_naissance?: string;
+  nationalite?: string;
+  sexe?: string;
+  adresse?: string;
   etudiantId?:
     | {
         _id: string;
@@ -56,6 +62,11 @@ export default function CommandesViewer({
     etudiantId: "",
     phoneNumber: "",
     status: "pending" as "pending" | "paid" | "failed" | "ok",
+    lieu_naissance: "",
+    date_naissance: "",
+    nationalite: "",
+    sexe: "" as "" | "M" | "F",
+    adresse: "",
   });
 
   useEffect(() => {
@@ -97,6 +108,13 @@ export default function CommandesViewer({
         docummentId: docummentId,
         phoneNumber: formData.phoneNumber,
         status: formData.status,
+        lieu_naissance: formData.lieu_naissance,
+        date_naissance: formData.date_naissance
+          ? new Date(formData.date_naissance).toISOString()
+          : undefined,
+        nationalite: formData.nationalite,
+        sexe: formData.sexe,
+        adresse: formData.adresse,
       });
 
       if (result.success) {
@@ -106,6 +124,11 @@ export default function CommandesViewer({
           etudiantId: "",
           phoneNumber: "",
           status: "pending",
+          lieu_naissance: "",
+          date_naissance: "",
+          nationalite: "",
+          sexe: "",
+          adresse: "",
         });
         setShowForm(false);
       } else {
@@ -137,6 +160,54 @@ export default function CommandesViewer({
     }
   };
 
+  const handleGenerateReleve = async (commandeId: string) => {
+    console.log(
+      "[handleGenerateReleve] Génération du relevé pour commande:",
+      commandeId,
+    );
+    setLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const result = await generateDocumentReleve(commandeId);
+
+      if (!result.success) {
+        console.error("[handleGenerateReleve] Erreur retournée:", result.error);
+        setErrorMessage(
+          result.message || "Erreur lors de la génération du relevé",
+        );
+        setLoading(false);
+        return;
+      }
+
+      console.log("[handleGenerateReleve] Document généré, buffer reçu");
+
+      const buffer = result.data;
+      const fileName = (result.fileName as string) || "document.xlsx";
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = globalThis.document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      globalThis.document.body.appendChild(link);
+      link.click();
+      globalThis.document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      setSuccessMessage("Relevé généré et téléchargé avec succès");
+    } catch (error: any) {
+      console.error("[handleGenerateReleve] Exception:", error);
+      setErrorMessage(
+        error.message || "Erreur lors de la génération du relevé",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCSVImport = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -151,8 +222,6 @@ export default function CommandesViewer({
 
     try {
       const text = await csvFile.text();
-      // Parse CSV and import
-      // This is a simple implementation - you might want to enhance it
       const lines = text.trim().split("\n");
       const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
 
@@ -161,36 +230,51 @@ export default function CommandesViewer({
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(",").map((v) => v.trim());
 
-        if (values.length < 2) continue;
+        if (values.length < 2) {
+          console.log("[CSV Import] Ligne skippée (trop courte):", i);
+          continue;
+        }
 
         const obj: any = {};
         headers.forEach((header, index) => {
           obj[header] = values[index];
         });
 
-        if (obj.etudiantid && obj.phonenumber) {
-          const studentInfo = await resolveMatriculeToUser(obj.etudiantid);
-          if (!studentInfo) {
-            console.warn(
-              `Matricule invalide ou utilisateur non trouvé: ${obj.etudiantid}`,
-            );
-            continue;
-          }
-
-          await createOrUpdateCommande({
-            etudiantId: studentInfo.userId,
-            docummentId: docummentId,
-            phoneNumber: obj.phonenumber,
-            status: obj.status || "pending",
-          });
-          imported++;
+        if (!obj.etudiantid || !obj.phonenumber) {
+          console.log(
+            "[CSV Import] Ligne invalide, manque etudiantId ou phoneNumber",
+          );
+          continue;
         }
+
+        const studentInfo = await resolveMatriculeToUser(obj.etudiantid);
+        if (!studentInfo) {
+          console.warn(`[CSV Import] Matricule invalide: ${obj.etudiantid}`);
+          continue;
+        }
+
+        await createOrUpdateCommande({
+          etudiantId: studentInfo.userId,
+          docummentId: docummentId,
+          phoneNumber: obj.phonenumber,
+          status: obj.status || "pending",
+          lieu_naissance: obj.lieu_naissance || "",
+          date_naissance: obj.date_naissance
+            ? new Date(obj.date_naissance).toISOString()
+            : undefined,
+          nationalite: obj.nationalite || "",
+          sexe: obj.sexe || "",
+          adresse: obj.adresse || "",
+        });
+        imported++;
       }
 
       setSuccessMessage(`${imported} commande(s) importée(s) avec succès`);
       loadCommandes();
       setCsvFile(null);
+      console.log("[CSV Import] Import terminé:", imported, "commandos");
     } catch (error: any) {
+      console.error("[CSV Import] Erreur:", error);
       setErrorMessage(`Erreur lors de l'import: ${error.message}`);
     } finally {
       setLoading(false);
@@ -262,33 +346,115 @@ export default function CommandesViewer({
           onSubmit={handleSubmit}
           className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4"
         >
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              ID Étudiant
-            </label>
-            <input
-              type="text"
-              value={formData.etudiantId}
-              onChange={(e) =>
-                setFormData({ ...formData, etudiantId: e.target.value })
-              }
-              required
-              placeholder="ObjectId de l'étudiant"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Matricule Étudiant *
+              </label>
+              <input
+                type="text"
+                value={formData.etudiantId}
+                onChange={(e) =>
+                  setFormData({ ...formData, etudiantId: e.target.value })
+                }
+                required
+                placeholder="ex: ST2024001"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Numéro de téléphone *
+              </label>
+              <input
+                type="tel"
+                value={formData.phoneNumber}
+                onChange={(e) =>
+                  setFormData({ ...formData, phoneNumber: e.target.value })
+                }
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date de naissance
+              </label>
+              <input
+                type="date"
+                value={formData.date_naissance}
+                onChange={(e) =>
+                  setFormData({ ...formData, date_naissance: e.target.value })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Lieu de naissance
+              </label>
+              <input
+                type="text"
+                value={formData.lieu_naissance}
+                onChange={(e) =>
+                  setFormData({ ...formData, lieu_naissance: e.target.value })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nationalité
+              </label>
+              <input
+                type="text"
+                value={formData.nationalite}
+                onChange={(e) =>
+                  setFormData({ ...formData, nationalite: e.target.value })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sexe
+              </label>
+              <select
+                value={formData.sexe}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    sexe: e.target.value as "" | "M" | "F",
+                  })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+              >
+                <option value="">-- Sélectionner --</option>
+                <option value="M">Masculin</option>
+                <option value="F">Féminin</option>
+              </select>
+            </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Numéro de téléphone
+              Adresse
             </label>
             <input
-              type="tel"
-              value={formData.phoneNumber}
+              type="text"
+              value={formData.adresse}
               onChange={(e) =>
-                setFormData({ ...formData, phoneNumber: e.target.value })
+                setFormData({ ...formData, adresse: e.target.value })
               }
-              required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
             />
           </div>
@@ -337,7 +503,8 @@ export default function CommandesViewer({
         <form onSubmit={handleCSVImport} className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fichier CSV (colonnes: etudiantId, phoneNumber, [status])
+              Fichier CSV (colonnes: etudiantId, phoneNumber, [date_naissance,
+              lieu_naissance, nationalite, sexe, adresse, status])
             </label>
             <input
               type="file"
@@ -438,17 +605,32 @@ export default function CommandesViewer({
                       {new Date(cmd.createdAt).toLocaleDateString("fr-FR")}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => handleDelete(cmd._id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                        title="Supprimer"
-                      >
-                        <Icon
-                          icon="material-symbols:delete"
-                          width={18}
-                          height={18}
-                        />
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleGenerateReleve(cmd._id)}
+                          disabled={loading}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition disabled:opacity-50"
+                          title="Générer le relevé"
+                        >
+                          <Icon
+                            icon="material-symbols:file-download"
+                            width={18}
+                            height={18}
+                          />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(cmd._id)}
+                          disabled={loading}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                          title="Supprimer"
+                        >
+                          <Icon
+                            icon="material-symbols:delete"
+                            width={18}
+                            height={18}
+                          />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

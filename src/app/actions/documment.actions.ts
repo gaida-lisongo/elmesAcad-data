@@ -3,7 +3,18 @@
 import { connectDB } from "@/lib/mongoose";
 import RecetteModels from "@/lib/models/Recette";
 import { User, Etudiant } from "@/lib/models/User";
+import { Note } from "@/lib/models/Cours";
+import { Section, Element } from "@/lib/models/Section";
 import mongoose from "mongoose";
+import {
+  NoteManager,
+  NotesEtudiant,
+  ElementNote,
+  UniteNote,
+  SemestreNote,
+} from "@/utils/NoteManager";
+import DocumentReleve from "@/utils/documents/section/DocumentReleve";
+import { DocumentSectionHeader } from "@/utils/documents/DocumentSection";
 
 const { Documment, DocumentCommande } = RecetteModels;
 
@@ -277,6 +288,11 @@ export async function createOrUpdateCommande(data: {
   orderNumber?: string;
   reference?: string;
   status?: "pending" | "paid" | "failed" | "ok";
+  lieu_naissance?: string;
+  date_naissance?: string;
+  nationalite?: string;
+  sexe?: string;
+  adresse?: string;
 }) {
   try {
     await connectDB();
@@ -294,12 +310,28 @@ export async function createOrUpdateCommande(data: {
     });
 
     if (existingCommande) {
+      console.log(
+        "[createOrUpdateCommande] Mise à jour commande existante:",
+        existingCommande._id,
+      );
+
+      const updateData: any = {
+        phoneNumber: data.phoneNumber,
+        status: data.status || existingCommande.status,
+      };
+
+      if (data.lieu_naissance !== undefined)
+        updateData.lieu_naissance = data.lieu_naissance;
+      if (data.date_naissance !== undefined)
+        updateData.date_naissance = data.date_naissance;
+      if (data.nationalite !== undefined)
+        updateData.nationalite = data.nationalite;
+      if (data.sexe !== undefined) updateData.sexe = data.sexe;
+      if (data.adresse !== undefined) updateData.adresse = data.adresse;
+
       const updated = await DocumentCommande.findByIdAndUpdate(
         existingCommande._id,
-        {
-          phoneNumber: data.phoneNumber,
-          status: data.status || existingCommande.status,
-        },
+        updateData,
         { new: true },
       );
 
@@ -318,14 +350,27 @@ export async function createOrUpdateCommande(data: {
       };
     }
 
-    const commande = await DocumentCommande.create({
+    const createData: any = {
       etudiantId: new mongoose.Types.ObjectId(data.etudiantId),
       docummentId: new mongoose.Types.ObjectId(data.docummentId),
       phoneNumber: data.phoneNumber,
       orderNumber,
       reference,
       status: data.status || "pending",
-    });
+    };
+
+    if (data.lieu_naissance !== undefined)
+      createData.lieu_naissance = data.lieu_naissance;
+    if (data.date_naissance !== undefined)
+      createData.date_naissance = data.date_naissance;
+    if (data.nationalite !== undefined)
+      createData.nationalite = data.nationalite;
+    if (data.sexe !== undefined) createData.sexe = data.sexe;
+    if (data.adresse !== undefined) createData.adresse = data.adresse;
+
+    console.log("[createOrUpdateCommande] Création nouvelle commande");
+
+    const commande = await DocumentCommande.create(createData);
 
     return {
       success: true,
@@ -333,6 +378,7 @@ export async function createOrUpdateCommande(data: {
       message: "Commande créée avec succès",
     };
   } catch (error: any) {
+    console.error("[createOrUpdateCommande] Erreur:", error.message);
     return {
       success: false,
       error: error.message,
@@ -476,7 +522,6 @@ export async function getDocumentsWithComandesCount(
       { $sort: { createdAt: -1 } },
     ]);
 
-    // Enrich signatures with user details
     const enrichedDocs = await Promise.all(
       documents.map(async (doc) => ({
         ...doc,
@@ -492,6 +537,215 @@ export async function getDocumentsWithComandesCount(
     return {
       success: false,
       error: error.message,
+    };
+  }
+}
+
+export async function generateDocumentReleve(commandeId: string) {
+  try {
+    console.log(
+      "[generateDocumentReleve] Démarrage génération relevé:",
+      commandeId,
+    );
+
+    await connectDB();
+
+    const commande = await DocumentCommande.findById(commandeId)
+      .populate("etudiantId")
+      .populate({
+        path: "docummentId",
+        populate: {
+          path: "signatures.userId",
+        },
+      })
+      .lean();
+
+    if (!commande) {
+      console.error(
+        "[generateDocumentReleve] Commande non trouvée:",
+        commandeId,
+      );
+      throw new Error("Commande non trouvée");
+    }
+
+    console.log("[generateDocumentReleve] Commande trouvée:", commande._id);
+
+    const etudiant = (commande as any).etudiantId;
+    const document = (commande as any).docummentId;
+
+    if (!etudiant || !document) {
+      throw new Error("Étudiant ou document non trouvé");
+    }
+
+    const section = await Section.findOne({
+      "filieres.programmes._id": new mongoose.Types.ObjectId(
+        document.promotionId,
+      ),
+    }).lean();
+
+    if (!section) {
+      console.error("[generateDocumentReleve] Section non trouvée");
+      throw new Error("Section non trouvée");
+    }
+
+    let programme: any = null;
+    for (const filiere of (section.filieres || []) as any[]) {
+      for (const prog of (filiere.programmes || []) as any[]) {
+        if (String(prog._id) === String(document.promotionId)) {
+          programme = prog;
+          break;
+        }
+      }
+      if (programme) break;
+    }
+
+    if (!programme) {
+      console.error("[generateDocumentReleve] Programme non trouvé");
+      throw new Error("Programme non trouvé");
+    }
+
+    console.log("[generateDocumentReleve] Programme récupéré");
+
+    const notes = await Note.find({
+      studentId: new mongoose.Types.ObjectId(etudiant._id),
+      promotionId: new mongoose.Types.ObjectId(document.promotionId),
+      anneeId: new mongoose.Types.ObjectId(document.anneeId),
+    }).lean();
+
+    console.log("[generateDocumentReleve] Notes trouvées:", notes.length);
+
+    const notesMap = new Map<string, any>();
+    for (const note of notes) {
+      const elementKey = String(note.elementId);
+      notesMap.set(elementKey, note);
+    }
+
+    const allUniteIds: string[] = [];
+    for (const semestre of (programme.semestres || []) as any[]) {
+      for (const unite of (semestre.unites || []) as any[]) {
+        allUniteIds.push(String(unite._id));
+      }
+    }
+
+    const elementsFromDB = await Element.find({
+      uniteId: {
+        $in: allUniteIds.map((id) => new mongoose.Types.ObjectId(id)),
+      },
+      anneeId: new mongoose.Types.ObjectId(document.anneeId),
+    }).lean();
+
+    console.log(
+      "[generateDocumentReleve] Éléments récupérés:",
+      elementsFromDB.length,
+    );
+
+    const elementsByUnite = new Map<string, any[]>();
+    for (const elem of elementsFromDB) {
+      const uniteKey = String(elem.uniteId);
+      if (!elementsByUnite.has(uniteKey)) {
+        elementsByUnite.set(uniteKey, []);
+      }
+      elementsByUnite.get(uniteKey)!.push(elem);
+    }
+
+    const semestres: SemestreNote[] = [];
+
+    for (const semestre of (programme.semestres || []) as any[]) {
+      const unites: UniteNote[] = [];
+
+      for (const unite of (semestre.unites || []) as any[]) {
+        const elements: ElementNote[] = [];
+        const uniteIdStr = String(unite._id);
+        const uniteElements = elementsByUnite.get(uniteIdStr) || [];
+
+        for (const element of uniteElements) {
+          const elementId = String(element._id);
+          const note = notesMap.get(elementId);
+
+          elements.push({
+            _id: elementId,
+            designation: String(element.designation || ""),
+            credit: Number(element.credit) || 1,
+            cc: note?.value?.cc || 0,
+            examen: note?.value?.examen || 0,
+            rattrapage: note?.value?.rattrapage || 0,
+          });
+        }
+
+        unites.push({
+          _id: uniteIdStr,
+          code: String(unite.code || ""),
+          designation: String(unite.designation || ""),
+          credit: Number(unite.credit) || 0,
+          elements,
+        });
+      }
+
+      semestres.push({
+        _id: String(semestre._id || semestre.designation),
+        designation: String(semestre.designation || ""),
+        unites,
+      });
+    }
+
+    const notesEtudiant: NotesEtudiant = {
+      studentId: etudiant._id.toString(),
+      studentName: etudiant.nomComplet,
+      matricule: etudiant.matricule || "N/A",
+      semestres,
+    };
+
+    console.log("[generateDocumentReleve] Structure NotesEtudiant prête");
+
+    const resultat = NoteManager.calculerResultatEtudiant(notesEtudiant);
+    console.log(
+      "[generateDocumentReleve] Résultat calculé:",
+      resultat.promotion.pourcentage,
+    );
+
+    const commandeResult: any = {
+      ...resultat,
+      documentId: document,
+      etudiantId: etudiant._id.toString(),
+      phoneNumber: (commande as any).phoneNumber,
+      reference: (commande as any).reference,
+      createdAt: new Date((commande as any).createdAt).toISOString(),
+      lieu_naissance: (commande as any).lieu_naissance || "",
+      date_naissance: (commande as any).date_naissance || "",
+      nationalite: (commande as any).nationalite || "",
+      sexe: (commande as any).sexe || "",
+      adresse: (commande as any).adresse || "",
+    };
+
+    const headerInfo: DocumentSectionHeader = {
+      sectionTitle: document.category || "DOCUMENT",
+      anneeAcademique: new Date(document.anneeId).getFullYear().toString(),
+      promotion: document.promotionId.toString(),
+      nref: `${(commande as any).reference}`,
+      documentType: document.designation,
+    };
+
+    console.log("[generateDocumentReleve] Création DocumentReleve");
+    const documentGenerator = new DocumentReleve(headerInfo);
+
+    await documentGenerator.generate([commandeResult]);
+    console.log("[generateDocumentReleve] Document généré");
+
+    const buffer = await (documentGenerator as any).save();
+    console.log("[generateDocumentReleve] Buffer créé, taille:", buffer.length);
+
+    return {
+      success: true,
+      data: buffer,
+      fileName: `Releve_${etudiant.nomComplet.replace(/\s+/g, "_")}_${new Date().getTime()}.xlsx`,
+    };
+  } catch (error: any) {
+    console.error("[generateDocumentReleve] Erreur:", error.message);
+    console.error("[generateDocumentReleve] Stack:", error.stack);
+    return {
+      success: false,
+      error: error.message,
+      message: "Erreur lors de la génération du relevé",
     };
   }
 }
