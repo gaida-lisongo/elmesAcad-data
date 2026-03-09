@@ -6,6 +6,7 @@ import DocumentManager from "@/app/components/DocumentManager";
 import CommandesViewer from "@/app/components/CommandesViewer";
 import { getDocumentsWithComandesCount } from "@/app/actions/documment.actions";
 import { useEffect } from "react";
+import PDFManager from "@/utils/pdfs/PDFManager";
 
 const ENSEIGNEMENT_CATEGORIES = [
   "RELEVE",
@@ -71,6 +72,17 @@ export default function EnseignementDocsPage() {
     }
   };
 
+  const generatePDF = async () => {
+    const pdf = new PDFManager();
+    await pdf.whenReady();
+
+    const docDefinition = pdf.renderDocument(
+      "RELEVE DE COTES",
+      "Contenu du document",
+    );
+    await PDFManager.generatePDF(docDefinition, "document.pdf");
+  };
+
   if (!selectedPromotion || !selectedAnnee) {
     return (
       <div className="p-6 bg-white rounded-lg">
@@ -103,6 +115,13 @@ export default function EnseignementDocsPage() {
               {cat}
             </button>
           ))}
+
+          <button
+            onClick={generatePDF}
+            className="ml-2 px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition"
+          >
+            Générer PDF
+          </button>
         </div>
       </div>
 
