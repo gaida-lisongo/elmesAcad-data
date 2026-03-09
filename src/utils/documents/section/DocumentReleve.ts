@@ -66,13 +66,10 @@ export default class DocumentReleve extends DocumentSection {
       "Note",
       "Statut",
     ];
-
-    // Fusion des colonnes B:D pour le titre
-    sheet.mergeCells(`B${curr}:D${curr}`);
-
     headers.forEach((header, idx) => {
       const cell = headerRow.getCell(idx + 1);
       if (header === "") {
+        sheet.mergeCells(`B${curr}:D${curr}`);
         return;
       }
       cell.value = header;
@@ -97,17 +94,7 @@ export default class DocumentReleve extends DocumentSection {
 
         row.getCell(1).value = idx + 1;
         row.getCell(2).value = unite.designation;
-
-        // Fusion des colonnes B:D pour chaque ligne d'unité
-        try {
-          sheet.mergeCells(`B${curr}:D${curr}`);
-        } catch (e) {
-          // Cellules déjà fusionnées, ignorer
-          console.warn(
-            `[DocumentReleve.renderNotes] Fusion déjà existante à B${curr}:D${curr}`,
-          );
-        }
-
+        sheet.mergeCells(`B${curr}:D${curr}`);
         row.getCell(5).value = unite.credit;
         row.getCell(6).value =
           typeof unite.moyenne === "number"
@@ -197,16 +184,7 @@ export default class DocumentReleve extends DocumentSection {
 
     syntheseData.forEach((data) => {
       const row = sheet.getRow(curr);
-
-      try {
-        sheet.mergeCells(`A${curr}:B${curr}`);
-      } catch (e) {
-        // Cellules déjà fusionnées, ignorer
-        console.warn(
-          `[DocumentReleve.renderSynthese] Fusion déjà existante à A${curr}:B${curr}`,
-        );
-      }
-
+      sheet.mergeCells(`A${curr}:B${curr}`);
       row.getCell(1).value = data.label;
       row.getCell(3).value = data.value;
 
@@ -241,15 +219,7 @@ export default class DocumentReleve extends DocumentSection {
     const isAdjourne =
       totalCredits > 0 ? (ncv / totalCredits) * 100 < 75 : false;
 
-    try {
-      sheet.mergeCells(`A${curr}:B${curr}`);
-    } catch (e) {
-      // Cellules déjà fusionnées, ignorer
-      console.warn(
-        `[DocumentReleve.renderSynthese] Fusion déjà existante à A${curr}:B${curr}`,
-      );
-    }
-
+    sheet.mergeCells(`A${curr}:B${curr}`);
     decisionRow.getCell(1).value = "DÉCISION";
     decisionRow.getCell(3).value = isAdjourne ? "AJOURNÉ" : "VALIDÉ";
 

@@ -13,8 +13,8 @@ import {
   UniteNote,
   SemestreNote,
 } from "@/utils/NoteManager";
-import DocumentReleve from "@/utils/documents/section/DocumentReleve";
-import { DocumentSectionHeader } from "@/utils/documents/DocumentSection";
+import type { RelevePDFPayload } from "@/utils/pdfs/RelevePDF";
+import type { BulletinPDFPayload } from "@/utils/pdfs/BulletinPDF";
 
 const { Documment, DocumentCommande } = RecetteModels;
 
@@ -707,49 +707,54 @@ export async function generateDocumentReleve(
       resultat.promotion.pourcentage,
     );
 
-    const commandeResult: any = {
-      ...resultat,
-      documentId: document,
-      etudiantId: etudiant._id.toString(),
-      phoneNumber: (commande as any).phoneNumber,
-      reference: (commande as any).reference,
-      createdAt: new Date((commande as any).createdAt).toISOString(),
-      lieu_naissance: (commande as any).lieu_naissance || "",
-      date_naissance: (commande as any).date_naissance || "",
-      nationalite: (commande as any).nationalite || "",
-      sexe: (commande as any).sexe || "",
-      adresse: (commande as any).adresse || "",
-    };
+    const anneeAcademique =
+      anneeVerifiee.debut && anneeVerifiee.fin
+        ? `${new Date(anneeVerifiee.debut).getFullYear()}-${new Date(anneeVerifiee.fin).getFullYear()}`
+        : new Date().getFullYear().toString();
 
-    const headerInfo: DocumentSectionHeader = {
-      sectionTitle: String(`SECTION : ${process.env.NEXT_PUBLIC_SECTION}` || "BTP"),
-      anneeAcademique:
-        anneeVerifiee.debut && anneeVerifiee.fin
-          ? `${new Date(anneeVerifiee.debut).getFullYear()}-${new Date(anneeVerifiee.fin).getFullYear()}`
-          : new Date().getFullYear().toString(),
+    const relevePayload: RelevePDFPayload = {
+      nomComplet: String(etudiant.nomComplet || "N/A"),
+      matricule: String(etudiant.matricule || "N/A"),
+      sexe: String((commande as any).sexe || ""),
+      dateNaissance: String((commande as any).date_naissance || ""),
+      lieuNaissance: String((commande as any).lieu_naissance || ""),
+      nationalite: String((commande as any).nationalite || ""),
+      section: String(process.env.NEXT_PUBLIC_SECTION || "BTP"),
+      filiere: String(programmeVerifie.designation || "N/A"),
       promotion: String(
         programmeVerifie.designation || programmeVerifie.niveau || "N/A",
       ),
-      nref: `${(commande as any).reference}`,
-      documentType: String(document.designation),
+      anneeAcademique,
+      notes: resultat.semestres.flatMap((semestre) =>
+        semestre.unites.map((unite) => ({
+          unite: String(unite.designation || ""),
+          code: String(unite.code || ""),
+          credit: Number(unite.credit) || 0,
+          elements: unite.elements.map((element) => ({
+            designation: String(element.designation || ""),
+            credit: Number(element.credit) || 0,
+            cc: Number(element.cc) || 0,
+            examen: Number(element.examen) || 0,
+            rattrapage: Number(element.rattrapage) || 0,
+          })),
+        })),
+      ),
+      synthese: {
+        totalObtenu: Number(resultat.promotion.totalObtenu) || 0,
+        totalMax: Number(resultat.promotion.totalMax) || 0,
+        pourcentage: Number(resultat.promotion.pourcentage) || 0,
+        mention: String(resultat.promotion.mention || ""),
+        ncv: Number(resultat.promotion.ncv) || 0,
+        ncnv: Number(resultat.promotion.ncnv) || 0,
+      },
     };
 
-    console.log("[generateDocumentReleve] Création DocumentReleve");
-    const documentGenerator = new DocumentReleve(headerInfo);
-
-    await documentGenerator.generate([commandeResult]);
-    console.log("[generateDocumentReleve] Document généré");
-
-    const buffer = await documentGenerator.generateBuffer();
-    console.log("[generateDocumentReleve] Buffer créé, taille:", buffer.length);
-
-    const base64 = buffer.toString("base64");
-    console.log("[generateDocumentReleve] Encoded en base64");
+    console.log("[generateDocumentReleve] Payload PDF prêt");
 
     return {
       success: true,
-      data: base64,
-      fileName: `Releve_${etudiant.nomComplet.replace(/\s+/g, "_")}_${new Date().getTime()}.xlsx`,
+      data: serializeData(relevePayload),
+      fileName: `Releve_${etudiant.nomComplet.replace(/\s+/g, "_")}_${new Date().getTime()}.pdf`,
     };
   } catch (error: any) {
     console.error("[generateDocumentReleve] Erreur:", error.message);
@@ -758,6 +763,218 @@ export async function generateDocumentReleve(
       success: false,
       error: error.message,
       message: "Erreur lors de la génération du relevé",
+    };
+  }
+}
+
+export async function generateBulletin(
+  commandeId: string,
+  promotion: any,
+  semestreIndex: number,
+) {
+  try {
+    console.log(
+      "[generateBulletin] Démarrage génération bulletin:",
+      commandeId,
+      "Semestre:",
+      semestreIndex,
+    );
+
+    await connectDB();
+
+    const commande = await DocumentCommande.findById(commandeId)
+      .populate("etudiantId")
+      .populate({
+        path: "docummentId",
+        populate: [
+          {
+            path: "signatures.userId",
+          },
+          {
+            path: "anneeId",
+          },
+        ],
+      })
+      .lean();
+
+    if (!commande) {
+      console.error("[generateBulletin] Commande non trouvée:", commandeId);
+      throw new Error("Commande non trouvée");
+    }
+
+    const programme = promotion;
+
+    if (!programme) {
+      console.error("[generateBulletin] Programme non trouvé:", promotion);
+      throw new Error("Programme non trouvé");
+    }
+
+    const etudiant = (commande as any).etudiantId;
+    const document = (commande as any).docummentId;
+    const annee = document?.anneeId;
+
+    if (!etudiant || !document || !annee) {
+      throw new Error("Étudiant, document ou année non trouvé");
+    }
+
+    const programmeVerifie = programme as any;
+    const anneeVerifiee = annee as any;
+
+    const notes = await Note.find({
+      studentId: new mongoose.Types.ObjectId(etudiant._id),
+      promotionId: new mongoose.Types.ObjectId(programmeVerifie._id),
+      anneeId: new mongoose.Types.ObjectId(anneeVerifiee._id),
+    }).lean();
+
+    console.log("[generateBulletin] Notes trouvées:", notes.length);
+
+    const notesMap = new Map<string, any>();
+    for (const note of notes) {
+      const elementKey = String(note.elementId);
+      notesMap.set(elementKey, note);
+    }
+
+    const allUniteIds: string[] = [];
+    for (const semestre of (programmeVerifie.semestres || []) as any[]) {
+      for (const unite of (semestre.unites || []) as any[]) {
+        allUniteIds.push(String(unite._id));
+      }
+    }
+
+    const elementsFromDB = await Element.find({
+      uniteId: {
+        $in: allUniteIds.map((id) => new mongoose.Types.ObjectId(id)),
+      },
+      anneeId: new mongoose.Types.ObjectId(anneeVerifiee._id),
+    }).lean();
+
+    console.log(
+      "[generateBulletin] Éléments récupérés:",
+      elementsFromDB.length,
+    );
+
+    const elementsByUnite = new Map<string, any[]>();
+    for (const elem of elementsFromDB) {
+      const uniteKey = String(elem.uniteId);
+      if (!elementsByUnite.has(uniteKey)) {
+        elementsByUnite.set(uniteKey, []);
+      }
+      elementsByUnite.get(uniteKey)!.push(elem);
+    }
+
+    const semestres: SemestreNote[] = [];
+
+    for (const semestre of (programmeVerifie.semestres || []) as any[]) {
+      const unites: UniteNote[] = [];
+
+      for (const unite of (semestre.unites || []) as any[]) {
+        const elements: ElementNote[] = [];
+        const uniteIdStr = String(unite._id);
+        const uniteElements = elementsByUnite.get(uniteIdStr) || [];
+
+        for (const element of uniteElements) {
+          const elementId = String(element._id);
+          const note = notesMap.get(elementId);
+
+          elements.push({
+            _id: elementId,
+            designation: String(element.designation || ""),
+            credit: Number(element.credit) || 1,
+            cc: note?.value?.cc || 0,
+            examen: note?.value?.examen || 0,
+            rattrapage: note?.value?.rattrapage || 0,
+          });
+        }
+
+        unites.push({
+          _id: uniteIdStr,
+          code: String(unite.code || ""),
+          designation: String(unite.designation || ""),
+          credit: Number(unite.credit) || 0,
+          elements,
+        });
+      }
+
+      semestres.push({
+        _id: String(semestre._id || semestre.designation),
+        designation: String(semestre.designation || ""),
+        unites,
+      });
+    }
+
+    if (semestreIndex < 0 || semestreIndex >= semestres.length) {
+      throw new Error(`Semestre ${semestreIndex} non trouvé`);
+    }
+
+    const semestreData = semestres[semestreIndex];
+
+    const notesEtudiant: NotesEtudiant = {
+      studentId: etudiant._id.toString(),
+      studentName: etudiant.nomComplet,
+      matricule: etudiant.matricule || "N/A",
+      semestres: [semestreData],
+    };
+
+    const resultat = NoteManager.calculerResultatEtudiant(notesEtudiant);
+    const resultatSemestre = resultat.semestres[0];
+
+    const anneeAcademique =
+      anneeVerifiee.debut && anneeVerifiee.fin
+        ? `${new Date(anneeVerifiee.debut).getFullYear()}-${new Date(anneeVerifiee.fin).getFullYear()}`
+        : new Date().getFullYear().toString();
+
+    const bulletinPayload: BulletinPDFPayload = {
+      nomComplet: String(etudiant.nomComplet || "N/A"),
+      matricule: String(etudiant.matricule || "N/A"),
+      sexe: String((commande as any).sexe || ""),
+      dateNaissance: String((commande as any).date_naissance || ""),
+      lieuNaissance: String((commande as any).lieu_naissance || ""),
+      nationalite: String((commande as any).nationalite || ""),
+      section: String(process.env.NEXT_PUBLIC_SECTION || "BTP"),
+      filiere: String(programmeVerifie.designation || "N/A"),
+      promotion: String(
+        programmeVerifie.designation || programmeVerifie.niveau || "N/A",
+      ),
+      anneeAcademique,
+      semestre: {
+        designation: String(semestreData.designation || ""),
+        unites: resultatSemestre.unites.map((unite) => ({
+          unite: String(unite.designation || ""),
+          code: String(unite.code || ""),
+          credit: Number(unite.credit) || 0,
+          elements: unite.elements.map((element) => ({
+            designation: String(element.designation || ""),
+            credit: Number(element.credit) || 0,
+            cc: Number(element.cc) || 0,
+            examen: Number(element.examen) || 0,
+            rattrapage: Number(element.rattrapage) || 0,
+          })),
+        })),
+      },
+      synthese: {
+        totalObtenu: Number(resultatSemestre.totalObtenu) || 0,
+        totalMax: Number(resultatSemestre.totalMax) || 0,
+        pourcentage: Number(resultatSemestre.pourcentage) || 0,
+        mention: String(resultatSemestre.mention || ""),
+        ncv: Number(resultatSemestre.ncv) || 0,
+        ncnv: Number(resultatSemestre.ncnv) || 0,
+      },
+    };
+
+    console.log("[generateBulletin] Payload bulletin prêt");
+
+    return {
+      success: true,
+      data: serializeData(bulletinPayload),
+      fileName: `Bulletin_${semestreData.designation.replace(/\s+/g, "_")}_${etudiant.nomComplet.replace(/\s+/g, "_")}_${new Date().getTime()}.pdf`,
+    };
+  } catch (error: any) {
+    console.error("[generateBulletin] Erreur:", error.message);
+    console.error("[generateBulletin] Stack:", error.stack);
+    return {
+      success: false,
+      error: error.message,
+      message: "Erreur lors de la génération du bulletin",
     };
   }
 }

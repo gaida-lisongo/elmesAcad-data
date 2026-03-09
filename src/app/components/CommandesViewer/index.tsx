@@ -7,8 +7,11 @@ import {
   createOrUpdateCommande,
   deleteCommande,
   generateDocumentReleve,
+  generateBulletin,
 } from "@/app/actions/documment.actions";
 import { resolveMatriculeToUser } from "@/lib/utils/resolveUser";
+import RelevePDF, { RelevePDFPayload } from "@/utils/pdfs/RelevePDF";
+import BulletinPDF, { BulletinPDFPayload } from "@/utils/pdfs/BulletinPDF";
 
 interface Commande {
   _id: string;
@@ -183,33 +186,75 @@ export default function CommandesViewer({
         return;
       }
 
-      console.log("[handleGenerateReleve] Document généré, base64 reçu");
+      const payload = result.data as RelevePDFPayload;
+      const fileName = (result.fileName as string) || "releve_de_cotes.pdf";
 
-      const base64String = (result.data as unknown as string) || "";
-      const binaryString = atob(base64String);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      const fileName = (result.fileName as string) || "document.xlsx";
-      const blob = new Blob([bytes] as BlobPart[], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = URL.createObjectURL(blob);
-      const link = globalThis.document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      globalThis.document.body.appendChild(link);
-      link.click();
-      globalThis.document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      console.log("[handleGenerateReleve] Fichier téléchargé:", fileName);
+      console.log("[handleGenerateReleve] Payload reçu, génération PDF...");
+      const relevePdf = new RelevePDF(payload);
+      await relevePdf.render(fileName);
+      console.log("[handleGenerateReleve] PDF généré:", fileName);
 
       setSuccessMessage("Relevé généré et téléchargé avec succès");
     } catch (error: any) {
       console.error("[handleGenerateReleve] Exception:", error);
       setErrorMessage(
         error.message || "Erreur lors de la génération du relevé",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateBulletin = async (
+    commandeId: string,
+    semestreIndex: number,
+  ) => {
+    console.log(
+      "[handleGenerateBulletin] Génération du bulletin pour commande:",
+      commandeId,
+      "Semestre:",
+      semestreIndex === 0 ? "S1" : "S2",
+    );
+    setLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const result = await generateBulletin(
+        commandeId,
+        promotion,
+        semestreIndex,
+      );
+
+      if (!result.success) {
+        console.error(
+          "[handleGenerateBulletin] Erreur retournée:",
+          result.error,
+        );
+        setErrorMessage(
+          result.message || "Erreur lors de la génération du bulletin",
+        );
+        setLoading(false);
+        return;
+      }
+
+      const payload = result.data as BulletinPDFPayload;
+      const semLabel = semestreIndex === 0 ? "S1" : "S2";
+      const fileName =
+        (result.fileName as string) || `bulletin_${semLabel}.pdf`;
+
+      console.log("[handleGenerateBulletin] Payload reçu, génération PDF...");
+      const bulletinPdf = new BulletinPDF(payload);
+      await bulletinPdf.render(fileName);
+      console.log("[handleGenerateBulletin] PDF généré:", fileName);
+
+      setSuccessMessage(
+        `Bulletin ${semLabel} généré et téléchargé avec succès`,
+      );
+    } catch (error: any) {
+      console.error("[handleGenerateBulletin] Exception:", error);
+      setErrorMessage(
+        error.message || "Erreur lors de la génération du bulletin",
       );
     } finally {
       setLoading(false);
@@ -618,10 +663,34 @@ export default function CommandesViewer({
                           onClick={() => handleGenerateReleve(cmd._id)}
                           disabled={loading}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition disabled:opacity-50"
-                          title="Générer le relevé"
+                          title="Générer le relevé complet"
                         >
                           <Icon
-                            icon="material-symbols:file-download"
+                            icon="material-symbols:description"
+                            width={18}
+                            height={18}
+                          />
+                        </button>
+                        <button
+                          onClick={() => handleGenerateBulletin(cmd._id, 0)}
+                          disabled={loading}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition disabled:opacity-50"
+                          title="Bulletin Semestre 1"
+                        >
+                          <Icon
+                            icon="material-symbols:looks-one"
+                            width={18}
+                            height={18}
+                          />
+                        </button>
+                        <button
+                          onClick={() => handleGenerateBulletin(cmd._id, 1)}
+                          disabled={loading}
+                          className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition disabled:opacity-50"
+                          title="Bulletin Semestre 2"
+                        >
+                          <Icon
+                            icon="material-symbols:looks-two"
                             width={18}
                             height={18}
                           />

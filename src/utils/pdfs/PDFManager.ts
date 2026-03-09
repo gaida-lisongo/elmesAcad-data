@@ -1,5 +1,6 @@
 import pdfmake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
+import { text } from "stream/consumers";
 
 const pdfFontsWithVfs = pdfFonts as unknown as {
   vfs?: Record<string, string>;
@@ -117,11 +118,26 @@ export default class PDFManager {
     }
   }
 
-  renderDocument(title: string, content: string) {
+  renderDocument(
+    title: string,
+    content: any,
+    metadata?: {
+      reference?: string;
+      dateGeneration?: string;
+      signatureInfo?: {
+        nom?: string;
+        fonction?: string;
+      };
+    },
+  ) {
     const hasLogo = Boolean(this.logoBase64);
 
     const docDefinition = {
-      content: [this.renderHeader(title, hasLogo), this.renderContent(content)],
+      content: [
+        this.renderHeader(title, hasLogo, metadata),
+        this.renderContent(content),
+        // ...(metadata?.signatureInfo ? [this.renderSignature(metadata)] : []),
+      ],
       footer: (currentPage: number, pageCount: number) =>
         this.renderFooter(currentPage, pageCount),
       styles: {
@@ -133,15 +149,17 @@ export default class PDFManager {
         univName: {
           fontSize: 12,
           bold: true,
-          color: "#b21f1f",
+          color: "#050505",
           margin: [0, 2, 0, 5],
         },
         headerTitle: {
-          fontSize: 16,
+          fontSize: 12,
           bold: true,
           decoration: "underline",
           color: "black",
         },
+        qrLabel: { fontSize: 8, italics: true, alignment: "center" },
+        signatureText: { fontSize: 10, bold: true },
       },
     };
 
@@ -166,63 +184,157 @@ export default class PDFManager {
       ...style,
     };
   }
-  renderHeader(title: string, includeLogo: boolean) {
+
+  renderHeader(
+    title: string,
+    includeLogo: boolean,
+    metadata?: {
+      reference?: string;
+      dateGeneration?: string;
+      signatureInfo?: {
+        nom?: string;
+        fonction?: string;
+      };
+    },
+  ) {
     const columns: any[] = [];
-    const qrCodeUrl = "https://example.com/document/12345";
+    // const qrCodeUrl = metadata?.reference
+    //   ? `${process.env.NEXT_PUBLIC_APP_URL || "https://app.example.com"}/verify/${metadata.reference}`
+    //   : "https://example.com/document/verification";
 
-    const hasLogoUniv = Boolean(this.logoUnivBase64);
+    // const hasLogoUniv = Boolean(this.logoUnivBase64);
 
-    if (hasLogoUniv) {
-      columns.push({
-        width: "15%",
-        image: this.logoUnivBase64,
-        fit: [80, 80],
-        alignment: "left",
-      });
-    } else {
-      columns.push({ width: "15%", text: "" });
-    }
+    // // QR Code avec date
+    // const qrStack: any[] = [];
+    // if (metadata?.reference) {
+    //   qrStack.push(this.generateQRCode(qrCodeUrl, {}));
+    //   qrStack.push({
+    //     text: `Réf: ${metadata.reference.slice(0, 12)}...`,
+    //     style: "qrLabel",
+    //     margin: [0, 2, 0, 0],
+    //   });
+    // }
+    // if (metadata?.dateGeneration) {
+    //   qrStack.push({
+    //     text: new Date(metadata.dateGeneration).toLocaleDateString("fr-FR"),
+    //     style: "qrLabel",
+    //   });
+    // }
 
-    // Définition des colonnes avec les proportions demandées
+    // if (qrStack.length > 0) {
+    //   columns.push({
+    //     width: "15%",
+    //     stack: qrStack,
+    //     alignment: "left",
+    //   });
+    // } else if (hasLogoUniv) {
+    //   columns.push({
+    //     width: "15%",
+    //     image: this.logoUnivBase64,
+    //     fit: [80, 80],
+    //     alignment: "left",
+    //   });
+    // } else {
+    //   columns.push({ width: "15%", text: "" });
+    // }
+
+    // Centre: Infos officielles
     columns.push({
-      width: "70%",
+      width: "50%",
       stack: [
         { text: "RÉPUBLIQUE DÉMOCRATIQUE DU CONGO", style: "countryName" },
         {
           text: "Ministère de l'Enseignement Supérieur, Universitaire, Recherche Scientifique et Innovations",
+          fontSize: 12,
+          margin: [0, 2, 0, 2],
         },
         {
           text: univ.toUpperCase(),
           style: "univName",
           margin: [0, 2, 0, 5],
         },
-        {
-          text: title,
-          style: "headerTitle",
-          margin: [10, 10, 10, 0],
-        },
+        includeLogo
+          ? {
+              width: "15%",
+              image: "logo",
+              fit: [80, 80],
+              alignment: "center",
+            }
+          : null,
+
+        `Section : ${process.env.NEXT_PUBLIC_SECTION || "GR"}`,
       ],
       alignment: "center",
     });
 
-    // 3. Logo (15%) - Simulation d'arrondi
-    if (includeLogo) {
-      columns.push({
-        width: "15%",
-        image: "logo",
-        fit: [80, 80],
-        alignment: "right",
-        // Note : Pour un cercle parfait, l'image source doit être carrée
-        // pdfmake ne supporte pas le "border-radius" sur images
-      });
-    } else {
-      // Colonne vide pour maintenir l'équilibre si pas de logo
-      columns.push({ width: "15%", text: "" });
-    }
+    columns.push({
+      width: "50%",
+      stack: [
+        { text: title, alignment: "right", margin: [0, 0, 0, 10] },
+        {
+          text: `N/Ref: ${metadata?.reference || "-"}`,
+          alignment: "right",
+          margin: [0, 2, 0, 50],
+        },
+        {
+          qr: `https://verif-document.example.com/${metadata?.reference || "unknown"}`,
+          fit: 100,
+          alignment: "right",
+        },
+      ],
+    }); // Colonne vide pour espacer le logo de droite
+
+    // Droite: Logo section
+    // if (includeLogo) {
+    //   columns.push({
+    //     width: "15%",
+    //     image: "logo",
+    //     fit: [80, 80],
+    //     alignment: "right",
+    //   });
+    // } else {
+    //   columns.push({ width: "15%", text: "" });
+    // }
 
     return {
       columns,
-      margin: [0, 0, 0, 20],
+      margin: [0, 0, 0, 0],
+    };
+  }
+
+  renderSignature(metadata: {
+    reference?: string;
+    dateGeneration?: string;
+    signatureInfo?: {
+      nom?: string;
+      fonction?: string;
+    };
+  }) {
+    const dateStr = metadata.dateGeneration
+      ? new Date(metadata.dateGeneration).toLocaleDateString("fr-FR")
+      : new Date().toLocaleDateString("fr-FR");
+
+    return {
+      margin: [0, 5, 0, 0],
+      columns: [
+        { width: "50%", text: "" },
+        {
+          width: "50%",
+          stack: [
+            {
+              text: `Fait à Kinshasa, le ${dateStr}`,
+              fontSize: 10,
+              margin: [0, 0, 0, 10],
+            },
+            {
+              text: metadata.signatureInfo?.fonction || "Le Chef de Section",
+              style: "signatureText",
+              margin: [0, 0, 0, 0],
+            },
+          ],
+          alignment: "center",
+        },
+      ],
     };
   }
   //   renderHeader(title: string, includeLogo: boolean) {
@@ -266,19 +378,37 @@ export default class PDFManager {
   //   }
 
   renderContent(content: any) {
-    return {
-      text: content,
+    const baseStyle = {
       style: "content",
       margin: [0, 10, 0, 10],
+    };
+
+    if (Array.isArray(content)) {
+      return {
+        ...baseStyle,
+        stack: content,
+      };
+    }
+
+    if (typeof content === "object" && content !== null) {
+      return {
+        ...baseStyle,
+        stack: [content],
+      };
+    }
+
+    return {
+      ...baseStyle,
+      text: String(content ?? ""),
     };
   }
 
   renderFooter(page: number, pageCount: number) {
     return {
-      text: `Page ${page} sur ${pageCount}`,
+      text: `NB: Ce document est délivré à l'intéressé(e) pour servir et valoir ce que de droit.\nAv. de la Montage n°21, Q. Joli Parc, Commune de Ngaliema   Site web : ww.inbtp.ac.cd\nEmail: btp@inbtp.net | Tel: +243853102426`,
       style: "footer",
       alignment: "center",
-      margin: [0, 10, 0, 20],
+      margin: [0, 5, 0, 0],
     };
   }
 }
