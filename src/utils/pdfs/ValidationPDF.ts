@@ -1,6 +1,6 @@
 import PDFManager from "./PDFManager";
 
-export interface BulletinElementData {
+export interface ReleveElementData {
   designation: string;
   credit: number;
   cc: number;
@@ -8,19 +8,14 @@ export interface BulletinElementData {
   rattrapage: number;
 }
 
-export interface BulletinUniteData {
+export interface ReleveUniteData {
   unite: string;
   credit: number;
   code: string;
-  elements: BulletinElementData[];
+  elements: ReleveElementData[];
 }
 
-export interface BulletinSemestreData {
-  designation: string;
-  unites: BulletinUniteData[];
-}
-
-export interface BulletinSyntheseSemestreData {
+export interface ReleveSyntheseData {
   totalObtenu: number;
   totalMax: number;
   pourcentage: number;
@@ -29,7 +24,7 @@ export interface BulletinSyntheseSemestreData {
   ncnv: number;
 }
 
-export interface BulletinPDFPayload {
+export interface RelevePDFPayload {
   nomComplet: string;
   matricule: string;
   sexe: string;
@@ -40,16 +35,16 @@ export interface BulletinPDFPayload {
   filiere: string;
   promotion: string;
   anneeAcademique: string;
-  semestre: BulletinSemestreData;
-  synthese?: BulletinSyntheseSemestreData;
+  notes: ReleveUniteData[];
+  synthese?: ReleveSyntheseData;
 }
 
-const computeElementNote = (element: BulletinElementData): number => {
+const computeElementNote = (element: ReleveElementData): number => {
   const session = element.cc + element.examen;
   return session > element.rattrapage ? session : element.rattrapage;
 };
 
-const computeUniteAverage = (unite: BulletinUniteData): number => {
+const computeUniteAverage = (unite: ReleveUniteData): number => {
   const totalCredits = unite.elements.reduce(
     (sum, element) => sum + element.credit,
     0,
@@ -64,15 +59,15 @@ const computeUniteAverage = (unite: BulletinUniteData): number => {
   return Number((weightedTotal / totalCredits).toFixed(2));
 };
 
-const buildSyntheseSemestre = (
-  semestre: BulletinSemestreData,
-): BulletinSyntheseSemestreData => {
+const buildSyntheseFromNotes = (
+  notes: ReleveUniteData[],
+): ReleveSyntheseData => {
   let totalObtenu = 0;
   let totalMax = 0;
   let ncv = 0;
   let ncnv = 0;
 
-  semestre.unites.forEach((unite) => {
+  notes.forEach((unite) => {
     const moyenneUnite = computeUniteAverage(unite);
     const uniteCredit = Number(unite.credit) || 0;
 
@@ -106,13 +101,13 @@ const buildSyntheseSemestre = (
   };
 };
 
-export default class BulletinPDF extends PDFManager {
-  bulletinData: BulletinPDFPayload;
+export default class ValidationPDF extends PDFManager {
+  studentNote: RelevePDFPayload;
 
-  constructor(payload?: BulletinPDFPayload) {
+  constructor(payload?: RelevePDFPayload) {
     super();
 
-    this.bulletinData = {
+    this.studentNote = {
       nomComplet: "Jean Dupont",
       matricule: "2021001",
       sexe: "Masculin",
@@ -123,22 +118,76 @@ export default class BulletinPDF extends PDFManager {
       filiere: "Construction Industrielle et Batiments",
       promotion: "Licence 1",
       anneeAcademique: "2023-2024",
-      semestre: {
-        designation: "Semestre 1",
-        unites: [],
-      },
+      notes: [
+        {
+          unite: "Francais",
+          credit: 5,
+          code: "FR101",
+          elements: [
+            {
+              designation: "Expression Orale et Ecrite",
+              credit: 2,
+              cc: 5,
+              examen: 7,
+              rattrapage: 10,
+            },
+            {
+              designation: "Logique et Argumentation",
+              credit: 2,
+              cc: 8,
+              examen: 8,
+              rattrapage: 11,
+            },
+            {
+              designation: "Grammaire",
+              credit: 1,
+              cc: 4,
+              examen: 5,
+              rattrapage: 8,
+            },
+          ],
+        },
+        {
+          unite: "Mathematiques",
+          credit: 5,
+          code: "MA101",
+          elements: [
+            {
+              designation: "Algebre",
+              credit: 2,
+              cc: 9,
+              examen: 12,
+              rattrapage: 13,
+            },
+            {
+              designation: "Geometrie",
+              credit: 2,
+              cc: 10,
+              examen: 7,
+              rattrapage: 11,
+            },
+            {
+              designation: "Calcul Numérique",
+              credit: 1,
+              cc: 7,
+              examen: 6,
+              rattrapage: 18,
+            },
+          ],
+        },
+      ],
     };
 
     if (payload) {
-      this.setBulletinData(payload);
+      this.setStudentData(payload);
     }
   }
 
-  setBulletinData(payload: BulletinPDFPayload) {
-    this.bulletinData = {
+  setStudentData(payload: RelevePDFPayload) {
+    this.studentNote = {
       ...payload,
-      semestre: payload.semestre,
-      synthese: payload.synthese || buildSyntheseSemestre(payload.semestre),
+      notes: payload.notes || [],
+      synthese: payload.synthese || buildSyntheseFromNotes(payload.notes || []),
     };
   }
 
@@ -146,185 +195,118 @@ export default class BulletinPDF extends PDFManager {
     const {
       nomComplet,
       matricule,
-      promotion,
-      anneeAcademique,
+      sexe,
+      dateNaissance,
       lieuNaissance,
       nationalite,
-    } = this.bulletinData;
+      promotion,
+      filiere,
+      anneeAcademique,
+    } = this.studentNote;
 
     return [
       {
-        table: {
-          widths: ["*", "*"],
-          body: [
-            ["", { text: `${nomComplet}`, bold: true }],
-            [
-              "",
-              { text: `(${matricule})`, bold: true },
-              //   { text: `SEXE : ${sexe}`, bold: true, fontSize: 10 },
-              //   {
-              //     text: `DATE DE NAISSANCE : ${new Date(
-              //       dateNaissance,
-              //     ).toLocaleDateString("fr-FR", {
-              //       day: "2-digit",
-              //       month: "long",
-              //       year: "numeric",
-              //     })}`,
-              //     bold: true,
-              //     fontSize: 10,
-              //   },
-            ],
-            [
-              "",
+        columns: [
+          {
+            width: "50%",
+            text: "",
+          },
+          {
+            width: "50%",
+            stack: [
+              { text: `${nomComplet}\n(${matricule})`, bold: true },
               {
-                text: `Promotion : ${promotion}`,
+                text: `Promotion: ${promotion}`,
+              },
+              {
+                text: `Annee Académique: ${anneeAcademique}`,
               },
             ],
-            [
-              "",
-              {
-                text: `Annee-Académique : ${anneeAcademique}`,
-              },
-            ],
-          ],
-        },
-        layout: "noBorders",
+          },
+        ],
       },
     ];
   }
 
   renderDocumentInfoSection() {
-    const { section, filiere, promotion, anneeAcademique, semestre } =
-      this.bulletinData;
+    const { section, filiere, promotion, anneeAcademique } = this.studentNote;
 
     return [
       {
-        margin: [0, 0, 0, 0],
+        margin: [0, 8, 0, 0],
         table: {
           widths: ["*", "*"],
           body: [
             [
-              { text: `SECTION : ${section}`, bold: true, fontSize: 10 },
-              { text: `FILIERE : ${filiere}`, bold: true, fontSize: 10 },
+              { text: `SECTION : ${section}`, bold: true },
+              { text: `FILIERE : ${filiere}`, bold: true },
             ],
             [
-              { text: `PROMOTION : ${promotion}`, bold: true, fontSize: 10 },
-              {
-                text: `ANNEE ACADEMIQUE : ${anneeAcademique}`,
-                bold: true,
-                fontSize: 10,
-              },
-            ],
-            [
-              {
-                text: `SEMESTRE : ${semestre.designation}`,
-                bold: true,
-                fontSize: 11,
-                colSpan: 2,
-                fillColor: "#f0f0f0",
-              },
-              {},
+              { text: `PROMOTION : ${promotion}`, bold: true },
+              { text: `ANNEE ACADEMIQUE : ${anneeAcademique}`, bold: true },
             ],
           ],
         },
-        layout: "noBorders",
       },
     ];
   }
 
+  generateAppreciation(moyenne: number) {
+    if (moyenne >= 16) return "EXCELLENT";
+    if (moyenne >= 14) return "TRÈS BIEN";
+    if (moyenne >= 12) return "BIEN";
+    if (moyenne >= 10) return "SATISFAISANT";
+    return "INSUFFISANT";
+  }
+
   renderNotesSection() {
-    const { semestre } = this.bulletinData;
+    const { notes } = this.studentNote;
 
     const body: any[] = [
       [
         {
           text: "DESIGNATION",
           bold: true,
-          fillColor: "#eeeeee",
+          fontsize: 12,
           margin: [0, 4, 0, 4],
-          fontSize: 9,
-        },
-        {
-          text: "CC",
-          bold: true,
-          fillColor: "#eeeeee",
-          alignment: "center",
-          margin: [0, 4, 0, 4],
-          fontSize: 9,
-        },
-        {
-          text: "EXA",
-          bold: true,
-          fillColor: "#eeeeee",
-          alignment: "center",
-          margin: [0, 4, 0, 4],
-          fontSize: 9,
-        },
-        {
-          text: "RAT",
-          bold: true,
-          fillColor: "#eeeeee",
-          alignment: "center",
-          margin: [0, 4, 0, 4],
-          fontSize: 9,
-        },
-        {
-          text: "NOTE",
-          bold: true,
-          fillColor: "#eeeeee",
-          alignment: "center",
-          margin: [0, 4, 0, 4],
-          fontSize: 9,
         },
         {
           text: "CREDIT",
           bold: true,
-          fillColor: "#eeeeee",
+          fontsize: 12,
           alignment: "center",
           margin: [0, 4, 0, 4],
-          fontSize: 9,
         },
         {
           text: "OBS",
           bold: true,
-          fillColor: "#eeeeee",
+          fontsize: 12,
           alignment: "center",
           margin: [0, 4, 0, 4],
-          fontSize: 9,
         },
       ],
     ];
 
-    semestre.unites.forEach((unite) => {
-      // Éléments constitutifs en détail
-      unite.elements.forEach((element) => {
+    notes.forEach((noteUnite) => {
+      noteUnite.elements.forEach((element) => {
         const note = computeElementNote(element);
 
-        body.push([
-          { text: element.designation, fontSize: 9 },
-          { text: String(element.cc), alignment: "center", fontSize: 9 },
-          { text: String(element.examen), alignment: "center", fontSize: 9 },
-          {
-            text: String(element.rattrapage),
-            alignment: "center",
-            fontSize: 9,
-          },
-          { text: String(note), alignment: "center", fontSize: 9 },
-          { text: String(element.credit), alignment: "center", fontSize: 9 },
-          {
-            text: note >= 10 ? "V" : "NV",
-            alignment: "center",
-            fontSize: 9,
-          },
-        ]);
+        // body.push([
+        //   { text: element.designation },
+        //   { text: String(element.cc), alignment: "center" },
+        //   { text: String(element.examen), alignment: "center" },
+        //   { text: String(element.rattrapage), alignment: "center" },
+        //   { text: String(note), alignment: "center" },
+        //   { text: String(element.credit), alignment: "center" },
+        //   { text: note >= 10 ? "V" : "NV", alignment: "center" },
+        // ]);
       });
 
-      // Total de l'unité
-      const totalCredits = unite.elements.reduce(
+      const totalCredits = noteUnite.elements.reduce(
         (sum, element) => sum + element.credit,
         0,
       );
-      const weightedTotal = unite.elements.reduce(
+      const weightedTotal = noteUnite.elements.reduce(
         (sum, element) => sum + computeElementNote(element) * element.credit,
         0,
       );
@@ -335,43 +317,23 @@ export default class BulletinPDF extends PDFManager {
 
       body.push([
         {
-          text: `${unite.unite} (${unite.code})`,
-          bold: true,
-          colSpan: 4,
-          fillColor: "#e8e8e8",
-          margin: [0, 3, 0, 3],
-          fontSize: 9,
+          text: `${noteUnite.unite} (${noteUnite.code})`,
+          margin: [0, 1, 0, 1],
         },
-        {},
-        {},
-        {},
-        {
-          text: String(moyenneUnite),
-          bold: true,
-          alignment: "center",
-          fontSize: 9,
-        },
-        {
-          text: String(totalCredits),
-          bold: true,
-          alignment: "center",
-          fontSize: 9,
-        },
+        { text: String(totalCredits), alignment: "center" },
         {
           text: moyenneUnite >= 10 ? "V" : "NV",
-          bold: true,
           alignment: "center",
-          fontSize: 9,
         },
       ]);
     });
 
     return [
       {
-        margin: [0, 5, 0, 0],
+        margin: [0, 12, 0, 0],
         table: {
           headerRows: 1,
-          widths: ["*", 35, 35, 35, 45, 45, 35],
+          widths: ["*", 50, 40],
           body,
         },
         layout: "lightHorizontalLines",
@@ -379,14 +341,14 @@ export default class BulletinPDF extends PDFManager {
     ];
   }
 
-  renderSyntheseSemestreSection() {
+  renderSyntheseSection() {
     const synthese =
-      this.bulletinData.synthese ||
-      buildSyntheseSemestre(this.bulletinData.semestre);
+      this.studentNote.synthese ||
+      buildSyntheseFromNotes(this.studentNote.notes);
 
     const totalCredits = synthese.ncv + synthese.ncnv;
     const isAdjourne =
-      totalCredits > 0 ? (synthese.ncv / totalCredits) * 100 < 50 : false;
+      totalCredits > 0 ? (synthese.ncv / totalCredits) * 100 < 75 : false;
     const moyenneSur20 =
       synthese.totalMax > 0
         ? Number(((synthese.totalObtenu / synthese.totalMax) * 20).toFixed(2))
@@ -397,13 +359,12 @@ export default class BulletinPDF extends PDFManager {
         columns: [
           {
             width: "50%",
-            margin: [0, 12, 0, 0],
             table: {
               widths: ["*", 60],
               body: [
                 [
                   {
-                    text: `SYNTHÈSE ${this.bulletinData.semestre.designation.toUpperCase()}`,
+                    text: "SYNTHÈSE",
                     bold: true,
                     fillColor: "#eeeeee",
                     colSpan: 2,
@@ -413,23 +374,41 @@ export default class BulletinPDF extends PDFManager {
                 ],
                 [
                   { text: "CREDITS VALIDES (NCV)", fontSize: 10 },
-                  { text: String(synthese.ncv), fontSize: 10 },
+                  {
+                    text: String(synthese.ncv),
+                    fontSize: 10,
+                    alignment: "center",
+                  },
                 ],
                 [
                   { text: "CREDITS NON VALIDES (NCNV)", fontSize: 10 },
-                  { text: String(synthese.ncnv), fontSize: 10 },
+                  {
+                    text: String(synthese.ncnv),
+                    fontSize: 10,
+                    alignment: "center",
+                  },
                 ],
                 [
                   { text: "MOYENNE", fontSize: 10 },
-                  { text: String(moyenneSur20), fontSize: 10 },
+                  {
+                    text: String(moyenneSur20),
+                    fontSize: 10,
+                    alignment: "center",
+                  },
                 ],
                 [
                   { text: "MENTION", fontSize: 10 },
-                  { text: synthese.mention, fontSize: 10 },
+                  {
+                    text:
+                      synthese.mention ||
+                      this.generateAppreciation(moyenneSur20),
+                    fontSize: 10,
+                    alignment: "center",
+                  },
                 ],
                 [
                   {
-                    text: "DÉCISION SEMESTRE",
+                    text: "DÉCISION",
                     fillColor: "#eeeeee",
                     bold: true,
                     fontSize: 12,
@@ -439,12 +418,13 @@ export default class BulletinPDF extends PDFManager {
                     bold: true,
                     color: isAdjourne ? "red" : "green",
                     alignment: "center",
-                    fontSize: 12,
                     fillColor: "#eeeeee",
+                    fontSize: 12,
                   },
                 ],
               ],
             },
+            margin: [0, 12, 0, 0],
           },
           {
             width: "50%",
@@ -457,7 +437,7 @@ export default class BulletinPDF extends PDFManager {
                 margin: [0, 0, 0, 10],
               },
               {
-                text: "Le Président du Jury",
+                text: "Le Chef de Section",
                 fontSize: 10,
                 alignment: "center",
                 bold: true,
@@ -481,10 +461,10 @@ export default class BulletinPDF extends PDFManager {
     const studentSection = this.renderStudentSection();
     const documentInfoSection = this.renderDocumentInfoSection();
     const notesSection = this.renderNotesSection();
-    const syntheseSection = this.renderSyntheseSemestreSection();
+    const syntheseSection = this.renderSyntheseSection();
 
     const docDefinition = this.renderDocument(
-      `BULLETIN - ${this.bulletinData.semestre.designation.toUpperCase()}`,
+      "FICHE DE VALIDATION",
       [
         ...studentSection,
         // ...documentInfoSection,
@@ -492,7 +472,7 @@ export default class BulletinPDF extends PDFManager {
         ...syntheseSection,
       ],
       {
-        reference: metadata?.reference || `BUL-${Date.now()}`,
+        reference: metadata?.reference || `FV-${Date.now()}`,
         dateGeneration: new Date().toISOString(),
         signatureInfo: metadata?.signatureInfo || {
           fonction: "Le Chef de Section",
@@ -502,13 +482,13 @@ export default class BulletinPDF extends PDFManager {
 
     const resolvedFileName =
       fileName ||
-      `Bulletin_${this.bulletinData.semestre.designation.replace(/\s+/g, "_")}_${this.bulletinData.nomComplet.replace(/\s+/g, "_")}_${Date.now()}.pdf`;
+      `Fiche_${this.studentNote.nomComplet.replace(/\s+/g, "_")}_${Date.now()}.pdf`;
 
     try {
       await PDFManager.generatePDF(docDefinition, resolvedFileName);
-      console.log("Bulletin PDF généré avec succès !");
+      console.log("PDF généré avec succès !");
     } catch (error) {
-      console.error("Erreur lors de la génération du bulletin PDF :", error);
+      console.error("Erreur lors de la génération du PDF :", error);
     }
   }
 }

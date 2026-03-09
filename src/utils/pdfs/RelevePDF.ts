@@ -344,6 +344,7 @@ export default class RelevePDF extends PDFManager {
           widths: ["*", 40, 50, 40],
           body,
         },
+        layout: "lightHorizontalLines",
       },
     ];
   }
@@ -383,6 +384,14 @@ export default class RelevePDF extends PDFManager {
                   { text: "CREDITS VALIDES (NCV)", fontSize: 10 },
                   {
                     text: String(synthese.ncv),
+                    fontSize: 10,
+                    alignment: "center",
+                  },
+                ],
+                [
+                  { text: "CREDITS NON VALIDES (NCNV)", fontSize: 10 },
+                  {
+                    text: String(synthese.ncnv),
                     fontSize: 10,
                     alignment: "center",
                   },

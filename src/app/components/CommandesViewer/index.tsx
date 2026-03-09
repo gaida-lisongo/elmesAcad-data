@@ -7,11 +7,10 @@ import {
   createOrUpdateCommande,
   deleteCommande,
   generateDocumentReleve,
-  generateBulletin,
 } from "@/app/actions/documment.actions";
 import { resolveMatriculeToUser } from "@/lib/utils/resolveUser";
 import RelevePDF, { RelevePDFPayload } from "@/utils/pdfs/RelevePDF";
-import BulletinPDF, { BulletinPDFPayload } from "@/utils/pdfs/BulletinPDF";
+import ValidationPDF from "@/utils/pdfs/ValidationPDF";
 
 interface Commande {
   _id: string;
@@ -40,6 +39,7 @@ interface Commande {
 interface Document {
   _id: string;
   designation: string;
+  category: string;
   prix: number;
 }
 
@@ -165,9 +165,17 @@ export default function CommandesViewer({
     }
   };
 
-  const handleGenerateReleve = async (commandeId: string) => {
+  const handleGenerateDocument = async (commandeId: string) => {
+    const isReleve = document.category === "RELEVE";
+    const isFicheValidation = document.category === "FICHE-VALIDATION";
+    const docType = isReleve
+      ? "relevé"
+      : isFicheValidation
+        ? "fiche de validation"
+        : "document";
+
     console.log(
-      "[handleGenerateReleve] Génération du relevé pour commande:",
+      `[handleGenerateDocument] Génération du ${docType} pour commande:`,
       commandeId,
     );
     setLoading(true);
@@ -178,83 +186,40 @@ export default function CommandesViewer({
       const result = await generateDocumentReleve(commandeId, promotion);
 
       if (!result.success) {
-        console.error("[handleGenerateReleve] Erreur retournée:", result.error);
+        console.error(
+          "[handleGenerateDocument] Erreur retournée:",
+          result.error,
+        );
         setErrorMessage(
-          result.message || "Erreur lors de la génération du relevé",
+          result.message || `Erreur lors de la génération du ${docType}`,
         );
         setLoading(false);
         return;
       }
 
       const payload = result.data as RelevePDFPayload;
-      const fileName = (result.fileName as string) || "releve_de_cotes.pdf";
+      const fileName =
+        (result.fileName as string) || `${docType.replace(/\s+/g, "_")}.pdf`;
 
-      console.log("[handleGenerateReleve] Payload reçu, génération PDF...");
-      const relevePdf = new RelevePDF(payload);
-      await relevePdf.render(fileName);
-      console.log("[handleGenerateReleve] PDF généré:", fileName);
+      console.log("[handleGenerateDocument] Payload reçu, génération PDF...");
 
-      setSuccessMessage("Relevé généré et téléchargé avec succès");
-    } catch (error: any) {
-      console.error("[handleGenerateReleve] Exception:", error);
-      setErrorMessage(
-        error.message || "Erreur lors de la génération du relevé",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGenerateBulletin = async (
-    commandeId: string,
-    semestreIndex: number,
-  ) => {
-    console.log(
-      "[handleGenerateBulletin] Génération du bulletin pour commande:",
-      commandeId,
-      "Semestre:",
-      semestreIndex === 0 ? "S1" : "S2",
-    );
-    setLoading(true);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const result = await generateBulletin(
-        commandeId,
-        promotion,
-        semestreIndex,
-      );
-
-      if (!result.success) {
-        console.error(
-          "[handleGenerateBulletin] Erreur retournée:",
-          result.error,
-        );
-        setErrorMessage(
-          result.message || "Erreur lors de la génération du bulletin",
-        );
-        setLoading(false);
-        return;
+      if (isFicheValidation) {
+        const validationPdf = new ValidationPDF(payload);
+        await validationPdf.render(fileName);
+      } else {
+        const relevePdf = new RelevePDF(payload);
+        await relevePdf.render(fileName);
       }
 
-      const payload = result.data as BulletinPDFPayload;
-      const semLabel = semestreIndex === 0 ? "S1" : "S2";
-      const fileName =
-        (result.fileName as string) || `bulletin_${semLabel}.pdf`;
-
-      console.log("[handleGenerateBulletin] Payload reçu, génération PDF...");
-      const bulletinPdf = new BulletinPDF(payload);
-      await bulletinPdf.render(fileName);
-      console.log("[handleGenerateBulletin] PDF généré:", fileName);
+      console.log("[handleGenerateDocument] PDF généré:", fileName);
 
       setSuccessMessage(
-        `Bulletin ${semLabel} généré et téléchargé avec succès`,
+        `${docType.charAt(0).toUpperCase() + docType.slice(1)} généré et téléchargé avec succès`,
       );
     } catch (error: any) {
-      console.error("[handleGenerateBulletin] Exception:", error);
+      console.error("[handleGenerateDocument] Exception:", error);
       setErrorMessage(
-        error.message || "Erreur lors de la génération du bulletin",
+        error.message || `Erreur lors de la génération du ${docType}`,
       );
     } finally {
       setLoading(false);
@@ -660,37 +625,25 @@ export default function CommandesViewer({
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => handleGenerateReleve(cmd._id)}
+                          onClick={() => handleGenerateDocument(cmd._id)}
                           disabled={loading}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition disabled:opacity-50"
-                          title="Générer le relevé complet"
+                          title={
+                            document.category === "RELEVE"
+                              ? "Générer le relevé"
+                              : document.category === "FICHE-VALIDATION"
+                                ? "Générer la fiche de validation"
+                                : "Générer le document"
+                          }
                         >
                           <Icon
-                            icon="material-symbols:description"
-                            width={18}
-                            height={18}
-                          />
-                        </button>
-                        <button
-                          onClick={() => handleGenerateBulletin(cmd._id, 0)}
-                          disabled={loading}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition disabled:opacity-50"
-                          title="Bulletin Semestre 1"
-                        >
-                          <Icon
-                            icon="material-symbols:looks-one"
-                            width={18}
-                            height={18}
-                          />
-                        </button>
-                        <button
-                          onClick={() => handleGenerateBulletin(cmd._id, 1)}
-                          disabled={loading}
-                          className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition disabled:opacity-50"
-                          title="Bulletin Semestre 2"
-                        >
-                          <Icon
-                            icon="material-symbols:looks-two"
+                            icon={
+                              document.category === "RELEVE"
+                                ? "material-symbols:description"
+                                : document.category === "FICHE-VALIDATION"
+                                  ? "material-symbols:verified"
+                                  : "material-symbols:file-download"
+                            }
                             width={18}
                             height={18}
                           />
