@@ -5,7 +5,7 @@ import Recette from "@/lib/models/Recette";
 import { Etudiant } from "@/lib/models/User";
 import mongoose from "mongoose";
 
-export type ProduitType = "enrollement" | "stage" | "sujet";
+export type ProduitType = "enrollement" | "stage" | "sujet" | "document";
 export type CommandeStatus = "pending" | "ok" | "failed" | "paid";
 
 /* ─────────────────────────────────────── */
@@ -27,6 +27,11 @@ function getConfig(type: ProduitType) {
       commandeModel: Recette.SujetCommande,
       produitModel: Recette.Sujet,
       produitField: "sujetId",
+    },
+    document: {
+      commandeModel: Recette.DocumentCommande,
+      produitModel: Recette.Documment,
+      produitField: "docummentId",
     },
   };
   return map[type];

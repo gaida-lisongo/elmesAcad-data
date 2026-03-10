@@ -73,6 +73,9 @@ export default function CheckCmdClient({
   const [downloading, setDownloading] = useState(false);
   const statusCfg = STATUS_STYLE[verification.status];
   const student = verification.commande?.etudiantId;
+  const isPending = verification.status === "pending";
+  const isFailed = verification.status === "failed";
+  const canDeliverDocument = type === "document" && !isPending && !isFailed;
 
   const handleDownload = async () => {
     if (!deliverable) return;
@@ -139,25 +142,32 @@ export default function CheckCmdClient({
             </div>
           )}
 
-          {!verification.isPaid && (
+          {isPending && (
             <div className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-700">
-              Votre commande n'est pas encore confirmée. Veuillez régulariser la
-              facture avant toute délivrance de document.
+              Votre commande est en attente de confirmation. Revenez plus tard
+              pour vérifier la mise à jour du paiement.
             </div>
           )}
 
-          {verification.isPaid && type !== "document" && (
+          {isFailed && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              Le paiement a échoué. Veuillez régulariser votre facture avant
+              toute délivrance de document.
+            </div>
+          )}
+
+          {!isPending && !isFailed && type !== "document" && (
             <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
               Paiement confirmé. La commande est valide.
             </div>
           )}
 
-          {verification.isPaid && type === "document" && (
+          {canDeliverDocument && (
             <div className="mt-4 space-y-3">
               {deliverable && (
                 <div className="rounded-xl border border-green-200 bg-green-50 p-4">
                   <p className="text-sm font-semibold text-green-700">
-                    Paiement confirmé. Votre document est prêt.
+                    Statut confirmé. Votre document est prêt.
                   </p>
                   <button
                     onClick={handleDownload}
@@ -183,7 +193,7 @@ export default function CheckCmdClient({
               {!deliverable && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
                   {deliveryError ||
-                    "Le paiement est confirmé mais le document n'est pas encore disponible."}
+                    "Le document ne peut pas encore être délivré."}
                 </div>
               )}
             </div>

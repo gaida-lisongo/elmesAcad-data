@@ -237,6 +237,19 @@ export default function ScrollToTop() {
           ),
           pack: "basic",
         },
+        {
+          label: "Paiements Documents",
+          href: "/finance/documents",
+          icon: (
+            <Icon
+              icon="material-symbols:description-outline"
+              width={24}
+              height={24}
+              className="text-primary"
+            />
+          ),
+          pack: "basic",
+        },
       ],
     },
     {

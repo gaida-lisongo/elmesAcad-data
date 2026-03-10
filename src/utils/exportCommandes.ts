@@ -9,7 +9,7 @@
  */
 
 // Types mirrored from commande.actions.ts to avoid server-side import
-export type ProduitType = "enrollement" | "stage" | "sujet";
+export type ProduitType = "enrollement" | "stage" | "sujet" | "document";
 
 export interface ExportCommandesOptions {
   /** Raw commande documents (etudiantId must be populated) */

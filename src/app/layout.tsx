@@ -33,7 +33,17 @@ export default async function RootLayout({
   }
 
   // ── Sanitize: strip sensitive fields (uuid, apikey, apisecret) server-side
-  const raw = res.data?.clientComplete;
+  const raw = res?.data?.clientComplete;
+  if (!raw?.clientId || !raw?.packageId) {
+    return (
+      <html lang="fr" suppressHydrationWarning>
+        <body className={font.className}>
+          <ExpiredSubscription />
+        </body>
+      </html>
+    );
+  }
+
   const clientData: ClientData = {
     _id: raw._id,
     clientId: {

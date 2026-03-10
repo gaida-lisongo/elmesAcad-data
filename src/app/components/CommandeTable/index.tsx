@@ -34,6 +34,11 @@ const TABS: { key: TabStatus; label: string; icon: string }[] = [
     icon: "material-symbols:hourglass-empty",
   },
   {
+    key: "paid",
+    label: "Payées",
+    icon: "material-symbols:payments",
+  },
+  {
     key: "ok",
     label: "Encaissées",
     icon: "material-symbols:check-circle",
@@ -69,7 +74,7 @@ const STATUS_CONFIG: Record<
   },
 };
 
-const STATUSES_OPTIONS: CommandeStatus[] = ["pending", "ok", "failed"];
+const STATUSES_OPTIONS: CommandeStatus[] = ["pending", "paid", "ok", "failed"];
 
 /* ─────────────────────────────────────── */
 /*  Status Badge                           */
@@ -198,9 +203,7 @@ export default function CommandeTable({
       setCommandes(result.data);
       // keep selectedCmd in sync if it was already showing
       setSelectedCmd((prev: any) =>
-        prev
-          ? (result.data!.find((c) => c._id === prev._id) ?? null)
-          : null,
+        prev ? (result.data!.find((c) => c._id === prev._id) ?? null) : null,
       );
     } else {
       toast.error(result.error || "Erreur de chargement");
@@ -262,13 +265,17 @@ export default function CommandeTable({
   /* Local mini-metrics (on full list, not filtered) */
   const localOk = commandes.filter((c) => c.status === "ok").length;
   const localPending = commandes.filter((c) => c.status === "pending").length;
+  const selectedCmdInList =
+    selectedCmd && filtered.some((c) => c._id === selectedCmd._id)
+      ? filtered.find((c) => c._id === selectedCmd._id)
+      : null;
 
   return (
     <div className="space-y-4">
       {/* ── Commande Detail Card ── */}
-      {selectedCmd && (
+      {selectedCmdInList && (
         <CommandeDetailCard
-          cmd={selectedCmd}
+          cmd={selectedCmdInList}
           prix={prix}
           type={type}
           onClose={() => setSelectedCmd(null)}
@@ -399,7 +406,9 @@ export default function CommandeTable({
                 className="mb-2 opacity-40"
               />
               <p className="text-sm">
-                {search ? `Aucun résultat pour « ${search} »` : "Aucune commande trouvée"}
+                {search
+                  ? `Aucun résultat pour « ${search} »`
+                  : "Aucune commande trouvée"}
               </p>
             </div>
           ) : (
@@ -423,9 +432,7 @@ export default function CommandeTable({
                   return (
                     <tr
                       key={cmd._id}
-                      onClick={() =>
-                        setSelectedCmd(isSelected ? null : cmd)
-                      }
+                      onClick={() => setSelectedCmd(isSelected ? null : cmd)}
                       className={`cursor-pointer border-b border-stroke transition-colors hover:bg-primary/5 dark:border-strokedark dark:hover:bg-primary/10 ${
                         isSelected
                           ? "bg-primary/5 dark:bg-primary/10"
@@ -439,7 +446,10 @@ export default function CommandeTable({
                         {cmd.orderNumber}
                         {isSelected && (
                           <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-1.5 text-[10px] text-primary">
-                            <Icon icon="material-symbols:arrow-upward" width={10} />
+                            <Icon
+                              icon="material-symbols:arrow-upward"
+                              width={10}
+                            />
                           </span>
                         )}
                       </td>
@@ -653,7 +663,9 @@ function CommandeDetailCard({
       <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-2 px-6 py-4 dark:bg-boxdark-2">
         <p className="text-xs text-bodydark">
           ID interne :{" "}
-          <span className="font-mono text-black dark:text-white">{cmd._id}</span>
+          <span className="font-mono text-black dark:text-white">
+            {cmd._id}
+          </span>
         </p>
         <div className="flex items-center gap-2">
           <span className="text-xs text-bodydark">Changer le statut :</span>

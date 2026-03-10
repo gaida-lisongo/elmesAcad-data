@@ -52,7 +52,12 @@ export default async function CheckCommandePage({
     | undefined;
   let deliveryError = "";
 
-  if (type === "document" && verification.data.isPaid) {
+  const canAttemptDelivery =
+    type === "document" &&
+    verification.data.status !== "pending" &&
+    verification.data.status !== "failed";
+
+  if (canAttemptDelivery) {
     const document = verification.data.produit;
     const promotionId = String(document?.promotionId || "");
 
