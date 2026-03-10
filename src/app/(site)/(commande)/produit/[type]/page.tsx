@@ -38,6 +38,11 @@ const TYPE_LABEL: Record<
     icon: "solar:document-text-outline",
     color: "bg-gradient-to-br from-blue-500 to-blue-600",
   },
+  document: {
+    label: "Document académique",
+    icon: "material-symbols:description-outline",
+    color: "bg-gradient-to-br from-emerald-500 to-emerald-600",
+  },
 };
 
 /* ── helpers ───────────────────────────────────────────── */
@@ -100,7 +105,12 @@ export default function ProduitPage({
   const lastDash = rawType.lastIndexOf("-");
   const produitType = rawType.slice(0, lastDash) as ProduitType;
   const produitId = rawType.slice(lastDash + 1);
-  const validTypes: ProduitType[] = ["enrollement", "stage", "sujet"];
+  const validTypes: ProduitType[] = [
+    "enrollement",
+    "stage",
+    "sujet",
+    "document",
+  ];
 
   const [data, setData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);

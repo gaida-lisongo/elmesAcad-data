@@ -978,3 +978,12 @@ export async function generateBulletin(
     };
   }
 }
+
+export async function generateDocumentValidation(
+  commandeId: string,
+  promotion: any,
+) {
+  // La fiche de validation exploite actuellement le meme payload academique
+  // que le releve; seul le template PDF client change.
+  return generateDocumentReleve(commandeId, promotion);
+}

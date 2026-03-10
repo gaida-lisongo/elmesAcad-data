@@ -7,7 +7,7 @@ import Link from "next/link";
 
 interface UniteCardProps {
   item: any;
-  type: "unite" | "stage" | "sujet" | "enrollement";
+  type: "unite" | "stage" | "sujet" | "enrollement" | "document";
   showActions?: boolean;
   onEdit?: (item: any) => void;
   onDelete?: (item: any) => void;
@@ -65,6 +65,15 @@ const UniteCard = ({
       creditField: "prix",
       descriptionField: "description",
       detailUrl: `/produit/enrollement-${item._id}`,
+      creditLabel: "$",
+    },
+    document: {
+      icon: "material-symbols:description-outline",
+      labelField: "designation",
+      codeField: null,
+      creditField: "prix",
+      descriptionField: "description",
+      detailUrl: `/produit/document-${item._id}`,
       creditLabel: "$",
     },
   };

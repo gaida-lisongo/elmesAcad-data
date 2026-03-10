@@ -8,6 +8,7 @@ import type { ProduitType } from "@/app/actions/produit.actions";
 export interface InvoiceParams {
   type: ProduitType;
   produitId: string;
+  commandeId: string;
   produitName: string;
   orderNumber: string;
   reference: string;
@@ -23,12 +24,14 @@ const TYPE_LABEL: Record<ProduitType, string> = {
   enrollement: "Inscription à la session",
   stage: "Stage académique",
   sujet: "Sujet de mémoire",
+  document: "Document académique",
 };
 
 const TYPE_URL: Record<ProduitType, string> = {
   enrollement: "enrollement",
   stage: "stage",
   sujet: "sujet",
+  document: "document",
 };
 
 export async function generateInvoicePDF(params: InvoiceParams): Promise<void> {
@@ -38,7 +41,7 @@ export async function generateInvoicePDF(params: InvoiceParams): Promise<void> {
   // @ts-ignore – vfs_fonts attaches itself on the default export
   pdfMake.vfs = pdfFonts?.pdfMake?.vfs ?? (pdfFonts as any).vfs;
 
-  const qrUrl = `${window.location.origin}/${TYPE_URL[params.type]}/${params.produitId}`;
+  const qrUrl = `${window.location.origin}/check-cmd/${TYPE_URL[params.type]}/${params.commandeId}`;
   const now = new Date().toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "long",
@@ -48,7 +51,10 @@ export async function generateInvoicePDF(params: InvoiceParams): Promise<void> {
   const docDefinition: any = {
     pageSize: "A4",
     pageMargins: [40, 60, 40, 60],
-    background: (_page: number, pageSize: { width: number; height: number }) => ({
+    background: (
+      _page: number,
+      pageSize: { width: number; height: number },
+    ) => ({
       canvas: [
         {
           type: "rect",

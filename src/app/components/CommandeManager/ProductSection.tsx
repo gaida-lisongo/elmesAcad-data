@@ -152,6 +152,33 @@ function SujetSection({ produit }: { produit: any }) {
   );
 }
 
+function DocumentSection({ produit }: { produit: any }) {
+  return (
+    <div>
+      <div className="mb-4 flex items-center gap-2">
+        <Icon
+          icon="solar:document-text-outline"
+          className="text-2xl text-primary"
+        />
+        <h2 className="text-lg font-bold text-black">Informations document</h2>
+      </div>
+
+      <div className="space-y-3">
+        <div className="rounded-xl bg-gray-2 p-3 dark:bg-boxdark-2">
+          <p className="text-xs uppercase tracking-wide text-bodydark">Type</p>
+          <p className="text-sm font-semibold text-black">{produit.category}</p>
+        </div>
+        <div className="rounded-xl border border-stroke p-3 dark:border-strokedark">
+          <p className="text-xs text-bodydark">
+            Une fois le paiement validé, vous devrez compléter vos informations
+            d'identité pour l'édition finale du document.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Export: branching by type ──────────────────────────── */
 export default function ProductSection({ type, produit }: ProductSectionProps) {
   return (
@@ -159,6 +186,7 @@ export default function ProductSection({ type, produit }: ProductSectionProps) {
       {type === "enrollement" && <EnrollementSection produit={produit} />}
       {type === "stage" && <StageSection produit={produit} />}
       {type === "sujet" && <SujetSection produit={produit} />}
+      {type === "document" && <DocumentSection produit={produit} />}
     </div>
   );
 }

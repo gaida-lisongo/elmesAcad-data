@@ -18,6 +18,7 @@ interface ProgrammeClientProps {
   stages: any[];
   sujets: any[];
   enrollements: any[];
+  documents: any[];
   totalSemestres: number;
   totalCredits: number;
   totalUnites: number;
@@ -32,6 +33,7 @@ export default function ProgrammeClient({
   stages,
   sujets,
   enrollements,
+  documents,
   totalSemestres,
   totalCredits,
   totalUnites,
@@ -63,6 +65,11 @@ export default function ProgrammeClient({
     { id: "stages", label: "Stages", icon: "solar:case-outline" },
     { id: "sujets", label: "Sujets", icon: "solar:document-text-outline" },
     { id: "sessions", label: "Sessions", icon: "solar:calendar-outline" },
+    {
+      id: "documents",
+      label: "Documents",
+      icon: "material-symbols:description-outline",
+    },
   ];
 
   const formatDate = (date: string | Date) => {
@@ -270,6 +277,46 @@ export default function ProgrammeClient({
               type="enrollement"
               showActions={false}
             />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderDocuments = () => {
+    if (!anneeActive) {
+      return (
+        <div className="text-center py-10 text-gray-500">
+          <Icon
+            icon="material-symbols:description-outline"
+            className="text-6xl mx-auto mb-4 text-gray-400"
+          />
+          <p>Aucune année académique active</p>
+        </div>
+      );
+    }
+
+    if (documents.length === 0) {
+      return (
+        <div className="text-center py-10 text-gray-500">
+          <Icon
+            icon="material-symbols:description-outline"
+            className="text-6xl mx-auto mb-4 text-gray-400"
+          />
+          <p>Aucun document disponible pour cette promotion</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {documents.map((document: any, idx: number) => (
+          <div
+            key={idx}
+            className="animate-fadeInUp"
+            style={{ animationDelay: `${idx * 50}ms` }}
+          >
+            <UniteCard item={document} type="document" showActions={false} />
           </div>
         ))}
       </div>
@@ -490,6 +537,7 @@ export default function ProgrammeClient({
           {activeTab === "stages" && renderStages()}
           {activeTab === "sujets" && renderSujets()}
           {activeTab === "sessions" && renderSessions()}
+          {activeTab === "documents" && renderDocuments()}
         </div>
       </div>
 

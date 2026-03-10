@@ -330,6 +330,115 @@ function ConfigSujet({
   );
 }
 
+/* Document: infos d'etat civil pour emission du document */
+function ConfigDocument({
+  onConfirm,
+  loading,
+}: {
+  onConfirm: (config: object) => void;
+  loading: boolean;
+}) {
+  const [lieuNaissance, setLieuNaissance] = useState("");
+  const [dateNaissance, setDateNaissance] = useState("");
+  const [nationalite, setNationalite] = useState("");
+  const [sexe, setSexe] = useState<"M" | "F">("M");
+  const [adresse, setAdresse] = useState("");
+
+  const handleSubmit = () => {
+    if (
+      !lieuNaissance.trim() ||
+      !dateNaissance ||
+      !nationalite.trim() ||
+      !adresse.trim()
+    ) {
+      toast.error("Veuillez renseigner toutes les informations demandées");
+      return;
+    }
+
+    onConfirm({
+      lieu_naissance: lieuNaissance,
+      date_naissance: dateNaissance,
+      nationalite,
+      sexe,
+      adresse,
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl bg-gray-2 p-3 dark:bg-boxdark-2">
+        <p className="text-xs text-bodydark">
+          Après paiement, renseignez ces informations pour permettre la
+          génération du relevé ou de la fiche de validation.
+        </p>
+      </div>
+
+      <Field label="Lieu de naissance" required>
+        <input
+          className={inputCls}
+          value={lieuNaissance}
+          onChange={(e) => setLieuNaissance(e.target.value)}
+          placeholder="Ex: Kinshasa"
+        />
+      </Field>
+
+      <Field label="Date de naissance" required>
+        <input
+          className={inputCls}
+          value={dateNaissance}
+          onChange={(e) => setDateNaissance(e.target.value)}
+          type="date"
+        />
+      </Field>
+
+      <Field label="Nationalité" required>
+        <input
+          className={inputCls}
+          value={nationalite}
+          onChange={(e) => setNationalite(e.target.value)}
+          placeholder="Ex: Congolaise"
+        />
+      </Field>
+
+      <Field label="Sexe" required>
+        <select
+          className={inputCls}
+          value={sexe}
+          onChange={(e) => setSexe(e.target.value as "M" | "F")}
+        >
+          <option value="M">Masculin</option>
+          <option value="F">Féminin</option>
+        </select>
+      </Field>
+
+      <Field label="Adresse" required>
+        <input
+          className={inputCls}
+          value={adresse}
+          onChange={(e) => setAdresse(e.target.value)}
+          placeholder="Adresse complète"
+        />
+      </Field>
+
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-white transition hover:bg-primary/90 disabled:opacity-60"
+      >
+        {loading ? (
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+        ) : (
+          <Icon
+            icon="material-symbols:check-circle-outline"
+            className="text-xl"
+          />
+        )}
+        Valider la commande
+      </button>
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════ */
 /*  MAIN CommandeManager                  */
 /* ══════════════════════════════════════ */
@@ -436,6 +545,7 @@ export default function CommandeManager({
     await generateInvoicePDF({
       type,
       produitId: produit._id,
+      commandeId,
       produitName: produit.designation,
       orderNumber,
       reference: orderNumber,
@@ -453,6 +563,7 @@ export default function CommandeManager({
     enrollement: "Inscription à la session",
     stage: "Stage académique",
     sujet: "Sujet de mémoire",
+    document: "Document académique",
   };
 
   return (
@@ -585,6 +696,12 @@ export default function CommandeManager({
           {type === "sujet" && (
             <ConfigSujet onConfirm={handleFinalize} loading={loadingFinalize} />
           )}
+          {type === "document" && (
+            <ConfigDocument
+              onConfirm={handleFinalize}
+              loading={loadingFinalize}
+            />
+          )}
         </div>
       )}
 
@@ -616,7 +733,12 @@ export default function CommandeManager({
           </button>
           <p className="text-xs text-bodydark">
             Le reçu contient un QR code pour accéder au détail de votre{" "}
-            {type === "enrollement" ? "inscription" : type}.
+            {type === "enrollement"
+              ? "inscription"
+              : type === "document"
+                ? "commande de document"
+                : type}
+            .
           </p>
         </div>
       )}

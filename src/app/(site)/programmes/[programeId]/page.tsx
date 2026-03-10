@@ -4,6 +4,7 @@ import { fetchHoraires } from "@/app/actions/horaire.actions";
 import { fetchStages } from "@/app/actions/stage.actions";
 import { fetchSujets } from "@/app/actions/sujet.actions";
 import { fetchEnrollements } from "@/app/actions/enrollement.actions";
+import { getDocumentsByCategory } from "@/app/actions/documment.actions";
 import { notFound } from "next/navigation";
 import ProgrammeClient from "./client";
 import ProgrammeBanner from "./ProgrammeBanner";
@@ -56,6 +57,26 @@ export default async function ProgrammePage({
   );
   const enrollements = enrollementsRes.success ? enrollementsRes.data : [];
 
+  const [releveRes, ficheValidationRes] = await Promise.all([
+    getDocumentsByCategory(
+      "RELEVE",
+      programeId,
+      anneeActive?._id?.toString() || "",
+    ),
+    getDocumentsByCategory(
+      "FICHE-VALIDATION",
+      programeId,
+      anneeActive?._id?.toString() || "",
+    ),
+  ]);
+
+  const documents = [
+    ...(releveRes.success && releveRes.data ? releveRes.data : []),
+    ...(ficheValidationRes.success && ficheValidationRes.data
+      ? ficheValidationRes.data
+      : []),
+  ];
+
   // Calculate stats
   const totalSemestres = programme.semestres?.length || 0;
   const totalCredits =
@@ -91,6 +112,7 @@ export default async function ProgrammePage({
           stages={stages}
           sujets={sujets}
           enrollements={enrollements ?? []}
+          documents={documents}
           totalSemestres={totalSemestres}
           totalCredits={totalCredits}
           totalUnites={totalUnites}

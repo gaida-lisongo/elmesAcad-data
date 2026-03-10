@@ -8,10 +8,17 @@ import { Etudiant } from "@/lib/models/User";
 import mongoose from "mongoose";
 import crypto from "crypto";
 
-export type ProduitType = "enrollement" | "stage" | "sujet";
+export type ProduitType = "enrollement" | "stage" | "sujet" | "document";
 
 const apiKey = process.env.API_KEY || "default";
 const secretKey = process.env.SECRET_KEY || "default";
+
+function serializeData(data: any): any {
+  if (data === null || data === undefined) {
+    return data;
+  }
+  return JSON.parse(JSON.stringify(data));
+}
 /* ─────────────────────────────────────────────────────────── */
 /*  Helper: resolve promotion name from sections               */
 /* ─────────────────────────────────────────────────────────── */
@@ -41,12 +48,14 @@ const MODEL: Record<ProduitType, any> = {
   enrollement: RecetteModels.Enrollement,
   stage: RecetteModels.Stage,
   sujet: RecetteModels.Sujet,
+  document: RecetteModels.Documment,
 };
 
 const COMMANDE_MODEL: Record<ProduitType, any> = {
   enrollement: RecetteModels.EnrollementCommande,
   stage: RecetteModels.StageCommande,
   sujet: RecetteModels.SujetCommande,
+  document: RecetteModels.DocumentCommande,
 };
 
 /* ─────────────────────────────────────────────────────────── */
@@ -71,7 +80,7 @@ export async function fetchProduitById(
       return { success: false, error: "ID invalide" };
     await connectDB();
     const request =
-      type == "enrollement"
+      type === "enrollement"
         ? MODEL[type]
             .findById(id)
             .populate({ path: "matieres.matiereId", model: Element })
@@ -187,6 +196,7 @@ export async function initCommande(
       enrollement: "enrollementId",
       stage: "stageId",
       sujet: "sujetId",
+      document: "docummentId",
     };
 
     const commande = await COMMANDE_MODEL[type].create({
@@ -238,6 +248,12 @@ export async function finalizeCommande(
     protocole: string;
     // note valide pour tous
     note: number;
+    // document
+    lieu_naissance: string;
+    date_naissance: string;
+    nationalite: string;
+    sexe: string;
+    adresse: string;
   }>,
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -313,5 +329,91 @@ export async function finalizeCommande(
   } catch (err) {
     console.error("finalizeCommande error:", err);
     return { success: false, error: "Erreur lors de la finalisation" };
+  }
+}
+
+export async function verifyCommandeForCheck(
+  type: ProduitType,
+  commandeId: string,
+): Promise<{
+  success: boolean;
+  data?: {
+    commande: any;
+    produit: any;
+    isPaid: boolean;
+    status: "pending" | "paid" | "failed" | "ok";
+    paymentRawStatus?: string;
+  };
+  error?: string;
+}> {
+  try {
+    if (!commandeId || commandeId.length !== 24) {
+      return { success: false, error: "ID de commande invalide" };
+    }
+
+    await connectDB();
+
+    const produitField: Record<ProduitType, string> = {
+      enrollement: "enrollementId",
+      stage: "stageId",
+      sujet: "sujetId",
+      document: "docummentId",
+    };
+
+    const commande = await COMMANDE_MODEL[type]
+      .findById(commandeId)
+      .populate("etudiantId")
+      .populate(produitField[type])
+      .lean();
+
+    if (!commande) {
+      return { success: false, error: "Commande introuvable" };
+    }
+
+    const paiementReq = await fetch(
+      `${process.env.BASE_URL}/flexpay?orderNumber=${commande.orderNumber}`,
+    );
+
+    let newStatus: "pending" | "paid" | "failed" | "ok" =
+      (commande.status as "pending" | "paid" | "failed" | "ok") || "pending";
+    let rawStatus: string | undefined;
+
+    if (paiementReq.ok) {
+      const paiementRes = await paiementReq.json();
+      const paymentInfo = paiementRes?.data;
+      rawStatus = paymentInfo?.status;
+
+      if (rawStatus === "0") {
+        newStatus = "ok";
+      } else if (newStatus === "ok") {
+        newStatus = "paid";
+      } else if (newStatus !== "failed") {
+        newStatus = "paid";
+      }
+    }
+
+    if (newStatus !== commande.status) {
+      await COMMANDE_MODEL[type].findByIdAndUpdate(commandeId, {
+        $set: { status: newStatus },
+      });
+      commande.status = newStatus;
+    }
+
+    return {
+      success: true,
+      data: {
+        commande: serializeData(commande),
+        produit: serializeData((commande as any)[produitField[type]]),
+        isPaid: newStatus === "ok",
+        status: newStatus,
+        paymentRawStatus: rawStatus,
+      },
+    };
+  } catch (error: any) {
+    console.error("verifyCommandeForCheck error:", error);
+    return {
+      success: false,
+      error: error.message || "Erreur lors de la vérification de la commande",
+    };
   }
 }
